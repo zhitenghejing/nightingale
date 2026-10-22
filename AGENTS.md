@@ -21,7 +21,9 @@ keep shared project architecture in CLAUDE.md rather than duplicating it here.
 - `n9e.zhiteng.win` is the separate stable/main instance. Worktrees only use
   `n9e-dev0.zhiteng.win` through `n9e-dev9.zhiteng.win`. Never publish a branch
   through the stable hostname. Stable commands require the configured clean main checkout.
-- Each preview owns its SQLite, TSDB, runtime Skill files, logs and credentials.
+- Each preview owns its PostgreSQL database/role, miniredis, runtime Skill files,
+  logs and credentials. One host-owned PostgreSQL instance and read-only test
+  Prometheus are shared; preview destroy never deletes these shared services.
   Never connect a disposable preview to production data. Basic previews disable
   Skill script execution; full previews require actual isolation and pinned inputs.
 - Deliver reasons and results, actual checks, preview build ID and acceptance

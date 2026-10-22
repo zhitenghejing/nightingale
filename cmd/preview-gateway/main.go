@@ -23,6 +23,8 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type manifest struct {
@@ -38,6 +40,9 @@ type manifest struct {
 	RunDir          string          `json:"runDir"`
 	CredentialsFile string          `json:"credentialsFile"`
 	TempDir         string          `json:"tempDir"`
+	DatabaseDSN     string          `json:"databaseDsn"`
+	PrometheusURL   string          `json:"prometheusURL"`
+	Storage         json.RawMessage `json:"storage"`
 }
 
 var client = &http.Client{Timeout: 4 * time.Second, Transport: &http.Transport{Proxy: nil}}
@@ -101,11 +106,30 @@ func health(base string, m manifest) error {
 	if version == "" {
 		version = "preview-" + m.BuildID
 	}
-	for _, probe := range [][2]string{
+	probes := [][2]string{
 		{"/api/n9e/version", version},
 		{"/login", "<html"},
-		{"/prometheus/api/v1/query?query=vector(1)", `"status":"success"`},
-	} {
+	}
+	if m.DatabaseDSN != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Second)
+		defer cancel()
+		connection, err := pgx.Connect(ctx, m.DatabaseDSN)
+		if err != nil {
+			return fmt.Errorf("preview PostgreSQL unavailable")
+		}
+		defer connection.Close(context.Background())
+		var rootCount int
+		if err := connection.QueryRow(ctx, "SELECT count(*) FROM users WHERE username='root'").Scan(&rootCount); err != nil || rootCount != 1 {
+			return fmt.Errorf("preview PostgreSQL account probe failed")
+		}
+	}
+	if m.PrometheusURL == "" {
+		// Existing manifests remain inspectable until their first shared-storage refresh.
+		probes = append(probes, [2]string{"/prometheus/api/v1/query?query=vector(1)", `"status":"success"`})
+	} else if err := prometheusHealth(m.PrometheusURL); err != nil {
+		return err
+	}
+	for _, probe := range probes {
 		if err := check(base, probe[0], probe[1]); err != nil {
 			return err
 		}
@@ -119,6 +143,31 @@ func health(base string, m manifest) error {
 		return fmt.Errorf("anonymous profile probe expected HTTP 401, got %d", response.StatusCode)
 	}
 	return nil
+}
+
+func prometheusHealth(base string) error {
+	response, err := client.Get(strings.TrimRight(base, "/") + "/api/v1/query?query=up%7Bjob%3D%22prometheus%22%7D")
+	if err != nil {
+		return fmt.Errorf("shared Prometheus unavailable")
+	}
+	defer response.Body.Close()
+	var result struct {
+		Status string `json:"status"`
+		Data   struct {
+			Result []struct {
+				Value []json.RawMessage `json:"value"`
+			} `json:"result"`
+		} `json:"data"`
+	}
+	if response.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(response.Body, 2<<20)).Decode(&result) != nil || result.Status != "success" {
+		return fmt.Errorf("shared Prometheus query failed")
+	}
+	for _, series := range result.Data.Result {
+		if len(series.Value) == 2 && string(series.Value[1]) == `"1"` {
+			return nil
+		}
+	}
+	return fmt.Errorf("shared Prometheus has no healthy test scrape")
 }
 
 func checkReady(base string, m manifest) error {
@@ -161,7 +210,7 @@ func handler(m manifest, base string, ready *atomic.Bool) http.Handler {
 			// Paths, process IDs and credentials never leave the host.
 			_ = json.NewEncoder(w).Encode(map[string]any{"buildId": m.BuildID, "ready": ok,
 				"source": m.Source, "frontend": m.Frontend, "profile": m.Profile, "role": m.Role,
-				"appVersion": m.AppVersion})
+				"appVersion": m.AppVersion, "storage": m.Storage})
 			return
 		}
 		if !ready.Load() {

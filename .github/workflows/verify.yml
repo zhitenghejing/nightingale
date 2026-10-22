@@ -86,4 +86,4 @@ jobs:
           N9E_TEST_POSTGRES_DSN: 'host=127.0.0.1 port=5432 user=postgres password=test-password dbname=postgres sslmode=disable'
           N9E_TEST_CLICKHOUSE_ADDR: '127.0.0.1:8123'
           N9E_TEST_VICTORIALOGS_URL: 'http://127.0.0.1:9428'
-        run: go test -count=1 -v ./dskit/mysql ./dskit/clickhouse ./dskit/victorialogs ./pkg/ormx
+        run: go test -count=1 -v ./dskit/mysql ./dskit/clickhouse ./dskit/victorialogs ./pkg/ormx ./cmd/preview-db

@@ -4,35 +4,51 @@
 Run separately from make verify. Leaves the ordinary host registry untouched.
 """
 import json
+import contextlib
 import os
 from pathlib import Path
 import secrets
 import shutil
 import socket
-import sqlite3
 import subprocess
 import tempfile
 import urllib.error
 import urllib.request
 
+import preview_services
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@contextlib.contextmanager
+def smoke_directory():
+    directory = tempfile.mkdtemp(prefix="n9e-smoke-")
+    try:
+        yield directory
+    except BaseException:
+        print(f"Smoke evidence retained at {directory}; inspect and finish cleanup before deleting it.")
+        raise
+    else:
+        shutil.rmtree(directory)
+
+
 def main():
-    with tempfile.TemporaryDirectory(prefix="n9e-smoke-") as temporary:
+    with smoke_directory() as temporary:
         base = Path(temporary)
         second = base / "worktree"
         state = base / "state"
         state.mkdir(mode=0o700)
         ports = []
-        for _ in range(2):
+        for _ in range(4):
             with socket.socket() as sock:
                 sock.bind(("127.0.0.1", 0))
                 ports.append(sock.getsockname()[1])
-        if ports[0] == ports[1]:
+        if len(set(ports)) != len(ports):
             raise RuntimeError("port collision; retry smoke check")
         (state / "config.json").write_text(json.dumps({"slots": [
-            {"id": 0, "port": ports[0]}, {"id": 1, "port": ports[1]}]}))
+            {"id": 0, "port": ports[0]}, {"id": 1, "port": ports[1]}],
+            "services": {"postgresPort": ports[2], "prometheusPort": ports[3]}}))
+        shared_cfg = preview_services.settings(state, json.loads((state / "config.json").read_text()))
         env = {**os.environ, "N9E_PREVIEW_STATE": str(state), "PYTHONDONTWRITEBYTECODE": "1",
                "CONFIGTYPE_HTTP_APIFORSERVICE_ENABLE": "true",
                "CONFIGTYPE_HTTP_APIFORAGENT_ENABLE": "true",
@@ -108,11 +124,24 @@ def main():
             first_credentials = json.loads(Path(first["credentialsFile"]).read_text())
             other_credentials = json.loads(Path(other["credentialsFile"]).read_text())
             assert first_credentials != other_credentials
-            with sqlite3.connect(Path(first["instanceDir"]) / "run/n9e.db") as db:
-                db.execute("CREATE TABLE preview_isolation_probe (value TEXT)")
-                db.execute("INSERT INTO preview_isolation_probe VALUES ('only-first')")
-            with sqlite3.connect(Path(other["instanceDir"]) / "run/n9e.db") as db:
-                assert not db.execute("SELECT name FROM sqlite_master WHERE name='preview_isolation_probe'").fetchall()
+            first_db, other_db = first["storage"]["databaseName"], other["storage"]["databaseName"]
+            assert first_db != other_db
+            preview_services.sql(shared_cfg, "CREATE TABLE preview_isolation_probe (value TEXT); "
+                                 "INSERT INTO preview_isolation_probe VALUES ('only-first');", database=first_db)
+            assert preview_services.sql(shared_cfg, "SELECT count(*) FROM information_schema.tables "
+                                        "WHERE table_name='preview_isolation_probe';", database=other_db) == "0"
+            assert preview_services.probe_prometheus(shared_cfg)
+            for path, expected, explanation in (
+                    ("/api/v1/write", 404, "remote write receiver needs to be enabled"),
+                    ("/api/v1/admin/tsdb/delete_series", 500, "admin APIs disabled"),
+                    ("/-/reload", 403, "Lifecycle API is not enabled")):
+                request = urllib.request.Request(f"http://127.0.0.1:{ports[3]}{path}", data=b"", method="POST")
+                try:
+                    urllib.request.urlopen(request, timeout=5).close()
+                    raise AssertionError("shared Prometheus mutation accepted")
+                except urllib.error.HTTPError as error:
+                    body = error.read().decode()
+                    assert error.code == expected and explanation in body, (path, error.code, body)
             assert "smoke frontend one" in read(ports[1], "/login")
             marker = second / "smoke-untracked.txt"
             marker.write_text("source changed")
@@ -124,6 +153,18 @@ def main():
             assert "smoke frontend one" in read(ports[1], "/login")  # staged, never live-linked
             initial_login = api(ports[1], "/auth/login", other_credentials)
             token = initial_login["dat"]["access_token"]
+            first_login = api(ports[0], "/auth/login", first_credentials)
+            try:
+                api(ports[1], "/self/profile", token=first_login["dat"]["access_token"])
+                raise AssertionError("token from another environment accepted")
+            except urllib.error.HTTPError as error:
+                assert error.code == 401, error.code
+            listing = api(ports[1], "/datasource/list", {"plugin_type": "prometheus"}, token=token)
+            assert not listing["error"], listing["error"]
+            datasources = listing["data"]
+            shared = next(ds for ds in datasources if ds["identifier"] == "preview-shared-prometheus")
+            metrics = api(ports[1], f"/proxy/{shared['id']}/api/v1/query?query=up", token=token)
+            assert metrics["status"] == "success" and metrics["data"]["result"]
             original_profile = api(ports[1], "/self/profile", token=token)["dat"]
             new_credentials = {"username": "root", "password": secrets.token_urlsafe(24)}
             changed_password = api(ports[1], "/self/password",
@@ -148,6 +189,10 @@ def main():
             assert command(ROOT, "status")["local"]["ok"]
             command(second, "destroy")
             assert not Path(other["instanceDir"]).exists()
+            assert preview_services.sql(shared_cfg, f"SELECT count(*) FROM pg_database WHERE datname='{other_db}';") == "0"
+            assert preview_services.sql(shared_cfg, f"SELECT count(*) FROM pg_roles WHERE rolname='{other_db}';") == "0"
+            assert preview_services.sql(shared_cfg, "SELECT value FROM preview_isolation_probe;", database=first_db) == "only-first"
+            assert preview_services.probe_prometheus(shared_cfg)
             command(second, "destroy", "--if-exists")
             # A released slot can be reused without reusing the old instance/data.
             replacement = command(second, "up", "--slot", "1", "--frontend-dir", str(frontend),
@@ -155,7 +200,8 @@ def main():
             assert replacement["instanceDir"] != other["instanceDir"]
             print(json.dumps({"result": "passed", "checks": ["two worktrees", "slot ownership",
                 "host auth environment isolation", "internal APIs blocked", "anonymous/spoofed profile rejected",
-                "private credentials and DB", "dirty source detection", "in-tree frontend identity", "frontend staging and drift",
+                "private credentials and PostgreSQL databases", "cross-environment token rejection",
+                "authenticated shared Prometheus query", "shared read-only Prometheus", "dirty source detection", "in-tree frontend identity", "frontend staging and drift",
                 "refresh after password change preserves account and roles", "initial password rejected",
                 "stop isolation", "destroy/idempotence", "slot reuse"],
                 "firstBuildId": first["buildId"], "secondBuildId": refreshed["buildId"]}, indent=2))
@@ -164,6 +210,12 @@ def main():
                 if (root / "scripts/preview.py").exists():
                     command(root, "destroy", "--if-exists")
             subprocess.run(["git", "worktree", "remove", "--force", str(second)], cwd=ROOT, check=True)
+            # Only this temporary registry's explicitly owned services/volumes are disposable.
+            for name in (shared_cfg["postgres"], shared_cfg["prometheus"]):
+                info = preview_services.container(name)
+                if info and (info["Config"].get("Labels") or {}).get("n9e.preview.owner") == shared_cfg["owner"]:
+                    preview_services.docker("rm", "-f", name)
+                    preview_services.docker("volume", "rm", name + "-data")
 
 
 if __name__ == "__main__":

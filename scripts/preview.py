@@ -18,12 +18,15 @@ import time
 import urllib.request
 from urllib.parse import urlsplit
 
+import preview_services
+
 MANAGER_ROOT = Path(__file__).resolve().parents[1]
 ROOT = MANAGER_ROOT
 STATE = Path(os.environ.get("N9E_PREVIEW_STATE", Path.home() / ".local/state/n9e-preview")).resolve()
 DEFAULT_CONFIG = {
     "stable": {"branch": "main", "port": 30299, "url": "https://n9e.zhiteng.win"},
     "slots": [{"id": n, "port": 30300 + n, "url": f"https://n9e-dev{n}.zhiteng.win"} for n in range(10)],
+    "services": preview_services.DEFAULT_PORTS,
 }
 
 
@@ -82,12 +85,15 @@ def write_json(path, obj):
 def config():
     path = STATE / "config.json"
     cfg = json.loads(path.read_text()) if path.exists() else DEFAULT_CONFIG
+    services = preview_services.settings(STATE, cfg)
     slots = cfg["slots"]
     ids, ports, urls = set(), set(), set()
     for slot in slots:
         i, port = slot["id"], slot["port"]
         if type(i) is not int or i < 0 or type(port) is not int or not 1024 <= port <= 65535:
             raise ValueError("slot IDs must be nonnegative integers; ports must be 1024..65535")
+        if port in (services["postgresPort"], services["prometheusPort"]):
+            raise ValueError("preview port conflicts with shared dependencies")
         url = slot.get("url", "")
         if i in ids or port in ports or (url and url in urls):
             raise ValueError("duplicate slot ID, port or public URL")
@@ -103,7 +109,8 @@ def config():
     if "stable" in cfg:
         stable = cfg["stable"]
         port = stable["port"]
-        if type(port) is not int or not 1024 <= port <= 65535 or port in ports:
+        if (type(port) is not int or not 1024 <= port <= 65535 or port in ports
+                or port in (services["postgresPort"], services["prometheusPort"])):
             raise ValueError("stable port must be valid and separate from worktree slots")
         if not stable["url"].startswith("https://") or not stable.get("branch"):
             raise ValueError("stable requires an HTTPS URL and an expected branch")
@@ -190,6 +197,7 @@ def inspect(binding, public=True):
               "instanceDir": str(directory),
               "log": str(directory / "preview.log"),
               "credentialsFile": str(directory / "credentials.json")}
+    result["storage"] = manifest.get("storage", {"database": "sqlite", "redis": "miniredis", "metrics": "embedded"})
     result["sourceChanged"] = manifest.get("source", {}).get("fingerprint") != source_identity()["fingerprint"]
     if binding.get("frontendDir"):
         try:
@@ -251,31 +259,32 @@ def stop(binding):
     binding.pop("startTime", None)
 
 
-def seed(directory):
-    db_path = directory / "run/n9e.db"
-    if db_path.exists():
-        # Existing accounts may have changed their password. Never restore the
-        # initial credentials or require them for a restart (including legacy instances).
+def archive_legacy(directory):
+    """Called after stopping the child and before overwriting its binaries/config."""
+    manifest = directory / "manifest.json"
+    archive = directory / "legacy-sqlite"
+    if not manifest.exists() or archive.exists():
         return
-    # Replace the shipped default before the first listener can accept requests.
-    credentials = {"username": "root", "password": secrets.token_urlsafe(18)}
-    write_json(directory / "credentials.json", credentials)
-    staging = db_path.with_suffix(".seed")
-    try:
-        with sqlite3.connect(staging) as db:
-            db.executescript((ROOT / "docker/sqlite.sql").read_text())
-            db.execute("UPDATE users SET password = ? WHERE username = 'root'", (credentials["password"],))
-        # Publish the pending check before the DB so interrupted initial startup
-        # cannot silently skip account verification on the next refresh.
-        write_json(directory / "login-check.pending", {})
-        staging.replace(db_path)
-    finally:
-        staging.unlink(missing_ok=True)
+    previous = json.loads(manifest.read_text())
+    if previous.get("storage", {}).get("database") == "postgres":
+        return
+    staging = directory / "legacy-sqlite.partial"
+    if staging.exists():
+        shutil.rmtree(staging)
+    staging.mkdir(mode=0o700)
+    for name in ("run", "bin"):
+        if (directory / name).exists():
+            shutil.copytree(directory / name, staging / name)
+    for name in ("manifest.json", "credentials.json"):
+        if (directory / name).exists():
+            shutil.copy2(directory / name, staging / name)
+    staging.replace(archive)
 
 
 def app_config(binding, backend_port):
     # A dedicated minimal profile: never inherit production DSNs, writers or notifications.
     directory = instance(binding)
+    resource = json.loads((directory / "postgres.json").read_text())
     return f'''[Global]
 RunMode = "release"
 [Log]
@@ -300,10 +309,10 @@ Enable = true
 AccessExpired = 1500
 RefreshExpired = 10080
 [DB]
-DBType = "sqlite"
-DSN = "n9e.db"
-MaxOpenConns = 1
-MaxIdleConns = 1
+DBType = "postgres"
+DSN = {json.dumps(resource['dsn'])}
+MaxOpenConns = 5
+MaxIdleConns = 2
 [Redis]
 RedisType = "miniredis"
 [Alert.Heartbeat]
@@ -322,10 +331,7 @@ Disabled = {str(binding.get('profile', 'basic') != 'full').lower()}
 RequireIsolation = true
 DataDir = {json.dumps(str(runtime_temp(binding) / 'sandbox'))}
 [EmbeddedTSDB]
-Enable = true
-Dir = "data/tsdb"
-RetentionDuration = "12h"
-MaxBytes = "256MiB"
+Enable = false
 [Ibex]
 Enable = false
 '''
@@ -372,9 +378,32 @@ def build(binding, profile):
              "-o", str(directory / "run/n9e"), "./cmd/center"], stdout=log, stderr=log)
         run(["go", "build", "-buildvcs=false", "-o", str(directory / "bin/gateway"), "./cmd/preview-gateway"],
             cwd=MANAGER_ROOT, stdout=log, stderr=log)
+        run(["go", "build", "-buildvcs=false", "-o", str(directory / "bin/preview-db"), "./cmd/preview-db"],
+            cwd=MANAGER_ROOT, stdout=log, stderr=log)
     if source_identity()["fingerprint"] != source["fingerprint"]:
         raise RuntimeError("source changed during build; stop editing and refresh")
-    seed(directory)
+    resource = preview_services.prepare(STATE, config(), binding, directory)
+    if not resource["initialized"]:
+        old_database = directory / "run/n9e.db"
+        if old_database.exists():
+            backup = directory / "sqlite-backup.db"
+            if not backup.exists():
+                with contextlib.closing(sqlite3.connect(old_database)) as original, contextlib.closing(sqlite3.connect(backup)) as saved:
+                    original.backup(saved)
+                backup.chmod(0o600)
+            resource["sqlite"] = str(backup)
+        else:
+            credentials = {"username": "root", "password": secrets.token_urlsafe(18)}
+            write_json(directory / "credentials.json", credentials)
+            write_json(directory / "login-check.pending", {})
+            resource["rootPassword"] = credentials["password"]
+    resource["engineName"] = "preview-" + binding["instance"]
+    write_json(directory / "postgres.json", resource)
+    with (directory / "database-bootstrap.log").open("a") as log:
+        run([str(directory / "bin/preview-db"), str(directory / "postgres.json")], stdout=log, stderr=log)
+    resource["initialized"] = True
+    resource.pop("rootPassword", None)
+    write_json(directory / "postgres.json", resource)
     temp = runtime_temp(binding)
     temp.mkdir(mode=0o700, exist_ok=True)
     if temp.is_symlink() or temp.stat().st_uid != os.getuid() or temp.stat().st_mode & 0o077:
@@ -398,8 +427,13 @@ def build(binding, profile):
                 "binary": str(directory / "run/n9e"), "runDir": str(directory / "run"),
                 "tempDir": str(temp),
                 "credentialsFile": str(directory / "credentials.json")}
+    manifest.update(databaseDsn=resource["dsn"], prometheusURL=resource["prometheusURL"],
+                    storage={"database": "postgres", "databaseName": resource["name"],
+                             "redis": "miniredis", "metrics": "shared-prometheus"})
     if profile == "full":
         manifest["qaCorpus"] = json.loads((ROOT / "aiagent/skill/embedded/codeassets/manifest.json").read_text())
+    if source_identity()["fingerprint"] != source["fingerprint"]:
+        raise RuntimeError("source changed during database bootstrap; stop editing and refresh")
     write_json(directory / "manifest.json", manifest)
     return manifest
 
@@ -417,7 +451,7 @@ def main():
     if sys.platform != "linux":
         raise RuntimeError("preview lifecycle management requires Linux")
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["up", "refresh", "status", "url", "stop", "destroy", "list"])
+    parser.add_argument("command", choices=["up", "refresh", "status", "url", "stop", "destroy", "list", "services"])
     parser.add_argument("--slot", type=int)
     parser.add_argument("--stable", action="store_true", help="manage the separate clean main-checkout instance")
     parser.add_argument("--if-exists", action="store_true")
@@ -452,6 +486,9 @@ def main():
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return
     with lock():
+        if args.command == "services":
+            print(json.dumps(preview_services.ensure(STATE, config()), indent=2))
+            return
         if args.stable and args.command in ("up", "refresh"):
             validate_stable_source()
         all_bindings = bindings()
@@ -469,6 +506,7 @@ def main():
                 # Validate generated identifier before recursive deletion.
                 if directory.parent != STATE / "instances" or not all(c in "0123456789abcdef" for c in binding["instance"]):
                     raise RuntimeError("invalid instance directory")
+                preview_services.destroy(STATE, config(), binding, directory)
                 if directory.exists():
                     shutil.rmtree(directory)
                 temp = runtime_temp(binding)
@@ -486,6 +524,7 @@ def main():
         else:
             if binding:
                 stop(binding)
+                archive_legacy(instance(binding))
             else:
                 binding = reserve(all_bindings, args.slot, stable=args.stable)
                 all_bindings[binding_key] = binding
@@ -501,7 +540,7 @@ def main():
                 if args.stable:
                     validate_stable_source()
             except Exception:
-                print(f"build failed; inspect {directory / 'build.log'}", file=sys.stderr)
+                print(f"preview setup failed; inspect {directory}/build.log, frontend-build.log and database-bootstrap.log", file=sys.stderr)
                 raise
             with (directory / "preview.log").open("a") as log:
                 process = subprocess.Popen([str(directory / "bin/gateway"), str(directory / "manifest.json")],

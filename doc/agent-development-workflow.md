@@ -199,8 +199,9 @@ worktree 使用十个槽位：`https://n9e-dev0.zhiteng.win` 至
 版本，不把当前任务 worktree 的源码发布到稳定地址。infra 尚未合并进主分支时，也
 可以从有管理脚本的 worktree 执行 stable 命令；网关由管理脚本构建，应用仍来自主 checkout。
 
-每个实例有独立 SQLite、miniredis、TSDB、Skill、日志和随机 root 密码；不共享日常
-服务数据。Go 模块与编译缓存共享。预览记录 commit、branch、未提交源码指纹、前端
+每个实例有独立 PostgreSQL database/账号、miniredis、Skill、日志和随机 root 密码。
+主机登记目录共用一个 PostgreSQL 服务实例和一个只读测试 Prometheus；不接日常
+生产服务数据，不为每个 preview 启动 PG 容器。Go 模块与编译缓存共享。预览记录 commit、branch、未提交源码指纹、前端
 摘要及 build ID；commit 不能单独代表脏工作区。
 
 交付前 status 应为 running、本地/公网通过、sourceChanged=false；外部前端还需
@@ -208,7 +209,7 @@ frontendChanged=false。从准备入口打开会清理该域名旧登录状态�
 凭据文件路径由 status 提供，只在本机读取，不提交或贴入公共日志。
 
 Agent 完成相关 E2E 后，向人提供可操作的验收步骤、预期结果及上述证据。Ready
-验证版本、页面、TSDB 查询、首次账号登录及鉴权接口，不替代业务功能、真实模型和
+验证版本、页面、PG 账号数据、共享 Prometheus 实际采集指标、首次账号登录及鉴权接口，不替代业务功能、真实模型和
 人工验收。[PR 模板](../.github/PULL_REQUEST_TEMPLATE.md)要求人在运行实例上验证；
 Agent E2E、浏览器结果与人工结论分别记录，不能代填人工确认。
 

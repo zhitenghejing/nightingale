@@ -1,5 +1,5 @@
 .PHONY: prebuild build verify verify-all frontend-install frontend-build frontend-verify frontend-e2e preview preview-refresh preview-status preview-url preview-stop preview-destroy
-.PHONY: stable stable-refresh stable-status stable-url stable-stop
+.PHONY: stable stable-refresh stable-status stable-url stable-stop preview-services
 
 ROOT:=$(shell pwd -P)
 GIT_COMMIT:=$(shell git --work-tree ${ROOT}  rev-parse 'HEAD^{commit}')
@@ -59,6 +59,9 @@ verify-all:
 
 preview:
 	python3 -B scripts/preview.py up
+
+preview-services:
+	python3 -B scripts/preview.py services
 
 preview-refresh:
 	python3 -B scripts/preview.py refresh

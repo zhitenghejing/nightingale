@@ -3,7 +3,6 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-import sqlite3
 import socket
 import shutil
 import subprocess
@@ -34,10 +33,16 @@ class PreviewTest(unittest.TestCase):
         for profile in ("basic", "full"):
             with self.subTest(profile=profile):
                 binding = {"instance": "test-instance", "profile": profile}
+                directory = preview.instance(binding)
+                directory.mkdir(parents=True, exist_ok=True)
+                (directory / "postgres.json").write_text(json.dumps({"dsn": "host=127.0.0.1 dbname=test user=test"}))
                 config = tomllib.loads(preview.app_config(binding, 30300))
                 for section in ("APIForService", "APIForAgent", "ProxyAuth"):
                     self.assertIs(config["HTTP"].get(section, {}).get("Enable"), False, section)
                 self.assertIs(config["HTTP"]["TokenAuth"]["Enable"], True)
+                self.assertEqual(config["DB"]["DBType"], "postgres")
+                self.assertEqual(config["Redis"]["RedisType"], "miniredis")
+                self.assertFalse(config["EmbeddedTSDB"]["Enable"])
 
     def test_in_tree_preview_detects_ignored_frontend_configuration_changes(self):
         root = self.state / "repo"
@@ -155,38 +160,18 @@ class PreviewTest(unittest.TestCase):
         with patch.object(preview, "fetch", return_value={"buildId": "new", "ready": True}):
             self.assertTrue(preview.probe("http://127.0.0.1:1", "new")["ok"])
 
-    def test_first_database_has_private_password_and_seed_is_idempotent(self):
+    def test_legacy_snapshot_is_retained_across_failed_migration_retries(self):
         directory = self.state / "instance"
         (directory / "run").mkdir(parents=True)
-        preview.seed(directory)
-        pending = directory / "login-check.pending"
-        self.assertTrue(pending.exists())
-        credentials = json.loads((directory / "credentials.json").read_text())
-        self.assertNotEqual(credentials["password"], "root.2020")
-        self.assertLess(len(credentials["password"]), 32)  # InitRoot encrypts a raw password.
-        self.assertEqual((directory / "credentials.json").stat().st_mode & 0o777, 0o600)
-        with sqlite3.connect(directory / "run/n9e.db") as db:
-            password = db.execute("select password from users where username='root'").fetchone()[0]
-        self.assertEqual(password, credentials["password"])
-        preview.seed(directory)
-        self.assertTrue(pending.exists())  # Failed initial startup must still verify login.
-        self.assertEqual(json.loads((directory / "credentials.json").read_text()), credentials)
-
-    def test_existing_database_does_not_require_or_restore_initial_credentials(self):
-        directory = self.state / "instance"
-        (directory / "run").mkdir(parents=True)
-        preview.seed(directory)
-        # Verified instances and legacy instances both have no pending check.
-        (directory / "login-check.pending").unlink()
-        (directory / "credentials.json").unlink()
-        with sqlite3.connect(directory / "run/n9e.db") as db:
-            db.execute("UPDATE users SET password = ? WHERE username = 'root'", ("changed-password-hash",))
-        preview.seed(directory)
-        self.assertFalse((directory / "login-check.pending").exists())
-        self.assertFalse((directory / "credentials.json").exists())
-        with sqlite3.connect(directory / "run/n9e.db") as db:
-            self.assertEqual(db.execute("SELECT password FROM users WHERE username='root'").fetchone()[0],
-                             "changed-password-hash")
+        (directory / "run/n9e.db").write_bytes(b"original database")
+        (directory / "run/n9e").write_bytes(b"old application")
+        (directory / "manifest.json").write_text(json.dumps({"buildId": "old"}))
+        preview.archive_legacy(directory)
+        (directory / "run/n9e.db").write_bytes(b"later change")
+        preview.archive_legacy(directory)
+        self.assertEqual((directory / "legacy-sqlite/run/n9e.db").read_bytes(), b"original database")
+        self.assertEqual((directory / "legacy-sqlite/run/n9e").read_bytes(), b"old application")
+        self.assertEqual(json.loads((directory / "legacy-sqlite/manifest.json").read_text())["buildId"], "old")
 
     def test_fingerprint_sees_dirty_untracked_and_ignored_but_tracked_files(self):
         root = self.state / "repo"

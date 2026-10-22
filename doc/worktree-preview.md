@@ -13,6 +13,7 @@
 | `stop --if-exists` | 停止，保留绑定和数据 |
 | `destroy --if-exists` | 停止、删除本实例数据和日志、释放绑定 |
 | `list` | 查看本机登记目录中的所有绑定 |
+| `services` | 准备/启动主机登记目录共用的一个 PG 实例和一个 Prometheus |
 
 首次 `--slot 0` 选择 n9e-dev0.zhiteng.win；开发槽位共 0–9，全部具有各自公网入口。
 绑定后不能切换槽位，也不能抢占其他 worktree 的停止/失败绑定；先保留需要的数据
@@ -35,7 +36,11 @@ sourceChanged/frontendChanged。源码变化后必须 refresh。
 
 Python 管理器用主机文件锁串行变更和重型构建。每个绑定具有随机实例 ID，位于
 `STATE/instances/<id>/`，包含 manifest.json、credentials.json、build.log、
-preview.log、bin/ 和独立 run/ 工作目录（SQLite、TSDB、Skill、配置与日志）。
+preview.log、postgres.json、database-bootstrap.log、bin/ 和独立 run/ 工作目录
+（Skill、配置与日志）。每个实例的业务数据存入共享 PG 服务中独立的
+`n9ep_<instanceID>` database，由同名受限账号访问；miniredis 仍在本实例进程内。
+所有实例查询同一个只读测试 Prometheus，内嵌 TSDB 关闭。共享服务配置、管理凭据
+位于 `STATE/shared/`，服务数据位于独立 Docker 数据卷；详见[环境准备](development-environment.md#共享测试服务)。
 Go 模块和编译缓存使用 Go 本身的共享机制。
 
 网关启动 n9e 时只继承 PATH、LANG、LC_ALL、LC_CTYPE、TZ、SSL_CERT_FILE 和
@@ -64,16 +69,35 @@ stop 校验 PID 与 Linux starttime，防止误杀复用 PID；先 SIGTERM 优�
 manifest 同时记录 commit、branch、dirty、前端摘要与 build ID。
 `/__preview/info` 返回构建身份与健康，不公开凭据、PID 或主机路径。
 
-首次 SQLite 从仓库初始化 SQL 创建，并在启动监听前替换默认 root 密码，同时写入
-实例级 `login-check.pending`。网关首次验证登录和鉴权资料成功后删除该标记；失败或
+首次 PG 初始化由当前管理器的 `cmd/preview-db` 完成，开放监听前写入随机 root 密码，
+同时写入实例级 `login-check.pending`。网关首次验证登录和鉴权资料成功后删除该标记；失败或
 中断时保留，后续启动继续验证。refresh 不重新生成标记、不重置密码。已有旧实例没有
 该标记时直接使用健康检查，不强制用初始化密码重新登录。
 status 提供 credentialsFile 路径，其中只保存初始化凭据，UI 改密后不会同步更新；
-密码仅本机读取。每次启动及状态探测都验证版本、页面、TSDB 查询，以及匿名访问
+密码仅本机读取。每次启动及状态探测都验证版本、页面、PG 的 root 记录、共享
+Prometheus 的 `up{job="prometheus"}` 实际采集值，以及匿名访问
 `/api/n9e/self/profile` 返回 401，就绪不依赖用户的当前密码。
 准备入口 `.../__preview/ready` 显示版本并清理该域名
 旧存储/缓存，再点击登录；miniredis 是进程内的，刷新后旧 Token 可能失效。
 Ready 不替代告警业务、真实模型和人工验收。
+
+## 数据保留与旧实例切换
+
+`refresh` 保留 PG database/账号、应用账号与数据；`stop` 也保留这些资源。
+`destroy` 先停本实例，核对资源归属，然后删除该实例 database 和角色，再删私有
+文件并释放槽位；PG/Prometheus 共享服务、其他环境数据库和共享指标不会被删除。
+任一步失败都保留绑定供重试，不能直接删除 worktree 代替资源清理。
+
+旧 SQLite 实例首次 refresh 自动备份并导入到本实例的 PG database。
+`sqlite-backup.db`、原 `run/n9e.db` 和旧 `run/data/tsdb` 保留用于恢复，成功后不会
+自动合并后续 SQLite 改动。SQLite 的非空表或列若无法对应 PG schema，导入事务
+回滚并拒绝启动，不会静默跳过。失败原因记录在私有 `database-bootstrap.log`。
+PG 标记 initialized 后，即使数据库丢失也只报错，不会悄悄新建空库。
+
+切换前需保存旧 manifest、二进制及数据备份；恢复旧版本时停止当前实例，使用原
+SQLite/TSDB 和对应旧版本管理器重建，不能把 PG 初始化失败当作允许覆盖备份的理由。
+PG 初始化阶段发生中断可以直接重试 refresh；成功运行后的 PG 数据应单独备份，
+不能用切换前的 SQLite 备份替代当前 PG 数据。
 
 ## 前端与完整能力
 
@@ -117,6 +141,7 @@ QA 前端语料固定来自同仓 `frontend/src/`，不再通过 FE_REF/FE_LOCAL
 失败时查日志重试。测试可使用独立 N9E_PREVIEW_STATE，端口仍需避开日常实例。
 
 完整生命周期验证可运行 `python3 -B scripts/preview-smoke.py`。它建立临时 worktree、
-独立登记目录和真实双实例，检查数据隔离、槽位所有权、源码/前端漂移、刷新、停止、
-销毁和槽位重用，最后清理；不会修改日常预览绑定。此检查包含多次构建，不在每次
+独立登记目录、一套临时 PG/Prometheus 和真实双应用实例，检查分库与账号隔离、
+共享指标查询与写入拒绝、槽位所有权、源码/前端漂移、刷新、停止、销毁和槽位重用，
+最后删除测试实例、共享测试容器和数据卷；不会修改日常预览绑定。此检查包含多次构建，不在每次
 make verify 中机械重复。

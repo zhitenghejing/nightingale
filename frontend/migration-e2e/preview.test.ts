@@ -39,7 +39,9 @@ test('production UI rejects a bad password, signs in and survives route reloads'
   await page.locator('#password').fill(credentials.password);
   const accepted = page.waitForResponse((r) => r.url().includes('/auth/login') && r.request().method() === 'POST');
   await page.locator('button.ant-btn-primary').click();
-  expect(Boolean((await (await accepted).json()).err)).toBe(false);
+  // The app navigates immediately on success; Chromium may discard the response
+  // body during that navigation. Verify the status and resulting signed-in state.
+  expect((await accepted).status()).toBe(200);
   await page.waitForURL((url) => !url.pathname.startsWith('/login'));
   await expect.poll(() => page.evaluate(() => Boolean(localStorage.getItem('access_token')))).toBe(true);
 
