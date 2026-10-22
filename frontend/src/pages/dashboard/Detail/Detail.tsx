@@ -1,0 +1,784 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import React, { useState, useRef, useEffect, useContext } from 'react';
+import _ from 'lodash';
+import moment from 'moment';
+import semver from 'semver';
+import { useTranslation } from 'react-i18next';
+import { useDeepCompareEffect, useInterval, useKeyPress } from 'ahooks';
+import { v4 as uuidv4 } from 'uuid';
+import { useParams, useHistory, useLocation } from 'react-router-dom';
+import { useBeforeunload } from 'react-beforeunload';
+import queryString from 'query-string';
+import { Alert, Modal, Button, Affix, message, notification, Spin } from 'antd';
+
+import { useParamsAiAction } from '@/components/AiChat/utils/useHook';
+import PageLayout from '@/components/pageLayout';
+import { IRawTimeRange, parseRange } from '@/components/TimeRangePicker';
+import { Dashboard } from '@/store/dashboardInterface';
+import { getDashboard, updateDashboard, updateDashboardConfigs, getDashboardPure, getAnnotations } from '@/services/dashboardV2';
+import { getPayloadByUUID } from '@/pages/builtInComponents/services';
+import { SetTmpChartData } from '@/services/metric';
+import { CommonStateContext, basePrefix } from '@/App';
+import MigrationModal from '@/pages/help/migrate/MigrationModal';
+import RouterPrompt from '@/components/RouterPrompt';
+import { adjustURL } from '@/pages/embeddedDashboards/utils';
+import initializeVariablesValue from '@/pages/dashboard/Variables/utils/initializeVariablesValue';
+import replaceTemplateVariables, { replaceDatasourceVariables } from '@/pages/dashboard/Variables/utils/replaceTemplateVariables';
+
+import Variables, { IVariable } from '../Variables';
+import { ILink, IDashboardConfig, DashboardAnnotation, IPanel, ITarget, JsonObject, JsonValue, ScopedVariables } from '../types';
+import Panels from '../Panels';
+import Title from './Title';
+import { JSONParse } from '../utils';
+import Editor from '../Editor';
+import { validateDashboardConfig } from '../utils/validateDashboardConfig';
+import { sortPanelsByGridLayout, panelsMergeToConfigs, updatePanelsInsertNewPanelToGlobal, ajustPanels, processRepeats } from '../Panels/utils';
+import { useGlobalState, DashboardMeta } from '../globalState';
+import {
+  scrollToLastPanel,
+  getDefaultTimeRange,
+  getDefaultIntervalSeconds,
+  getDefaultTimezone,
+  dashboardTimeCacheKey,
+  dashboardTimezoneCacheKey,
+  getFullscreenDisplayOptions,
+  isFullscreenExitDisabled,
+} from './utils';
+import dashboardMigrator from './utils/dashboardMigrator';
+import { resolveSharedPanelDatasource } from './utils/resolveSharedPanelDatasource';
+import adjustInitialValues from '../Renderer/utils/adjustInitialValues';
+import './style.less';
+
+interface URLParam {
+  id: string;
+}
+
+interface IProps {
+  isPreview?: boolean;
+  isBuiltin?: boolean;
+  gobackPath?: string;
+  builtinParams?: number;
+  /** 在详情页右上角操作区最左侧插入调用方专属操作。 */
+  headerLeadingActions?: React.ReactNode;
+  onLoaded?: (dashboard: Dashboard['configs']) => boolean;
+  hideGoBack?: boolean;
+  hideGoList?: boolean;
+}
+
+interface FetchDashboardParams {
+  id: string;
+  builtinParams?: IProps['builtinParams'];
+}
+
+interface DashboardUpdatePayload {
+  configs: string;
+  name?: string;
+  ident?: string;
+  tags?: string;
+  note?: string;
+}
+
+interface RouterPromptHandle {
+  redirect: () => void;
+  hidePrompt: () => void;
+}
+
+const fetchDashboard = ({ id, builtinParams }: FetchDashboardParams) => {
+  if (builtinParams) {
+    return getPayloadByUUID(builtinParams).then((res) => {
+      let { content } = res;
+      try {
+        content = JSON.parse(content);
+        return content;
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
+  return getDashboard(id);
+};
+const builtinParamsToID = (params: Record<string, string | (string | null)[] | null>) => {
+  const value = params.__uuid__;
+  return Array.isArray(value) ? `${value[0] ?? ''}` : `${value ?? ''}`;
+};
+
+const replaceTargetQueryVariables = (value: JsonValue, range: IRawTimeRange, scopedVars?: ScopedVariables): JsonValue => {
+  if (typeof value === 'string') {
+    return replaceTemplateVariables(value, { range, scopedVars });
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceTargetQueryVariables(item, range, scopedVars));
+  }
+  if (value && typeof value === 'object') {
+    return Object.keys(value).reduce<Record<string, JsonValue>>((result, key) => {
+      const nestedValue = value[key];
+      if (nestedValue !== undefined) {
+        result[key] = replaceTargetQueryVariables(nestedValue, range, scopedVars);
+      }
+      return result;
+    }, {});
+  }
+  return value;
+};
+
+export default function DetailV2(props: IProps) {
+  const { isPreview = false, isBuiltin = false, gobackPath, builtinParams, headerLeadingActions, hideGoBack, hideGoList } = props;
+  const { t } = useTranslation('dashboard');
+  const history = useHistory();
+  const location = useLocation();
+  const { dashboardDefaultRangeIndex, dashboardSaveMode, perms, groupedDatasourceList, darkMode, datasourceList } = useContext(CommonStateContext);
+  const isAuthorized = _.includes(perms, '/dashboards/put') && !isPreview;
+  const [dashboardMeta, setDashboardMeta] = useGlobalState('dashboardMeta');
+  const [variablesWithOptions, setVariablesWithOptions] = useGlobalState('variablesWithOptions');
+  const [, setGlobalRange] = useGlobalState('range');
+  const [, setParamsAiAction] = useParamsAiAction();
+  let { id } = useParams<URLParam>();
+  const query = queryString.parse(location.search) as Record<string, string | string[] | null | undefined>;
+  const fullscreenDisplayOptions = getFullscreenDisplayOptions(query);
+  // 点击按钮准备进入全屏时 viewMode 尚未变成 fullscreen，此时 fullscreenDisplayOptions.disableExit 恒为 false，
+  // 提示是否展示必须读原始 URL 参数，不能复用 disableExit
+  const fullscreenExitDisabled = isFullscreenExitDisabled(query);
+  const effectiveIsPreview = isPreview || fullscreenDisplayOptions.readonly;
+  const effectiveIsAuthorized = isAuthorized && !fullscreenDisplayOptions.readonly;
+  if (isBuiltin) {
+    id = builtinParamsToID(query as Record<string, string | (string | null)[] | null>);
+  }
+  const [dashboard, setDashboard] = useState<Dashboard>({} as Dashboard);
+  const [dashboardLinks, setDashboardLinks] = useState<ILink[]>();
+  const [panels, setPanels] = useState<IPanel[]>([]);
+  const [annotations, setAnnotations] = useState<DashboardAnnotation[]>([]);
+  const [annotationsRefreshFlag, setAnnotationsRefreshFlag] = useState<string>(_.uniqueId('annotationsRefreshFlag_'));
+  const [loading, setLoading] = useState(false);
+  const [range, setRange] = useState<IRawTimeRange>(
+    getDefaultTimeRange(id as string, query as Record<string, string | string[] | null | undefined>, dashboardDefaultRangeIndex as number | undefined),
+  );
+  const [timezone, setTimezone] = useState<string>(getDefaultTimezone(id as string, query as Record<string, string | string[] | null | undefined>) as string);
+  const [intervalSeconds, setIntervalSeconds] = useState<number | undefined>(getDefaultIntervalSeconds(query as Record<string, string | string[] | null | undefined>));
+  const [editable, setEditable] = useState(true);
+  const [editorData, setEditorData] = useState({
+    visible: false,
+    id: '',
+    initialValues: {} as IPanel,
+  });
+  const [migrationVisible, setMigrationVisible] = useState(false);
+  const [migrationModalOpen, setMigrationModalOpen] = useState(false);
+  const [allowedLeave, setAllowedLeave] = useState(true);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [variablesInitialized, setVariablesInitialized] = useState(false);
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const editModalVariablecontainerRef = useRef<HTMLDivElement>(null);
+  let updateAtRef = useRef<number>();
+  const routerPromptRef = useRef<RouterPromptHandle>(null);
+  const refresh = async (cbk?: () => void) => {
+    // 自动保存模式下不显示 loading
+    if (dashboardSaveMode === 'manual') {
+      setLoading(true);
+    }
+    fetchDashboard({
+      id,
+      builtinParams,
+    })
+      .then((res) => {
+        const dashboardId = res.id;
+        updateAtRef.current = res.update_at;
+        let configs = _.isString(res.configs) ? JSONParse(res.configs) : res.configs;
+        // 仪表盘迁移
+        configs = dashboardMigrator(configs);
+        if (props.onLoaded && !props.onLoaded(configs)) {
+          return;
+        }
+        const validationResult = validateDashboardConfig(configs);
+        if (!validationResult.valid) {
+          console.warn('Dashboard panels/variables config warnings:', validationResult.errors);
+        }
+        if (configs.mode !== 'iframe' && (!configs.version || semver.lt(configs.version, '3.0.0')) && !builtinParams && !effectiveIsPreview) {
+          setMigrationVisible(true);
+        }
+        setDashboardMeta({
+          ...(dashboardMeta || {}),
+          dashboardId: _.toString(dashboardId), // TODO 为什么要转字符串？
+          id: dashboardId,
+          group_id: res.group_id,
+          public: res.public,
+          public_cate: res.public_cate,
+          graphTooltip: configs.graphTooltip,
+          graphZoom: configs.graphZoom,
+        });
+        const newDashboard = {
+          ...res,
+          configs,
+        };
+        setDashboard(newDashboard);
+
+        if (configs) {
+          setPanels(sortPanelsByGridLayout(ajustPanels(configs.panels)));
+          // TODO: configs 中可能没有 var 属性会导致 VariableConfig 报错
+          const variableConfig = configs.var
+            ? configs
+            : {
+                ...configs,
+                var: [],
+              };
+          const currentVariables = _.map(variableConfig.var, (item) => {
+            return _.omit(item, 'options'); // 兼容性代码，去除掉已保存的 options
+          }) as IVariable[];
+          const normalizedVariables = initializeVariablesValue(currentVariables, query, {
+            dashboardId,
+          });
+          setVariablesWithOptions(normalizedVariables as unknown as IVariable<JsonObject>[]);
+          // 暂时不处理 panels，等待变量初始化完成
+          setVariablesInitialized(false);
+          setDashboardLinks(configs.links);
+          if (cbk) {
+            cbk();
+          }
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+  const handleUpdateDashboardConfigs = (id: number | string, updateData: DashboardUpdatePayload) => {
+    if (dashboardSaveMode === 'manual') {
+      let configs = {} as IDashboardConfig;
+      try {
+        configs = JSON.parse(updateData.configs);
+      } catch (e) {
+        console.error(e);
+      }
+      setHasUnsavedChanges(true);
+      // 如果是手动保存模式，并且没有编辑权限则不触发 RouterPrompt 提示
+      if (isAuthorized) {
+        setAllowedLeave(false);
+      }
+      if (configs.graphTooltip || configs.graphZoom) {
+        setDashboardMeta({
+          ...(dashboardMeta || {}),
+          graphTooltip: configs.graphTooltip,
+          graphZoom: configs.graphZoom,
+        });
+      }
+      setDashboard({
+        ...dashboard,
+        name: updateData.name ?? dashboard.name,
+        ident: updateData.ident ?? dashboard.ident,
+        tags: updateData.tags ?? dashboard.tags,
+        note: updateData.note ?? dashboard.note,
+        configs,
+      });
+    } else {
+      updateDashboardConfigs(id, updateData).then((res) => {
+        updateAtRef.current = res.update_at;
+        refresh();
+      });
+    }
+  };
+  const handleVariableChange = (newValue: IVariable[]) => {
+    const dashboardConfigs: IDashboardConfig = _.cloneDeep(dashboard.configs);
+    dashboardConfigs.var = _.map(newValue, (item) => {
+      return _.omit(item, ['value', 'options']); // 兼容性代码，去除掉 value, options
+    });
+    // TODO: 手动模式需要在这里更新变量配置，自动模式会在获取大盘配置时更新
+    // if (dashboardSaveMode === 'manual') {
+    //   setVariablesWithOptions(newValue);
+    // }
+    // 触发 dashboard configs 的更新
+    handleUpdateDashboardConfigs(dashboard.id, {
+      ...dashboard,
+      configs: JSON.stringify(dashboardConfigs),
+    });
+    // 变量配置变更后，不需要手动调用 processRepeats
+    // 因为 variablesWithOptions 的变化会自动触发 useEffect 重新处理 panels
+  };
+
+  // 监听变量初始化完成和变量值变化，重新处理 repeat panels
+  useDeepCompareEffect(() => {
+    // 只有在变量初始化完成后才处理 panels
+    if (!variablesInitialized || !dashboard.configs?.panels) return;
+
+    // 重新处理 panels（使用原始配置，而不是已处理的 panels）
+    const processedPanels = processRepeats(panels, variablesWithOptions);
+    setPanels(processedPanels);
+  }, [
+    variablesInitialized,
+    // 监听变量的 name 和 value，不监听 options（避免 options 更新时重复处理）
+    _.map(variablesWithOptions, (v) => ({ name: v.name, value: v.value })),
+  ]);
+
+  useDeepCompareEffect(() => {
+    setGlobalRange(range);
+  }, [range, setGlobalRange]);
+
+  useEffect(() => {
+    if (query.viewMode !== 'fullscreen') return;
+
+    const aiChatBtn = document.querySelector<HTMLElement>('.ai-chat-btn-box');
+    if (!aiChatBtn) return;
+
+    const originalDisplay = aiChatBtn.style.display;
+    aiChatBtn.style.display = 'none';
+
+    return () => {
+      aiChatBtn.style.display = originalDisplay;
+    };
+  }, [query.viewMode]);
+
+  useEffect(() => {
+    // 切换仪表盘时，立即清空 variablesWithOptions，避免使用上一个仪表盘的变量
+    setDashboardMeta({} as DashboardMeta);
+    setVariablesWithOptions([]);
+    setVariablesInitialized(false);
+    refresh();
+
+    // 组件卸载时清空全局状态
+    return () => {
+      setDashboardMeta({} as DashboardMeta);
+      setVariablesWithOptions([]);
+    };
+  }, [id]);
+
+  useInterval(() => {
+    // 2024-12-27 当手动保存模式时，只有仪表盘配置被更改后（!allowedLeave）才会触发 "持续查询" 的检测
+    if (import.meta.env.PROD && dashboard.id && (dashboardSaveMode === 'manual' ? !allowedLeave : true)) {
+      getDashboardPure(_.toString(dashboard.id)).then((res) => {
+        if (updateAtRef.current && res.update_at > updateAtRef.current) {
+          if (editable) setEditable(false);
+        } else {
+          setEditable(true);
+        }
+      });
+    }
+  }, 2000);
+
+  useBeforeunload(!allowedLeave && import.meta.env.PROD ? () => t('detail.prompt.message') : undefined);
+
+  useEffect(() => {
+    if (dashboard.id) {
+      // 获取 annotations 数据
+      const parsedRange = parseRange(range);
+      getAnnotations({
+        dashboard_id: dashboard.id,
+        from: moment(parsedRange.start).unix(),
+        to: moment(parsedRange.end).unix(),
+        limit: 100,
+      }).then((res) => {
+        setAnnotations(res);
+      });
+    }
+  }, [dashboard.id, range, annotationsRefreshFlag]);
+
+  useDeepCompareEffect(() => {
+    // 更新全局状态
+    const obj: Record<string, string[]> = {};
+    _.forEach(variablesWithOptions, (item) => {
+      const values = Array.isArray(item.value) ? item.value : [item.value];
+      obj[item.name] = values.filter((value): value is string | number => value !== undefined && value !== null).map(String);
+    });
+    const parsedRange = parseRange(range);
+    setParamsAiAction({
+      page: 'dashboards',
+      dashboard: {
+        id,
+        start: moment(parsedRange.start).unix(),
+        end: moment(parsedRange.end).unix(),
+        var: obj,
+      },
+    });
+  }, [_.map(variablesWithOptions, (item) => _.pick(item, ['name', 'value'])), range]);
+
+  // `hideHeader` 为历史配置字段，现在仅控制仪表盘标题的显示。
+  const shouldHideIframeTitle = dashboard.configs?.mode === 'iframe' && dashboard.configs?.hideHeader === true;
+  const showContentHeader =
+    !fullscreenDisplayOptions.isFullscreen || fullscreenDisplayOptions.showHeader || (dashboard.configs?.mode !== 'iframe' && fullscreenDisplayOptions.showVariables);
+  const showVariables = !fullscreenDisplayOptions.isFullscreen || fullscreenDisplayOptions.showVariables;
+  const showVariablesOnly = fullscreenDisplayOptions.isFullscreen && !fullscreenDisplayOptions.showHeader && fullscreenDisplayOptions.showVariables;
+
+  const toggleFullscreen = () => {
+    const enteringFullscreen = !fullscreenDisplayOptions.isFullscreen;
+    const newQuery = _.omit(queryString.parse(location.search), ['viewMode', 'themeMode']);
+    if (enteringFullscreen) {
+      newQuery.viewMode = 'fullscreen';
+    }
+    history.replace({
+      pathname: location.pathname,
+      search: queryString.stringify(newQuery),
+    });
+    if (enteringFullscreen && !fullscreenExitDisabled) {
+      notification.info({
+        key: 'dashboard_fullscreen',
+        message: t('detail.fullscreen.notification.esc'),
+        duration: 3,
+      });
+    }
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 500);
+  };
+
+  useKeyPress('esc', () => {
+    if (fullscreenDisplayOptions.isFullscreen && !fullscreenDisplayOptions.disableExit) {
+      toggleFullscreen();
+      notification.close('dashboard_fullscreen');
+    }
+  });
+
+  return (
+    <PageLayout customArea={<div />}>
+      <div className='dashboard-detail-container'>
+        <Spin spinning={loading} tip='Loading...' className='dashboard-detail-loading' />
+        <div className='dashboard-detail-content scroll-container' ref={containerRef}>
+          <Affix
+            target={() => {
+              return containerRef.current;
+            }}
+          >
+            <div
+              className='dashboard-detail-content-header-container'
+              style={{
+                display: showContentHeader ? 'block' : 'none',
+                paddingBottom: dashboard.configs?.mode === 'iframe' ? 0 : 16,
+                paddingTop: showVariablesOnly ? 16 : undefined,
+              }}
+            >
+              {(!fullscreenDisplayOptions.isFullscreen || fullscreenDisplayOptions.showHeader) && (
+                <Title
+                  isPreview={effectiveIsPreview}
+                  isBuiltin={isBuiltin}
+                  headerLeadingActions={headerLeadingActions}
+                  isAuthorized={effectiveIsAuthorized}
+                  editable={editable && !fullscreenDisplayOptions.readonly}
+                  updateAtRef={updateAtRef}
+                  allowedLeave={allowedLeave}
+                  hasUnsavedChanges={hasUnsavedChanges}
+                  setAllowedLeave={setAllowedLeave}
+                  setHasUnsavedChanges={setHasUnsavedChanges}
+                  gobackPath={gobackPath}
+                  dashboard={dashboard}
+                  dashboardLinks={dashboardLinks}
+                  setDashboardLinks={setDashboardLinks}
+                  handleUpdateDashboardConfigs={handleUpdateDashboardConfigs as unknown as (id: number, params: Record<string, unknown>) => void}
+                  range={range}
+                  setRange={(v) => {
+                    setRange(v);
+                  }}
+                  timezone={timezone}
+                  setTimezone={(newTimezone) => {
+                    setTimezone(newTimezone);
+                    window.localStorage.setItem(`${dashboardTimezoneCacheKey}_${id}`, newTimezone);
+                  }}
+                  intervalSeconds={intervalSeconds}
+                  setIntervalSeconds={setIntervalSeconds}
+                  onAddPanel={(type) => {
+                    if (type === 'row') {
+                      const newPanels = updatePanelsInsertNewPanelToGlobal(
+                        panels,
+                        {
+                          type: 'row',
+                          id: uuidv4(),
+                          name: t('visualizations.row'),
+                          collapsed: false,
+                        } as IPanel,
+                        'row',
+                      );
+                      setPanels(newPanels);
+                      handleUpdateDashboardConfigs(dashboard.id, {
+                        ...dashboard,
+                        configs: panelsMergeToConfigs(dashboard.configs, newPanels),
+                      });
+                    } else {
+                      setEditorData(adjustInitialValues(type, groupedDatasourceList, panels, variablesWithOptions));
+                    }
+                  }}
+                  onImportPanel={(panelConfig) => {
+                    const newPanels = updatePanelsInsertNewPanelToGlobal(panels, { ...panelConfig, id: uuidv4() }, 'chart', false);
+                    setPanels(newPanels);
+                    scrollToLastPanel(newPanels);
+                    handleUpdateDashboardConfigs(dashboard.id, {
+                      ...dashboard,
+                      configs: panelsMergeToConfigs(dashboard.configs, newPanels),
+                    });
+                  }}
+                  routerPromptRef={routerPromptRef as unknown as React.MutableRefObject<{ showPrompt: () => void }>}
+                  hideGoBack={hideGoBack}
+                  hideGoList={hideGoList}
+                  hideTitle={shouldHideIframeTitle}
+                  fullscreenHeaderOnly={fullscreenDisplayOptions.isFullscreen}
+                  loadDashboardList={!fullscreenDisplayOptions.isFullscreen}
+                  onToggleFullscreen={toggleFullscreen}
+                />
+              )}
+              {!editable && (
+                <div style={{ padding: '0px 10px', marginBottom: 8 }}>
+                  <Alert type='warning' message={t('detail.expired')} />
+                </div>
+              )}
+              {dashboard.configs?.mode !== 'iframe' && (
+                <div style={{ display: showVariables ? 'block' : 'none' }}>
+                  <Variables
+                    editable={editable && effectiveIsAuthorized}
+                    queryParams={query}
+                    onChange={handleVariableChange}
+                    onInitialized={() => {
+                      setVariablesInitialized(true);
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </Affix>
+          {dashboard.configs?.mode !== 'iframe' ? (
+            <>
+              <Panels
+                dashboardId={id}
+                isPreview={effectiveIsPreview}
+                editable={editable && !fullscreenDisplayOptions.readonly}
+                panels={panels}
+                setPanels={setPanels}
+                dashboard={dashboard}
+                setDashboard={setDashboard}
+                annotations={annotations}
+                setAllowedLeave={setAllowedLeave}
+                setHasUnsavedChanges={setHasUnsavedChanges}
+                range={range}
+                setRange={setRange}
+                timezone={timezone}
+                setTimezone={(newTimezone) => {
+                  setTimezone(newTimezone);
+                  window.localStorage.setItem(`${dashboardTimezoneCacheKey}_${id}`, newTimezone);
+                }}
+                onShareClick={(panel) => {
+                  const resolvedTargets: ITarget[] = _.map(panel.targets, (target): ITarget => {
+                    if (target.kind === 'expression' || target.__mode__ === '__expr__') {
+                      return target;
+                    }
+                    const datasourceId = target.datasource
+                      ? replaceDatasourceVariables(target.datasource.id, {
+                          datasourceList,
+                        })
+                      : undefined;
+                    return {
+                      ...target,
+                      datasource: target.datasource
+                        ? typeof datasourceId === 'number'
+                          ? {
+                              ...target.datasource,
+                              id: datasourceId,
+                            }
+                          : target.datasource
+                        : target.datasource,
+                      expr: target.expr
+                        ? replaceTemplateVariables(target.expr, {
+                            range,
+                            scopedVars: panel.scopedVars,
+                          })
+                        : target.expr,
+                      query: target.query ? (replaceTargetQueryVariables(target.query, range, panel.scopedVars) as JsonObject) : target.query,
+                      queries: target.queries ? (replaceTargetQueryVariables(target.queries, range, panel.scopedVars) as JsonObject[]) : target.queries,
+                    };
+                  });
+                  const sharedDatasource = resolveSharedPanelDatasource(panel, resolvedTargets, datasourceList);
+                  const serielData = {
+                    dataProps: {
+                      ...panel,
+                      // 版本属于仪表盘配置而非单个面板；临时图页据此区分旧版配置。
+                      version: dashboard.configs.version,
+                      targets: resolvedTargets,
+                      datasourceCate: sharedDatasource.datasourceCate,
+                      datasourceValue: sharedDatasource.datasourceValue,
+                      datasourceName: sharedDatasource.datasourceName,
+                      range,
+                    },
+                  };
+                  SetTmpChartData([
+                    {
+                      configs: JSON.stringify(serielData),
+                    },
+                  ]).then((res) => {
+                    const ids = (res as { dat: string }).dat;
+                    window.open(basePrefix + '/chart/' + ids);
+                  });
+                }}
+                onUpdated={(res) => {
+                  updateAtRef.current = (res as { update_at: number }).update_at;
+                  refresh();
+                }}
+                setAnnotationsRefreshFlag={setAnnotationsRefreshFlag}
+                editModalVariablecontainerRef={editModalVariablecontainerRef}
+              />
+            </>
+          ) : (
+            <iframe
+              className='embedded-dashboards-iframe'
+              src={adjustURL(dashboard.configs?.iframe_url!, darkMode, {
+                range,
+                refreshIntervalSeconds: intervalSeconds,
+                refreshLocalKey: `${dashboardTimeCacheKey}_${dashboard.id}_refresh`,
+              })}
+              width='100%'
+              height='100%'
+            />
+          )}
+        </div>
+      </div>
+      <Editor
+        mode='add'
+        visible={editorData.visible}
+        setVisible={(visible) => {
+          setEditorData({
+            ...editorData,
+            visible,
+          });
+        }}
+        id={editorData.id}
+        time={range}
+        timezone={timezone}
+        setTimezone={(newTimezone) => {
+          setTimezone(newTimezone);
+          window.localStorage.setItem(`${dashboardTimezoneCacheKey}_${id}`, newTimezone);
+        }}
+        initialValues={editorData.initialValues}
+        onOK={(values, mode) => {
+          const newPanels = updatePanelsInsertNewPanelToGlobal(panels, values, 'chart');
+          // 新增图表后也立即处理 repeat，避免等待变量变化才生效
+          const processedPanels = processRepeats(newPanels, variablesWithOptions);
+          setPanels(processedPanels);
+          if (mode === 'add') {
+            scrollToLastPanel(newPanels);
+          }
+          handleUpdateDashboardConfigs(dashboard.id, {
+            ...dashboard,
+            configs: panelsMergeToConfigs(dashboard.configs, newPanels),
+          });
+        }}
+        editModalVariablecontainerRef={editModalVariablecontainerRef}
+      />
+      {/*迁移*/}
+      <Modal
+        title={t('migrate.title')}
+        visible={migrationVisible}
+        onCancel={() => {
+          setMigrationVisible(false);
+        }}
+        footer={[
+          <Button
+            key='cancel'
+            danger
+            onClick={() => {
+              setMigrationVisible(false);
+              handleUpdateDashboardConfigs(dashboard.id, {
+                ...dashboard,
+                configs: JSON.stringify({
+                  ...dashboard.configs,
+                  version: '3.0.0',
+                }),
+              });
+            }}
+          >
+            {t('migrate.close_and_dismiss')}
+          </Button>,
+          <Button
+            key='batchMigrate'
+            type='primary'
+            ghost
+            onClick={() => {
+              history.push('/help/migrate');
+            }}
+          >
+            {t('migrate.batch_migrate')}
+          </Button>,
+          <Button
+            key='migrate'
+            type='primary'
+            onClick={() => {
+              setMigrationVisible(false);
+              setMigrationModalOpen(true);
+            }}
+          >
+            {t('migrate.migrate_current')}
+          </Button>,
+        ]}
+      >
+        {t('migrate.desc_1')} <br />
+        {t('migrate.desc_2')}
+      </Modal>
+      <MigrationModal
+        visible={migrationModalOpen}
+        setVisible={setMigrationModalOpen}
+        boards={[dashboard]}
+        onOk={() => {
+          refresh();
+        }}
+      />
+      <RouterPrompt
+        ref={routerPromptRef}
+        defaultPath='/dashboards'
+        when={!allowedLeave && isAuthorized}
+        title={t('detail.prompt.title')}
+        message={<div style={{ fontSize: 16 }}>{t('detail.prompt.message')}</div>}
+        footer={[
+          <Button
+            key='cancel'
+            onClick={() => {
+              routerPromptRef.current?.hidePrompt();
+            }}
+          >
+            {t('detail.prompt.cancelText')}
+          </Button>,
+          <Button
+            key='discard'
+            type='primary'
+            danger
+            onClick={() => {
+              routerPromptRef.current?.redirect();
+            }}
+          >
+            {t('detail.prompt.discardText')}
+          </Button>,
+          <Button
+            key='ok'
+            type='primary'
+            onClick={() => {
+              routerPromptRef.current?.hidePrompt();
+              updateDashboard(dashboard.id, {
+                name: dashboard.name,
+                ident: dashboard.ident,
+                tags: dashboard.tags,
+                note: dashboard.note,
+              });
+              updateDashboardConfigs(dashboard.id, {
+                configs: JSON.stringify(dashboard.configs),
+              }).then((res) => {
+                updateAtRef.current = res.update_at;
+                message.success(t('detail.saved'));
+                setHasUnsavedChanges(false);
+                setAllowedLeave(true);
+              });
+            }}
+          >
+            {t('detail.prompt.okText')}
+          </Button>,
+        ]}
+        validator={(prompt) => {
+          // 如果 pathname 不变意味着是同一个页面，不需要提示
+          return location.pathname === prompt.pathname;
+        }}
+      />
+    </PageLayout>
+  );
+}

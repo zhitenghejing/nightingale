@@ -1,0 +1,230 @@
+import React, { useState, useRef, useEffect, useContext } from 'react';
+import { Button, Popover, Form, Select, Space, Table } from 'antd';
+import _ from 'lodash';
+import moment from 'moment';
+import { useTranslation } from 'react-i18next';
+
+import { CommonStateContext } from '@/App';
+import TimeRangePicker, { IRawTimeRange, parseRange } from '@/components/TimeRangePicker';
+import { DatasourceCateEnum } from '@/utils/constant';
+
+import { normalizeTime } from '../utils';
+import { getDsQuery } from './services';
+import { esSQLDsQuery } from '../services';
+
+interface IProps {
+  datasourceValue: number;
+  data: any;
+  disabled?: boolean;
+}
+
+const getSerieName = (metric: Object) => {
+  let name = metric['__name__'] || '';
+  _.forEach(_.omit(metric, '__name__'), (value, key) => {
+    name += ` ${key}: ${value}`;
+  });
+  return _.trim(name);
+};
+
+export default function GraphPreview(props: IProps) {
+  const { t } = useTranslation('alertRules');
+  const { groupedDatasourceList } = useContext(CommonStateContext);
+  const { data, disabled } = props;
+  const divRef = useRef<HTMLDivElement>(null);
+  const cate = Form.useWatch('cate');
+  const esDatasourceCate = cate === DatasourceCateEnum.opensearch ? DatasourceCateEnum.opensearch : DatasourceCateEnum.elasticsearch;
+  const datasource_values = Form.useWatch('datasource_values');
+  const [visible, setVisible] = useState(false);
+  const [series, setSeries] = useState<any[]>([]);
+  const [columnKeys, setColumnKeys] = useState<string[]>([]);
+  const [datasourceValue, setDatasourceValue] = useState<number>(props.datasourceValue);
+  const [range, setRange] = useState<IRawTimeRange>({
+    start: 'now-1h',
+    end: 'now',
+  });
+
+  const fetchSeries = () => {
+    const parsedRange = parseRange(range);
+    const start = moment(parsedRange.start).unix();
+    const end = moment(parsedRange.end).unix();
+
+    const request = data?.syntax === 'sql'
+      ? esSQLDsQuery({
+          cate: esDatasourceCate,
+          datasource_id: datasourceValue,
+          query: [{
+            ref: data?.ref,
+            sql: data?.sql,
+            from: start,
+            to: end,
+            keys: {
+              ...data?.keys,
+              valueKey: Array.isArray(data?.keys?.valueKey) ? _.join(data.keys.valueKey, ' ') : data?.keys?.valueKey,
+              labelKey: Array.isArray(data?.keys?.labelKey) ? _.join(data.keys.labelKey, ' ') : data?.keys?.labelKey,
+            },
+          }],
+        }).then((dat) => ({ dat }))
+      : getDsQuery(
+      {
+        cate,
+        datasource_id: datasourceValue,
+        query: _.map([data], (item) => {
+          const interval = normalizeTime(item.interval, item.interval_unit) ?? 300; // 默认5分钟
+          return {
+            ref: item.ref,
+            index_type: item.index_type || 'index',
+            index: item.index,
+            index_pattern: item.index_pattern,
+            filter: item.filter,
+            value: item.value,
+            group_by: item.group_by,
+            date_field: item.date_field,
+            offset: item.offset,
+            interval,
+            start,
+            end,
+          };
+        }),
+      },
+      false,
+    );
+
+    request
+      .then((res) => {
+        setSeries(
+          _.map(res.dat, (item) => {
+            return {
+              id: _.uniqueId('series_'),
+              name: getSerieName(item.metric),
+              metric: item.metric,
+              data: item.values,
+            };
+          }),
+        );
+        const keys: string[] = [];
+        _.forEach(res.dat, (item) => {
+          _.forEach(item.metric, (value, key) => {
+            if (!_.includes(keys, key) && key !== '__name__') {
+              keys.push(key);
+            }
+          });
+        });
+        setColumnKeys(keys);
+      })
+      .catch(() => {
+        setSeries([]);
+      });
+  };
+
+  useEffect(() => {
+    setDatasourceValue(props.datasourceValue);
+  }, [props.datasourceValue]);
+
+  useEffect(() => {
+    if (visible) {
+      fetchSeries();
+    }
+  }, [JSON.stringify(range)]);
+
+  return (
+    <div ref={divRef}>
+      <Popover
+        placement='bottomLeft'
+        visible={visible}
+        onVisibleChange={(visible) => {
+          setVisible(visible);
+        }}
+        title={
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <div
+              style={{
+                lineHeight: '32px',
+              }}
+            >
+              {t('datasource:es.alert.query.preview')}
+            </div>
+            <Space>
+              <span>{t('common:datasource.name')}:</span>
+              <Select
+                showSearch
+                optionFilterProp='label'
+                value={datasourceValue}
+                onChange={(value) => {
+                  setDatasourceValue(value);
+                }}
+                style={{ width: 200 }}
+                options={_.map(
+                  _.filter(groupedDatasourceList[cate], (item) => {
+                    return _.includes(datasource_values, item.id);
+                  }),
+                  (item) => {
+                    return {
+                      label: item.name,
+                      value: item.id,
+                    };
+                  },
+                )}
+              />
+              <TimeRangePicker value={range} onChange={setRange} />
+            </Space>
+          </div>
+        }
+        content={
+          <div style={{ width: 700 }}>
+            <Table
+              scroll={{ x: '700px' }}
+              size='small'
+              pagination={false}
+              dataSource={series}
+              columns={_.concat(
+                {
+                  title: 'Name',
+                  render: (record) => {
+                    return record.metric?.['__name__'] ?? '-';
+                  },
+                },
+                _.map(columnKeys, (item) => {
+                  return {
+                    title: item,
+                    render: (record) => {
+                      return record.metric?.[item] ?? '-';
+                    },
+                  };
+                }) as any[],
+                {
+                  title: 'Value',
+                  render: (record) => {
+                    return _.last(record.data)?.[1] ?? '-';
+                  },
+                },
+              )}
+            />
+          </div>
+        }
+        trigger='click'
+        getPopupContainer={() => divRef.current || document.body}
+      >
+        <Button
+          size='small'
+          type='primary'
+          ghost
+          onClick={() => {
+            if (!visible && datasourceValue && data) {
+              fetchSeries();
+              setVisible(true);
+            }
+          }}
+          disabled={disabled}
+        >
+          {t('datasource:es.alert.query.preview')}
+        </Button>
+      </Popover>
+    </div>
+  );
+}

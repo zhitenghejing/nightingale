@@ -1,0 +1,170 @@
+import React, { useEffect } from 'react';
+import _ from 'lodash';
+import { useTranslation } from 'react-i18next';
+import { Card, Form, Input, Button, message, Row, Col, Space, Select, Switch, Tabs } from 'antd';
+import PageLayout, { HelpLink } from '@/components/pageLayout';
+import { IS_ENT } from '@/utils/constant';
+import { getN9eConfig, putN9eConfig } from './services';
+import './locale';
+import { languages, languageLabels } from '@/i18n';
+import { getDefaultAlertSeverityName } from '@/utils/alertSeverity';
+
+// @ts-ignore
+import SiteSettingsPlus from 'plus:/parcels/SiteSettings';
+
+export default function index() {
+  const { t } = useTranslation('siteInfo');
+  const [form] = Form.useForm();
+  const businessGroupDisplayMode = Form.useWatch('businessGroupDisplayMode', form);
+  const teamDisplayMode = Form.useWatch('teamDisplayMode', form);
+
+  useEffect(() => {
+    getN9eConfig('site_info').then((res) => {
+      if (res) {
+        try {
+          const result = JSON.parse(res);
+          if (_.isPlainObject(result)) {
+            form.resetFields();
+            form.setFieldsValue(result);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+    });
+  }, []);
+
+  return (
+    <PageLayout
+      title={<Space>{t('title')}</Space>}
+      doc={
+        IS_ENT
+          ? '/docs/content/flashcat/system/what-is-each-item-in-site-settings/'
+          : 'https://flashcat.cloud/docs/content/flashcat-monitor/nightingale-v9/usage/system-configuration/site-settings/'
+      }
+    >
+      <div className='srm'>
+        <div>
+          <Card>
+            <Form
+              layout='vertical'
+              form={form}
+              onFinish={(value) => {
+                putN9eConfig({
+                  ckey: 'site_info',
+                  cval: JSON.stringify(value),
+                }).then(() => {
+                  message.success(t('common:success.save'));
+                  location.reload();
+                });
+              }}
+            >
+              <SiteSettingsPlus />
+              <Form.Item label={t('alert_severity_names')}>
+                <Tabs>
+                  {languages.map((language) => (
+                    <Tabs.TabPane tab={languageLabels[language]} key={language} forceRender>
+                      <Row gutter={16}>
+                        {[1, 2, 3].map((severity) => (
+                          <Col span={8} key={severity}>
+                            <Form.Item name={['alert_severity_names', language, String(severity)]} label={`S${severity}`}>
+                              <Input placeholder={getDefaultAlertSeverityName(severity, language)} />
+                            </Form.Item>
+                          </Col>
+                        ))}
+                      </Row>
+                    </Tabs.TabPane>
+                  ))}
+                </Tabs>
+              </Form.Item>
+              <Form.Item name={['site_url']} label={t('site_url')} tooltip={t('site_url_tip')}>
+                <Input />
+              </Form.Item>
+              <Form.Item name={['home_page_url']} label={t('home_page_url')} tooltip={t('home_page_url_tip')}>
+                <Input />
+              </Form.Item>
+              <div>
+                <Space>
+                  <Form.Item label={t('businessGroupDisplayMode')} name={['businessGroupDisplayMode']} initialValue='tree'>
+                    <Select
+                      style={{ width: 200 }}
+                      options={[
+                        {
+                          label: t('displayMode.tree'),
+                          value: 'tree',
+                        },
+                        {
+                          label: t('displayMode.list'),
+                          value: 'list',
+                        },
+                      ]}
+                    />
+                  </Form.Item>
+                  <Form.Item label={t('businessGroupSeparator')} name={['businessGroupSeparator']} initialValue='-' hidden={businessGroupDisplayMode === 'list'}>
+                    <Input style={{ width: 200 }} />
+                  </Form.Item>
+                </Space>
+              </div>
+              <div>
+                <Space>
+                  <Form.Item label={t('teamDisplayMode')} name={['teamDisplayMode']} initialValue='list'>
+                    <Select
+                      style={{ width: 200 }}
+                      options={[
+                        {
+                          label: t('displayMode.tree'),
+                          value: 'tree',
+                        },
+                        {
+                          label: t('displayMode.list'),
+                          value: 'list',
+                        },
+                      ]}
+                    />
+                  </Form.Item>
+                  <Form.Item label={t('teamSeparator')} name={['teamSeparator']} initialValue='-' hidden={teamDisplayMode === 'list'}>
+                    <Input style={{ width: 200 }} />
+                  </Form.Item>
+                </Space>
+              </div>
+              <Form.Item name={['explorer_timeseries_legend_columns']} label={t('explorer_timeseries_legend_columns')}>
+                <Select
+                  mode='multiple'
+                  placeholder={t('explorer_timeseries_legend_columns_placeholder')}
+                  options={_.map(['max', 'min', 'avg', 'sum', 'last'], (item) => {
+                    return {
+                      label: t(`dashboard:panel.options.legend.${item}`, {
+                        lng: 'en_US',
+                      }),
+                      value: item,
+                    };
+                  })}
+                />
+              </Form.Item>
+              <div>
+                <Row>
+                  <Col span={4}>
+                    <Form.Item label={t('print_access_log')} name={['print_access_log']} initialValue={false} valuePropName='checked'>
+                      <Switch />
+                    </Form.Item>
+                  </Col>
+                  <Col span={20}>
+                    <Form.Item label={t('print_body_paths')} name={['print_body_paths']}>
+                      <Select mode='tags' placeholder='/api/n9e/busi-groups/alert-rules' style={{ width: '100%' }} open={false} />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </div>
+              <Form.Item label={t('font_family')} name={['font_family']}>
+                <Input />
+              </Form.Item>
+              <Button type='primary' htmlType='submit'>
+                {t('common:btn.save')}
+              </Button>
+            </Form>
+          </Card>
+        </div>
+      </div>
+    </PageLayout>
+  );
+}

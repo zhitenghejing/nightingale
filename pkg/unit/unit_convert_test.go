@@ -3,6 +3,7 @@ package unit
 import (
 	"math"
 	"testing"
+	"time"
 )
 
 func TestValueFormatter(t *testing.T) {
@@ -89,31 +90,6 @@ func TestValueFormatter(t *testing.T) {
 				Unit:  "k",
 				Text:  "1.50k",
 				Stat:  1500,
-			},
-		},
-		// 时间戳测试
-		{
-			name:     "时间戳 s",
-			unit:     "datetimeSeconds",
-			decimals: 0,
-			value:    1683518400,
-			want: FormattedValue{
-				Value: 1683518400,
-				Unit:  "",
-				Text:  "2023-05-08 12:00:00",
-				Stat:  1683518400,
-			},
-		},
-		{
-			name:     "时间戳 ms",
-			unit:     "datetimeMilliseconds",
-			decimals: 0,
-			value:    1683518400000,
-			want: FormattedValue{
-				Value: 1683518400000,
-				Unit:  "",
-				Text:  "2023-05-08 12:00:00",
-				Stat:  1683518400000,
 			},
 		},
 		// 补充时间单位测试
@@ -246,6 +222,41 @@ func TestValueFormatter(t *testing.T) {
 			got := ValueFormatter(tt.unit, tt.decimals, tt.value)
 			if !compareFormattedValues(got, tt.want) {
 				t.Errorf("ValueFormatter() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestValueFormatterDateTime(t *testing.T) {
+	zones := []struct {
+		name   string
+		offset int
+		want   string
+	}{
+		{"UTC", 0, "2023-05-08 04:00:00"},
+		{"UTC+08", 8 * 60 * 60, "2023-05-08 12:00:00"},
+		{"UTC-05", -5 * 60 * 60, "2023-05-07 23:00:00"},
+	}
+	for _, zone := range zones {
+		t.Run(zone.name, func(t *testing.T) {
+			// Keep these subtests sequential: time.Local is process-wide.
+			original := time.Local
+			t.Cleanup(func() { time.Local = original })
+			time.Local = time.FixedZone(zone.name, zone.offset)
+
+			for _, tt := range []struct {
+				unit  string
+				value float64
+			}{
+				{"datetimeSeconds", 1683518400},
+				{"datetimeMilliseconds", 1683518400000},
+			} {
+				t.Run(tt.unit, func(t *testing.T) {
+					want := FormattedValue{Value: tt.value, Text: zone.want, Stat: tt.value}
+					if got := ValueFormatter(tt.unit, 0, tt.value); !compareFormattedValues(got, want) {
+						t.Errorf("ValueFormatter(%q, 0, %v) = %v, want %v", tt.unit, tt.value, got, want)
+					}
+				})
 			}
 		})
 	}

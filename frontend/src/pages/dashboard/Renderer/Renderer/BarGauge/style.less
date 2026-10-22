@@ -1,0 +1,77 @@
+.renderer-bar-gauge-container-wrapper {
+  height: 100%;
+  width: 100%;
+  padding: 10px;
+}
+.renderer-bar-gauge-container {
+  height: 100%;
+  width: 100%;
+  .renderer-bar-gauge {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+.renderer-bar-gauge-item {
+  display: flex;
+  height: 18px;
+  line-height: 18px;
+  gap: 10px;
+}
+.renderer-bar-gauge-item-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  align-items: center;
+  align-self: center;
+  text-align: right;
+  flex-shrink: 0;
+}
+.renderer-bar-gauge-item-value {
+  position: relative;
+}
+.renderer-bar-gauge-item-value-bg {
+  position: absolute;
+  height: 18px;
+  width: 100%;
+}
+.renderer-bar-gauge-item-value-color-bg {
+  position: absolute;
+  height: 18px;
+  line-height: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+.renderer-bar-gauge-item-value-text {
+  padding-right: 8px;
+  position: relative;
+}
+
+.renderer-bar-gauge-lcd {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  .renderer-bar-gauge-lcd-item {
+    display: flex;
+    gap: 10px;
+  }
+  .renderer-bar-gauge-lcd-item-cells-wrapper {
+    min-width: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .renderer-bar-gauge-lcd-item-cells {
+    border-radius: 2px;
+  }
+  .renderer-bar-gauge-lcd-item-value {
+    width: 150px;
+    flex-shrink: 0;
+    text-align: right;
+  }
+}

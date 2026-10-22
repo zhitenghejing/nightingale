@@ -1,0 +1,127 @@
+import React, { useRef } from 'react';
+import { Space, Tooltip } from 'antd';
+import _ from 'lodash';
+import Color from 'color';
+import { useSize } from 'ahooks';
+
+import replaceTemplateVariables from '@/pages/dashboard/Variables/utils/replaceTemplateVariables';
+
+import { IOptions, IBarGaugeStyles, ScopedVariables } from '../../../types';
+import { BarGaugeValue, calculatePercentage } from './utils';
+
+interface Props {
+  custom: IBarGaugeStyles;
+  options: IOptions;
+  item: BarGaugeValue;
+  themeMode?: 'dark';
+  minValue: number;
+  maxValue: number;
+  maxNameWidth: number;
+}
+
+export default function BasicDisplayMode(props: Props) {
+  const { item, custom, options, themeMode, minValue, maxValue, maxNameWidth } = props;
+  const metric = item.metric;
+  const { serieWidth, detailUrl, nameField, valueMode = 'color' } = custom as IBarGaugeStyles;
+  const { thresholds } = options;
+  const baseColor = _.find(thresholds?.steps, { type: 'base' })?.color ?? '#7EB26D';
+  const name = nameField ? _.get(metric, nameField, item.name) : item.name;
+  const color = item.color ? item.color : baseColor;
+  const bgRef = useRef(null);
+  const bgSize = useSize(bgRef);
+  const textRef = useRef(null);
+  const textSize = useSize(textRef);
+  const getTextRight = () => {
+    if (bgSize?.width !== undefined && textSize?.width !== undefined) {
+      if (bgSize?.width < textSize?.width + 8) {
+        return -textSize?.width - 8;
+      }
+      return 0;
+    }
+    return 0;
+  };
+
+  const scopedVars = {
+    '__field.name': item.name,
+    '__field.value': item.value,
+  };
+  _.forEach(item.metric, (value, key) => {
+    scopedVars[`__field.labels.${key}`] = value;
+  });
+
+  return (
+    <Tooltip
+      mouseEnterDelay={0.5}
+      overlayClassName='ant-tooltip-max-width-600'
+      title={
+        <Space>
+          {name}
+          <Space size={2}>
+            {item.value}
+            {item.unit}
+          </Space>
+        </Space>
+      }
+    >
+      <div className='renderer-bar-gauge-item' key={item.name}>
+        <div
+          className='renderer-bar-gauge-item-name'
+          style={{
+            width: serieWidth ? `${serieWidth}%` : `${maxNameWidth + 4}px`, // 4px 是 省略号的宽度
+          }}
+        >
+          {detailUrl ? (
+            <a
+              target='_blank'
+              href={replaceTemplateVariables(detailUrl, {
+                scopedVars: scopedVars as unknown as ScopedVariables,
+              })}
+            >
+              {name}
+            </a>
+          ) : (
+            name
+          )}
+        </div>
+
+        <div
+          className='renderer-bar-gauge-item-value'
+          style={{
+            width: '100%',
+          }}
+        >
+          <div
+            className='renderer-bar-gauge-item-value-bg'
+            style={{
+              backgroundColor: themeMode === 'dark' ? '#20222E' : '#F6F6F6',
+            }}
+          />
+          <div
+            ref={bgRef}
+            className='renderer-bar-gauge-item-value-color-bg'
+            style={{
+              color: themeMode === 'dark' ? '#fff' : '#20222E',
+              borderRight: `2px solid ${color}`,
+              backgroundColor: Color(color).alpha(0.2).rgb().string(),
+              width: calculatePercentage(item.stat, minValue, maxValue) + '%',
+            }}
+          >
+            {valueMode === 'color' && (
+              <div
+                ref={textRef}
+                className='renderer-bar-gauge-item-value-text'
+                style={{
+                  color: color,
+                  right: getTextRight(),
+                }}
+              >
+                {item.value}
+                {item.unit}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </Tooltip>
+  );
+}

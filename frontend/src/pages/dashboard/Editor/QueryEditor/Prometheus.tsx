@@ -1,0 +1,220 @@
+import React from 'react';
+import { Form, Row, Col, Input, Switch, Space, Tag, Tooltip, Button } from 'antd';
+import { DeleteOutlined } from '@ant-design/icons';
+import _ from 'lodash';
+import { useTranslation, Trans } from 'react-i18next';
+
+import { generateQueryNameByIndex } from '@/components/QueryName/utils';
+import Resolution from '@/components/Resolution';
+import PromQLInputNG, { interpolateString } from '@/components/PromQLInputNG';
+import { useAiChatContext } from '@/components/AiChatNG';
+import { AiButton } from '@/components/AiChatNG/FlashAiButton';
+import { buildPageFrom, getExplorerPrompts } from '@/components/AiChatNG/recommend';
+import { getRealStep } from '@/pages/dashboard/Renderer/datasource/prometheus';
+import QueryExtraActions from '@/pages/dashboard/Components/QueryExtraActions';
+import { useGlobalState } from '@/pages/dashboard/globalState';
+import type { IRawTimeRange } from '@/components/TimeRangePicker';
+
+import Collapse, { Panel } from '../Components/Collapse';
+import ExpressionPanel from '../Components/ExpressionPanel';
+import { isExpressionTarget } from '@/pages/dashboard/Renderer/datasource/target';
+import AddQueryButtons from '../Components/AddQueryButtons';
+
+interface PrometheusContentProps {
+  panelWidth?: number;
+  datasourceValue: number;
+  range: IRawTimeRange;
+}
+
+export default function PrometheusContent({ panelWidth, datasourceValue, range }: PrometheusContentProps) {
+  const { t } = useTranslation('dashboard');
+  const { i18n } = useTranslation();
+  const form = Form.useFormInstance();
+  const { openAiChat } = useAiChatContext();
+  const [variablesWithOptions] = useGlobalState('variablesWithOptions');
+  const varNams = _.map(variablesWithOptions, (item) => {
+    return `$${item.name}`;
+  });
+  const targets = Form.useWatch('targets');
+  const chartType = Form.useWatch('type');
+  const maxDataPoints = Form.useWatch('maxDataPoints');
+  const queryOptionsTime = Form.useWatch('queryOptionsTime');
+
+  return (
+    <Form.List name='targets'>
+      {(fields, { add, remove }, { errors }) => {
+        return (
+          <>
+            <Collapse>
+              {_.map(fields, (field, index) => {
+                const restField = _.omit(field, 'key');
+                if (isExpressionTarget(targets?.[field.name])) {
+                  return <ExpressionPanel key={field.key} fields={fields} remove={remove} field={field} />;
+                }
+                return (
+                  <Panel
+                    header={
+                      <Form.Item noStyle shouldUpdate>
+                        {({ getFieldValue }) => {
+                          const target = getFieldValue(['targets', field.name]);
+                          const step = getRealStep({
+                            time: queryOptionsTime || range,
+                            maxDataPoints,
+                            panelWidth: panelWidth,
+                            minStep: target?.step,
+                          });
+                          const name = target?.refId || generateQueryNameByIndex(index);
+                          return (
+                            <Space align='center'>
+                              {name}
+                              {step ? (
+                                <Tooltip placement='right' title={t('query.prometheus.step.tag_tip')}>
+                                  <Tag color='purple'>{`step=${step}s`}</Tag>
+                                </Tooltip>
+                              ) : null}
+                            </Space>
+                          );
+                        }}
+                      </Form.Item>
+                    }
+                    key={field.key}
+                    extra={
+                      <Space>
+                        <QueryExtraActions field={field} add={add} />
+                        {fields.length > 1 ? (
+                          <DeleteOutlined
+                            onClick={() => {
+                              remove(field.name);
+                            }}
+                          />
+                        ) : null}
+                      </Space>
+                    }
+                  >
+                    <Form.Item noStyle {...restField} name={[field.name, 'refId']}>
+                      <div />
+                    </Form.Item>
+                    <div className='flex items-center gap-2'>
+                      <div className='min-w-0 flex-1'>
+                        <Form.Item
+                          label={t('query.prometheus.query')}
+                          tooltip={{
+                            overlayInnerStyle: { width: 330 },
+                            title: <Trans ns='dashboard' i18nKey='dashboard:var.help_tip' components={{ 1: <br /> }} />,
+                          }}
+                          {...restField}
+                          name={[field.name, 'expr']}
+                          validateTrigger={['onBlur']}
+                          rules={[
+                            {
+                              required: true,
+                              message: '',
+                            },
+                          ]}
+                          style={{ flex: 1 }}
+                        >
+                          <PromQLInputNG
+                            onChangeTrigger={['onBlur', 'onEnter']}
+                            datasourceValue={datasourceValue}
+                            variablesNames={varNams}
+                            durationVariablesCompletion
+                            showBuiltinMetrics
+                            interpolateString={(query) => {
+                              return interpolateString({
+                                query,
+                                range: range,
+                                minStep: targets?.[field.name]?.step,
+                              });
+                            }}
+                          />
+                        </Form.Item>
+                      </div>
+                      <Form.Item label=' '>
+                        <AiButton
+                          queryPageFrom={buildPageFrom({
+                            param: {
+                              datasource_type: 'prometheus',
+                              datasource_id: datasourceValue,
+                            },
+                          })}
+                          queryAction={{
+                            key: 'query_generator',
+                            param: {
+                              datasource_type: 'prometheus',
+                              datasource_id: datasourceValue,
+                            },
+                          }}
+                          promptList={getExplorerPrompts(i18n.language)}
+                          onExecuteQueryForQueryContent={(promql) => {
+                            const targets = [...(form.getFieldValue('targets') || [])];
+                            const targetIndex = field.name;
+
+                            if (!targets.length || !targets[targetIndex]) {
+                              return;
+                            }
+
+                            targets[targetIndex] = {
+                              ...targets[targetIndex],
+                              expr: promql,
+                            };
+
+                            form.setFieldsValue({
+                              targets,
+                            });
+                          }}
+                        />
+                      </Form.Item>
+                    </div>
+                    <Row gutter={10}>
+                      {chartType !== 'tableNG' && (
+                        <Col flex='auto'>
+                          <Form.Item
+                            label={t('query.legend')}
+                            {...restField}
+                            name={[field.name, 'legend']}
+                            tooltip={{
+                              getPopupContainer: () => document.body,
+                              title: t('query.legendTip', {
+                                interpolation: { skipOnVariables: true },
+                              }),
+                            }}
+                          >
+                            <Input />
+                          </Form.Item>
+                        </Col>
+                      )}
+                      <Col flex='none'>
+                        <Form.Item label={t('query.prometheus.minStep.label')} tooltip={t('query.prometheus.minStep.tip')} {...restField} name={[field.name, 'step']}>
+                          <Resolution placeholder='15' width='100%' />
+                        </Form.Item>
+                      </Col>
+                      <Col flex='none'>
+                        <Form.Item
+                          label={t('query.prometheus.instant.label')}
+                          tooltip={t('query.prometheus.instant.tip')}
+                          {...restField}
+                          name={[field.name, 'instant']}
+                          valuePropName='checked'
+                        >
+                          <Switch />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </Panel>
+                );
+              })}
+
+              <Form.ErrorList errors={errors} />
+            </Collapse>
+            <AddQueryButtons
+              add={add}
+              addQuery={(newRefId) => {
+                add({ expr: '', __mode__: '__query__', refId: newRefId });
+              }}
+            />
+          </>
+        );
+      }}
+    </Form.List>
+  );
+}

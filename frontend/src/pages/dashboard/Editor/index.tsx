@@ -1,0 +1,238 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import React, { useState, useRef } from 'react';
+import { Modal, Select, Space, Button } from 'antd';
+import { CloseOutlined } from '@ant-design/icons';
+import _ from 'lodash';
+import { v4 as uuidv4 } from 'uuid';
+import { useTranslation } from 'react-i18next';
+import { useDeepCompareEffect } from 'ahooks';
+
+import { DatasourceCateEnum, SIZE } from '@/utils/constant';
+import TimeRangePicker, { IRawTimeRange } from '@/components/TimeRangePicker';
+
+import { visualizations, defaultValues, defaultCustomValuesMap, defaultOptionsValuesMap } from './config';
+import FormCpt, { EditorFormHandle } from './Form';
+import { IPanel } from '../types';
+import { normalizeInitialValues } from './util';
+import getDefaultTargets from '../utils/getDefaultTargets';
+import { upgradeTableToNG } from '../utils/upgradeTableToNG';
+import { useGlobalState } from '../globalState';
+import normalizeData from '../Renderer/Renderer/TableNG/utils/normalizeData';
+import { normalizeDashboardPanelForPersist } from './normalization';
+
+import './style.less';
+
+interface IProps {
+  panelWidth?: number; // 面板宽度
+  mode: string;
+  visible: boolean;
+  setVisible: (visible: boolean) => void;
+  initialValues: IPanel;
+  id: string; // panel id
+  time: IRawTimeRange;
+  timezone: string;
+  setTimezone: (timezone: string) => void;
+  onOK: (formData: IPanel, mode: string) => void;
+  onCancel?: () => void;
+  editModalVariablecontainerRef: React.RefObject<HTMLDivElement>;
+}
+
+function index(props: IProps) {
+  const { t } = useTranslation('dashboard');
+  const formRef = useRef<EditorFormHandle>(null);
+  const { panelWidth, mode, visible, setVisible, id, time, timezone, setTimezone } = props;
+  const [initialValues, setInitialValues] = useState<IPanel>(_.cloneDeep(props.initialValues));
+  const [series] = useGlobalState('series');
+  const [range, setRange] = useState<IRawTimeRange>(time);
+  const changeVisualization = (val: string, migrateLegacyTable = false) => {
+    if (!formRef.current?.getFormInstance) return;
+    const formInstance = formRef.current.getFormInstance();
+    const values = {
+      ...(formInstance.getFieldsValue() as Record<string, unknown>),
+      targets: formInstance.getFieldValue('targets'),
+    } as IPanel;
+    if (migrateLegacyTable) {
+      const availableFields = _.uniq(_.flatMap(normalizeData(series || []), 'columns'));
+      setInitialValues(upgradeTableToNG(values, availableFields));
+      return;
+    }
+    const valuesCopy = _.cloneDeep(values);
+    _.set(valuesCopy, 'type', val);
+    _.set(valuesCopy, 'custom', defaultCustomValuesMap[val]);
+    _.set(valuesCopy, 'options', defaultOptionsValuesMap[val]);
+    const datasourceCate = valuesCopy.datasourceCate || valuesCopy.targets?.[0]?.datasource?.cate || 'prometheus';
+    _.set(
+      valuesCopy,
+      'targets',
+      valuesCopy.targets?.length
+        ? _.map(valuesCopy.targets, (item) => {
+            // 如果切换到时序图类型，但是面板的查询配置里的模式不是时序图数据，则切换到时序图模式
+            if (val === 'timeseries' && item.query?.mode && item.query?.mode !== 'timeSeries') {
+              return { ...item, query: { ...item.query, mode: 'timeSeries' } };
+            }
+            return item;
+          })
+        : getDefaultTargets(datasourceCate === 'mixed' ? DatasourceCateEnum.prometheus : (datasourceCate as DatasourceCateEnum)),
+    );
+    // 清空 overrides
+    _.set(valuesCopy, 'overrides', []);
+    setInitialValues(valuesCopy);
+  };
+  const handleAddChart = async () => {
+    if (formRef.current && formRef.current.getFormInstance) {
+      const formInstance = formRef.current.getFormInstance();
+      formInstance.validateFields().then(async (values: IPanel) => {
+        values.targets = formInstance.getFieldValue('targets') ?? values.targets;
+        // TODO: 渲染 hexbin 图时，colorRange 需要从 string 转换为 array
+        if (values.type === 'hexbin' && typeof values.custom.colorRange === 'string') {
+          _.set(values, 'custom.colorRange', _.split(values.custom.colorRange, ','));
+        }
+        const formData = normalizeDashboardPanelForPersist(values);
+        if (!formData.id) {
+          formData.id = uuidv4();
+        }
+        props.onOK(formData, mode);
+        setVisible(false);
+      });
+    }
+  };
+
+  useDeepCompareEffect(() => {
+    const initialValuesCopy = _.cloneDeep(props.initialValues);
+    initialValuesCopy.type = initialValuesCopy.type || defaultValues.type;
+    // TODO: 渲染 hexbin 配置时，colorRange 需要从 array 转换为 string
+    if (initialValuesCopy.type === 'hexbin' && initialValuesCopy?.custom?.colorRange) {
+      if (_.isArray(initialValuesCopy.custom.colorRange)) {
+        _.set(initialValuesCopy, 'custom.colorRange', _.join(initialValuesCopy.custom.colorRange, ','));
+        setInitialValues(initialValuesCopy);
+      } else {
+        setInitialValues(initialValuesCopy);
+      }
+    } else {
+      setInitialValues(initialValuesCopy);
+    }
+  }, [props.initialValues]);
+
+  return (
+    <Modal
+      className='n9e-dashboard-editor-modal'
+      width='100%'
+      title={
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div>{mode === 'add' ? t('panel.title.add') : t('panel.title.edit')}</div>
+          <Space style={{ flex: 1, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', fontSize: 12, lineHeight: '20px' }}>
+            <Select
+              dropdownMatchSelectWidth={false}
+              value={initialValues.type}
+              onChange={(val) => {
+                const currentType = formRef.current?.getFormInstance?.()?.getFieldValue('type');
+                if (currentType === 'table' && val === 'tableNG') {
+                  Modal.confirm({
+                    title: t('table_upgrade.switch_title'),
+                    content: t('table_upgrade.switch_content'),
+                    okText: t('table_upgrade.auto_upgrade'),
+                    cancelText: t('table_upgrade.switch_only'),
+                    onOk: () => changeVisualization(val, true),
+                    onCancel: () => changeVisualization(val),
+                  });
+                  return;
+                }
+                changeVisualization(val);
+              }}
+            >
+              {_.map(visualizations, (item) => {
+                return (
+                  <Select.Option value={item.type} key={item.type}>
+                    <Space align='center' style={{ lineHeight: 1 }}>
+                      <img height={16} alt={item.type} src={`/image/dashboard/${item.type}.svg`} />
+                      {t(`visualizations.${item.type}`)}
+                    </Space>
+                  </Select.Option>
+                );
+              })}
+            </Select>
+            <TimeRangePicker
+              dateFormat='YYYY-MM-DD HH:mm:ss'
+              value={range}
+              onChange={(val: IRawTimeRange) => {
+                setRange(val);
+              }}
+              showTimezone
+              timezone={timezone}
+              onTimezoneChange={setTimezone}
+            />
+            <CloseOutlined
+              style={{ fontSize: 18 }}
+              onClick={() => {
+                setVisible(false);
+                props.onCancel && props.onCancel();
+              }}
+            />
+          </Space>
+        </div>
+      }
+      style={{ top: 0, padding: 0 }}
+      visible={visible}
+      closable={false}
+      destroyOnClose
+      footer={[
+        <Button
+          key='cancel'
+          onClick={() => {
+            setVisible(false);
+            props.onCancel && props.onCancel();
+          }}
+        >
+          {t('common:btn.cancel')}
+        </Button>,
+        <Button
+          key='ok'
+          type='primary'
+          onClick={() => {
+            handleAddChart();
+          }}
+        >
+          {t('common:btn.save')}
+        </Button>,
+      ]}
+      onCancel={() => {
+        setVisible(false);
+        props.onCancel && props.onCancel();
+      }}
+      bodyStyle={{
+        padding: SIZE * 2,
+        backgroundColor: 'var(--fc-fill-1)',
+      }}
+    >
+      {(initialValues?.targets?.length || _.includes(['text', 'iframe'], initialValues.type)) && (
+        <FormCpt
+          ref={formRef}
+          initialValues={normalizeInitialValues(initialValues)}
+          range={range}
+          timezone={timezone}
+          id={id}
+          key={initialValues.type} // 每次切换图表类型，都重新渲染
+          panelWidth={panelWidth}
+          editModalVariablecontainerRef={props.editModalVariablecontainerRef}
+        />
+      )}
+    </Modal>
+  );
+}
+
+export default index;

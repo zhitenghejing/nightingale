@@ -1,0 +1,132 @@
+import React, { useEffect, useState } from 'react';
+import _ from 'lodash';
+import { Drawer, Space, Spin } from 'antd';
+import { ExportOutlined } from '@ant-design/icons';
+import MDEditor from '@uiw/react-md-editor';
+import { useTranslation } from 'react-i18next';
+
+import { IS_ENT } from '@/utils/constant';
+import { DOC_URL_LANG_SUFFIX } from '@/utils/docUrl';
+import { withFlashcatFrom } from '@/utils/flashcatFrom';
+import { getN9eSiteDocUrl, getN9eSiteEmbedSrc, isChineseLanguage } from '@/utils/n9eSiteDoc';
+
+import ModalHOC, { ModalWrapProps } from '../ModalHOC';
+import Document from './Document';
+import './style.less';
+import renderVariables from './renderVariables';
+
+export { Document };
+interface Props {
+  darkMode?: boolean;
+  language?: string;
+  width?: string | number;
+  title: string;
+  documentPath: string;
+  type?: 'md' | 'iframe';
+  zIndex?: number;
+  anchor?: string;
+  /** 文档里 {{key}} 占位符的替换值，例如上报地址 */
+  variables?: Record<string, string | undefined>;
+  onClose?: (destroy: () => void) => void;
+}
+
+function index(props: Props & ModalWrapProps) {
+  const { t } = useTranslation();
+  const { visible, destroy, title, width = '60%', documentPath, onClose, type = 'md', zIndex, anchor, variables } = props;
+  const language = IS_ENT ? 'zh_CN' : props.language ?? 'zh_CN'; //
+  const darkMode = props.darkMode ?? window.document.body.classList.contains('theme-dark');
+  const [document, setDocument] = useState('');
+  const [loading, setLoading] = useState(true);
+  // 去除 documentPath 结尾的 /
+  let realDocumentPath = documentPath.replace(/\/$/, '');
+
+  if (type === 'iframe' && IS_ENT) {
+    realDocumentPath = realDocumentPath.replace('https://flashcat.cloud', '');
+  }
+  // 非中文界面优先内嵌新官网 n9e.github.io 的对应页面（自带锚点，旧的中文锚点不再适用）
+  const n9eSiteDocUrl = type === 'iframe' && !IS_ENT && !isChineseLanguage(language) ? getN9eSiteDocUrl(documentPath) : undefined;
+
+  useEffect(() => {
+    if (documentPath && type === 'md') {
+      fetch(`${documentPath}/${language}.md`)
+        .then((res) => {
+          // 如果获取文档失败，使用 en_US 作为默认语言
+          if (res.status === 404) {
+            return fetch(`${documentPath}/en_US.md`).then((res) => res.text());
+          }
+          return res.text();
+        })
+        .then((res) => {
+          setDocument(renderVariables(res, variables));
+        })
+        .catch(() => {
+          // 如果获取文档失败，使用 en_US 作为默认语言
+          return fetch(`${documentPath}/en_US.md`)
+            .then((res) => res.text())
+            .then((res) => {
+              setDocument(renderVariables(res, variables));
+            });
+        });
+    }
+  }, []);
+
+  return (
+    <Drawer
+      width={width}
+      title={
+        <Space>
+          {title}
+          {type === 'iframe' && (
+            <a target='_blank' href={n9eSiteDocUrl ? withFlashcatFrom(n9eSiteDocUrl) : `${realDocumentPath}${DOC_URL_LANG_SUFFIX[language] || ''}/${anchor || ''}`} className='text-[12px]'>
+              <Space size={4}>
+                {t('common:more_document_link')}
+                <ExportOutlined />
+              </Space>
+            </a>
+          )}
+        </Space>
+      }
+      zIndex={zIndex}
+      placement='right'
+      onClose={() => {
+        if (onClose) {
+          onClose(destroy);
+        } else {
+          destroy();
+        }
+      }}
+      visible={visible}
+      className='n9e-antd-drawer'
+    >
+      {type === 'md' && (
+        <div data-color-mode={darkMode ? 'dark' : 'light'}>
+          <MDEditor.Markdown
+            source={document}
+            rehypeRewrite={(node: any) => {
+              if (_.includes(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'], node.tagName)) {
+                node.children = node.children.filter((item) => item.tagName != 'a');
+              }
+            }}
+          />
+        </div>
+      )}
+      {type === 'iframe' && (
+        <Spin spinning={loading} wrapperClassName='n9e-document-drawer-iframe-loading'>
+          <iframe
+            src={
+              n9eSiteDocUrl
+                ? withFlashcatFrom(getN9eSiteEmbedSrc(n9eSiteDocUrl, darkMode))
+                : withFlashcatFrom(`${realDocumentPath}${DOC_URL_LANG_SUFFIX[language] || ''}/?onlyContent&theme=${darkMode ? 'dark' : 'light'}${anchor || ''}`)
+            }
+            style={{ width: '100%', height: '100%', border: '0 none', visibility: loading ? 'hidden' : 'visible' }}
+            onLoad={() => {
+              setLoading(false);
+            }}
+          />
+        </Spin>
+      )}
+    </Drawer>
+  );
+}
+
+export default ModalHOC<Props>(index);

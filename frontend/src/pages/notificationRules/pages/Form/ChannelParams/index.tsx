@@ -1,0 +1,51 @@
+import React from 'react';
+import { FormListFieldData } from 'antd/lib/form/FormList';
+import _ from 'lodash';
+
+import { ChannelItem } from '@/pages/notificationChannels/types';
+
+import UserInfo from './UserInfo';
+import Flashduty from './Flashduty';
+import Custom from './Custom';
+import PagerDuty from './Pagerduty';
+import FeishuApp from './FeishuApp';
+import Jira from './Jira';
+import Discord from './Discord';
+import JSMAlert from './JSMAlert';
+import ChatWebhook from './ChatWebhook';
+
+interface Props {
+  prefixNamePath?: (string | number)[];
+  field: FormListFieldData;
+  channelItem?: ChannelItem;
+}
+
+export default function index(props: Props) {
+  const { prefixNamePath, field, channelItem } = props;
+  const request_type = channelItem?.request_type;
+  const contactKey = channelItem?.param_config?.user_info?.contact_key;
+  const customParams = channelItem?.param_config?.custom?.params ?? [];
+
+  if (request_type === 'flashduty') {
+    return <Flashduty field={field} channelItem={channelItem} />;
+  } else if (request_type === 'pagerduty') {
+    return <PagerDuty field={field} channelItem={channelItem} />;
+  } else if (request_type === 'feishuapp') {
+    return <FeishuApp field={field} channelItem={channelItem} />;
+  } else if (request_type === 'jira') {
+    return <Jira prefixNamePath={prefixNamePath} field={field} channelItem={channelItem} />;
+  } else if (request_type === 'discord') {
+    return <Discord prefixNamePath={prefixNamePath} field={field} channelItem={channelItem} />;
+  } else if (request_type === 'jsm_alert') {
+    return <JSMAlert prefixNamePath={prefixNamePath} field={field} channelItem={channelItem} />;
+  } else if (request_type === 'slackwebhook' || request_type === 'mattermostwebhook') {
+    return <ChatWebhook prefixNamePath={prefixNamePath} field={field} channelItem={channelItem} requestType={request_type} />;
+  }
+
+  return (
+    <>
+      {contactKey && <UserInfo prefixNamePath={prefixNamePath} field={field} />}
+      <Custom prefixNamePath={prefixNamePath} field={field} customParams={customParams} />
+    </>
+  );
+}

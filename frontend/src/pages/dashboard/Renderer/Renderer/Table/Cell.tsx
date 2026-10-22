@@ -1,0 +1,104 @@
+import React from 'react';
+import _ from 'lodash';
+import { Popover, Tooltip } from 'antd';
+import { LinkOutlined } from '@ant-design/icons';
+
+import replaceTemplateVariables from '@/pages/dashboard/Variables/utils/replaceTemplateVariables';
+
+import { IPanel } from '../../../types';
+
+interface Props {
+  text: string;
+  color?: string;
+  style?: React.CSSProperties;
+  panel: IPanel;
+  record: any;
+}
+
+export default function Cell(props: Props) {
+  const { text, color, style, panel, record } = props;
+  const { custom } = panel;
+  // custom 为 JsonObject（宽类型），按表格单元格链接实际结构收窄
+  const {
+    links,
+    linkMode,
+    nowrap = false,
+  } = custom as {
+    links?: Array<{ targetBlank?: boolean; url?: string; title?: string }>;
+    linkMode?: string;
+    nowrap?: boolean;
+  };
+  const firstLink = _.first(links);
+  const styleObj = style || { color };
+  if (!record) return null;
+  const data = {
+    name: record.name,
+    value: record.value,
+    metric: record.metric,
+  };
+
+  const scopedVars = {
+    '__field.name': data.name,
+    '__field.value': data.value,
+  };
+  _.forEach(data.metric, (value, key) => {
+    scopedVars[`__field.labels.${key}`] = value;
+  });
+
+  return (
+    <Tooltip placement='topLeft' title={nowrap ? text : undefined}>
+      <div
+        className='renderer-table-td-content'
+        style={{
+          ...styleObj,
+          whiteSpace: nowrap ? 'nowrap' : undefined,
+          overflow: nowrap ? 'hidden' : undefined,
+          textOverflow: nowrap ? 'ellipsis' : undefined,
+        }}
+      >
+        {linkMode === 'cellLink' && !_.isEmpty(links) ? (
+          <>
+            {_.size(links) > 1 ? (
+              <Popover
+                placement='bottomLeft'
+                trigger={['click']}
+                content={
+                  <div>
+                    {_.map(links, (link, idx) => {
+                      return (
+                        <div key={idx}>
+                          <a
+                            target={link.targetBlank ? '_blank' : '_self'}
+                            href={replaceTemplateVariables(link.url as string, {
+                              scopedVars,
+                            })}
+                          >
+                            <LinkOutlined /> {link.title}
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                }
+              >
+                <a style={styleObj}>{text}</a>
+              </Popover>
+            ) : (
+              <a
+                target={firstLink?.targetBlank ? '_blank' : '_self'}
+                href={replaceTemplateVariables(firstLink?.url as string, {
+                  scopedVars,
+                })}
+                style={styleObj}
+              >
+                {text}
+              </a>
+            )}
+          </>
+        ) : (
+          text
+        )}
+      </div>
+    </Tooltip>
+  );
+}

@@ -1,0 +1,45 @@
+const en_US = {
+  title: 'Recording rules',
+  search_placeholder: 'Search by name or tags',
+  group_id: 'Business group',
+  group_id_required: 'Please select a business group',
+  name: 'Metric name',
+  name_msg: 'Metric name is invalid',
+  name_tip: 'The PromQL expression is evaluated periodically and generates a new metric. Fill in the name of the new metric here',
+  note: 'Note',
+  disabled: 'Enable',
+  append_tags: 'Tags',
+  append_tags_msg: 'Invalid tag format, please check!',
+  append_tags_msg1: 'Tag length should be less than or equal to 64 characters',
+  append_tags_msg2: 'Tag format should be key=value. The key must start with a letter or underscore and contain only letters, numbers, and underscores.',
+  append_tags_placeholder: 'Tag format is key=value, use Enter or Space to separate',
+  filter_disabled: {
+    placeholder: 'Enabled status',
+    0: 'Enabled',
+    1: 'Disabled',
+  },
+  batch: {
+    must_select_one: 'No rule selected',
+    import: {
+      title: 'Import recording rules',
+      name: 'Recording rule',
+    },
+    export: {
+      title: 'Export recording rules',
+      copy: 'Copy JSON to clipboard',
+    },
+    delete: 'Delete recording rules',
+    update: {
+      title: 'Update recording rules',
+      field: 'Field',
+      changeto: 'Change to',
+      options: {
+        datasource_ids: 'Data source',
+        disabled: 'Enable',
+        append_tags: 'Tags',
+        cron_pattern: 'Execution frequency',
+      },
+    },
+  },
+};
+export default en_US;

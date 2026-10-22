@@ -1,0 +1,91 @@
+.tag-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  .tag-content {
+    &-item {
+      margin-bottom: 8px;
+      .error-tips {
+        width: 100%;
+        border-left: 4px solid @colorDanger;
+        height: 32px;
+        box-sizing: border-box;
+        line-height: 32px;
+        padding: 0 20px;
+        font-size: @baseFontSizeTiny;
+        background: @colorDangerBackground;
+        color: @fontColorLevel4;
+        span {
+          transform: scale(0.8);
+        }
+      }
+    }
+  }
+
+  .tag-content-close {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    align-items: center;
+    &-item {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start; // 防止其他 item 的 label被撑开
+      .ant-select {
+        flex: 1;
+      }
+      &-tagName {
+        line-height: 32px;
+        padding: 0 8px;
+        border-radius: 4px 0 0 4px;
+      }
+    }
+    .add-variable-tips {
+      font-size: @baseFontSizeSmall;
+      cursor: pointer;
+      color: @fontColorBlue;
+      display: flex;
+      align-items: center;
+    }
+    .icon {
+      svg {
+        vertical-align: inherit;
+      }
+    }
+  }
+
+  .icon {
+    font-size: @baseFontSizeMiddle;
+    line-height: 32px !important;
+    cursor: pointer;
+    display: none !important;
+  }
+
+  .tag-control-area {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 10px;
+    button {
+      &:last-of-type {
+        margin-left: 8px;
+      }
+    }
+  }
+
+  &:hover {
+    .icon {
+      display: block !important;
+    }
+  }
+}
+.variable-modal {
+  .tag-header {
+    font-size: @baseFontSizeTiny;
+    font-weight: bold;
+    color: @fontColorLevel4;
+    margin-bottom: 8px;
+  }
+}

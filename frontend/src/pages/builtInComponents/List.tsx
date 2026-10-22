@@ -1,0 +1,308 @@
+import React, { useEffect, useState } from 'react';
+import _ from 'lodash';
+import queryString from 'query-string';
+import { Input, Drawer, Space, Tabs, Button, Modal, Tooltip } from 'antd';
+import { SafetyCertificateOutlined, SearchOutlined, CloseOutlined, EditOutlined, DeleteOutlined, StopOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
+import { useLocation, useHistory } from 'react-router-dom';
+import PageLayout from '@/components/pageLayout';
+import AuthorizationWrapper from '@/components/AuthorizationWrapper';
+import { IS_PLUS } from '@/utils/constant';
+import Instructions from './Instructions';
+import AlertRules from './AlertRules';
+import CollectTpls from './CollectTpls';
+import Metrics from './Metrics';
+import Dashboards from './Dashboards';
+import ComponentSteps from './ComponentSteps';
+import { getComponents, Component, deleteComponents, putComponent } from './services';
+import ComponentFormModal from './components/ComponentFormModal';
+import { IS_ENT } from '@/utils/constant';
+
+// @ts-ignore
+import Firemap from 'plus:/parcels/builtInComponents/Firemap';
+
+const LIST_SEARCH_VALUE = 'builtin-list-search-value';
+const BUILT_IN_ACTIVE_TAB_KEY = 'builtin-drawer-active-tab';
+
+export default function index() {
+  const { t } = useTranslation('builtInComponents');
+  const history = useHistory();
+  const { search } = useLocation();
+  const query = queryString.parse(search);
+  const defaultComponent = query.component as string;
+  const [searchValue, setSearchValue] = useState(localStorage.getItem(LIST_SEARCH_VALUE) || '');
+  const [data, setData] = useState<Component[]>([]);
+  const [activeComponent, setActiveComponent] = useState<Component>();
+  const [readme, setReadme] = useState('');
+  // ?tab= 优先于上次停留的页签：从别处深链过来（如采集验证通过后的「导入仪表盘」）
+  // 是带着明确目的的，不该被用户上一次看的页签盖掉
+  const [activeTab, setActiveTab] = useState((query.tab as string) || localStorage.getItem(BUILT_IN_ACTIVE_TAB_KEY) || 'tab_instructions');
+  const [readmeEditabled, setReadmeEditabled] = useState(false);
+  // 三步进度存在 localStorage 里，导入成功后递增这个信号让步骤条重读
+  const [packFlag, setPackFlag] = useState(0);
+  const fetchData = () => {
+    return getComponents().then((res) => {
+      setData(res);
+      return res;
+    });
+  };
+
+  useEffect(() => {
+    fetchData().then((res) => {
+      if (defaultComponent) {
+        const component = _.find(res, { ident: defaultComponent });
+        if (component) {
+          setActiveComponent(component);
+          setReadme(component.readme);
+        }
+      }
+    });
+  }, []);
+
+  return (
+    <PageLayout title={t('title')} icon={<SafetyCertificateOutlined />} doc='https://flashcat.cloud/docs/content/flashcat-monitor/nightingale-v9/usage/integrations/templates/'>
+      <div>
+        <div style={{ background: 'unset' }}>
+          <div className='mb-4' style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Input
+              prefix={<SearchOutlined />}
+              style={{ width: 300 }}
+              value={searchValue}
+              onChange={(e) => {
+                setSearchValue(e.target.value);
+                localStorage.setItem(LIST_SEARCH_VALUE, e.target.value);
+              }}
+              allowClear
+              placeholder={t('common:search_placeholder')}
+            />
+            <AuthorizationWrapper allowedPerms={['/components/add']}>
+              <Button
+                type='primary'
+                onClick={() => {
+                  ComponentFormModal({
+                    components: data,
+                    action: 'create',
+                    onOk: () => {
+                      fetchData();
+                    },
+                  });
+                }}
+              >
+                {t('common:btn.create')}
+              </Button>
+            </AuthorizationWrapper>
+          </div>
+          <div className='builtin-cates-grid'>
+            {_.map(
+              _.filter(data, (item) => {
+                return _.includes(_.toUpper(item.ident), _.toUpper(searchValue));
+              }),
+              (item) => {
+                return (
+                  <div
+                    key={item.ident}
+                    className='builtin-cates-grid-item'
+                    onClick={() => {
+                      history.replace({
+                        search: queryString.stringify({
+                          ...query,
+                          component: item.ident,
+                        }),
+                      });
+                      setActiveComponent(item);
+                      setReadme(item.readme);
+                    }}
+                  >
+                    <img src={item.logo} style={{ height: 42, maxWidth: '60%' }} />
+                    <div>{item.ident}</div>
+                    <div className='builtin-cates-grid-item-operations'>
+                      <Space size={0}>
+                        <AuthorizationWrapper allowedPerms={['/components/put']}>
+                          <Button
+                            size='small'
+                            type='link'
+                            className='p-0'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              ComponentFormModal({
+                                components: data,
+                                action: 'edit',
+                                initialValues: item,
+                                onOk: () => {
+                                  fetchData();
+                                },
+                              });
+                            }}
+                            icon={<EditOutlined />}
+                          />
+                        </AuthorizationWrapper>
+                        <AuthorizationWrapper allowedPerms={['/components/del']}>
+                          <Button
+                            size='small'
+                            type='link'
+                            danger
+                            className='p-0'
+                            icon={<DeleteOutlined />}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              Modal.confirm({
+                                title: t('common:confirm.delete'),
+                                onOk: () => {
+                                  deleteComponents([item.id]).then(() => {
+                                    fetchData();
+                                  });
+                                },
+                              });
+                            }}
+                          />
+                        </AuthorizationWrapper>
+                      </Space>
+                    </div>
+                    {item.disabled === 1 && (
+                      <Tooltip title={t('disabled')}>
+                        <div className='builtin-cates-grid-item-status'>
+                          <StopOutlined />
+                        </div>
+                      </Tooltip>
+                    )}
+                  </div>
+                );
+              },
+            )}
+          </div>
+        </div>
+      </div>
+      <Drawer
+        width='90%'
+        visible={!!activeComponent}
+        closable={false}
+        destroyOnClose
+        title={
+          <Space>
+            <img src={activeComponent?.logo} style={{ height: 24, width: 24 }} />
+            <div>{activeComponent?.ident}</div>
+          </Space>
+        }
+        extra={
+          <CloseOutlined
+            onClick={() => {
+              history.replace({
+                search: queryString.stringify({
+                  ...query,
+                  component: undefined,
+                }),
+              });
+              setActiveComponent(undefined);
+              setReadmeEditabled(false);
+              setReadme(activeComponent?.readme || '');
+            }}
+          />
+        }
+        onClose={() => {
+          history.replace({
+            search: queryString.stringify({
+              ...query,
+              component: undefined,
+            }),
+          });
+          setActiveComponent(undefined);
+          setReadmeEditabled(false);
+          setReadme(activeComponent?.readme || '');
+        }}
+        footer={
+          activeTab === 'tab_instructions' &&
+          (readmeEditabled ? (
+            <Space>
+              <Button
+                type='primary'
+                onClick={() => {
+                  if (activeComponent) {
+                    putComponent({ ...activeComponent, readme }).then(() => {
+                      fetchData();
+                    });
+                    setReadmeEditabled(!readmeEditabled);
+                  }
+                }}
+              >
+                {t('common:btn.save')}
+              </Button>
+              <Button
+                onClick={() => {
+                  setReadmeEditabled(!readmeEditabled);
+                  setReadme(activeComponent?.readme || '');
+                }}
+              >
+                {t('common:btn.cancel')}
+              </Button>
+            </Space>
+          ) : (
+            <AuthorizationWrapper allowedPerms={['/components/put']}>
+              <Button
+                type='primary'
+                onClick={() => {
+                  setReadmeEditabled(!readmeEditabled);
+                }}
+              >
+                {t('common:btn.edit')}
+              </Button>
+            </AuthorizationWrapper>
+          ))
+        }
+        className='n9e-antd-drawer'
+      >
+        {activeComponent && (
+          <ComponentSteps
+            ident={activeComponent.ident}
+            componentId={activeComponent.id}
+            activeTab={activeTab}
+            refreshFlag={packFlag}
+            onGoTab={(tab) => {
+              setActiveTab(tab);
+              localStorage.setItem(BUILT_IN_ACTIVE_TAB_KEY, tab);
+            }}
+          />
+        )}
+        {activeComponent && (
+          <Tabs
+            className='builtin-drawer-tabs'
+            activeKey={activeTab}
+            onChange={(activeKey) => {
+              setActiveTab(activeKey);
+              localStorage.setItem(BUILT_IN_ACTIVE_TAB_KEY, activeKey);
+            }}
+          >
+            <Tabs.TabPane tab={t('tab_instructions')} key='tab_instructions' className='builtin-drawer-tab-pane'>
+              <Instructions
+                value={readme}
+                onChange={(newValue) => {
+                  setReadme(newValue);
+                }}
+                editabled={readmeEditabled}
+                setReadmeEditabled={setReadmeEditabled}
+              />
+            </Tabs.TabPane>
+            {IS_PLUS && (
+              <Tabs.TabPane tab={t('tab_collectTpls')} key='tab_collectTpls'>
+                <CollectTpls component={activeComponent.ident} component_id={activeComponent.id} />
+              </Tabs.TabPane>
+            )}
+            <Tabs.TabPane tab={t('tab_metrics')} key='tab_metrics'>
+              <Metrics component={activeComponent.ident} />
+            </Tabs.TabPane>
+            <Tabs.TabPane tab={t('tab_dashboards')} key='tab_dashboards'>
+              <Dashboards component_id={activeComponent.id} componentIdent={activeComponent.ident} onPackStepDone={() => setPackFlag((prev) => prev + 1)} />
+            </Tabs.TabPane>
+            <Tabs.TabPane tab={t('tab_alertRules')} key='tab_alertRules'>
+              <AlertRules component_id={activeComponent.id} componentIdent={activeComponent.ident} onPackStepDone={() => setPackFlag((prev) => prev + 1)} />
+            </Tabs.TabPane>
+            {IS_ENT && (
+              <Tabs.TabPane tab={t('tab_firemap')} key='tab_firemap'>
+                <Firemap component_id={activeComponent.id} />
+              </Tabs.TabPane>
+            )}
+          </Tabs>
+        )}
+      </Drawer>
+    </PageLayout>
+  );
+}

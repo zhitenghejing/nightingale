@@ -1,0 +1,210 @@
+import React, { useContext, useEffect, useState } from 'react';
+import _ from 'lodash';
+import { Modal, Form, Input, Select, Radio, Table, Button } from 'antd';
+import { useTranslation } from 'react-i18next';
+import { CommonStateContext } from '@/App';
+import { putTargetsBgids, getBusiGroupsTags } from '@/pages/targets/services';
+
+interface Props {
+  gids?: string;
+  idents: string[];
+  selectedRows: any[];
+  onOk: () => void;
+}
+
+export default function index(props: Props) {
+  const { t } = useTranslation('targets');
+  const { busiGroups } = useContext(CommonStateContext);
+  const { gids, idents, selectedRows, onOk } = props;
+  const [visible, setVisible] = useState(false);
+  const [errorModal, setErrorModal] = useState<{ visible: boolean; errData: { host: string; error_msg: string }[]; formData: any }>({
+    visible: false,
+    errData: [],
+    formData: null,
+  });
+  const [form] = Form.useForm();
+  const action = Form.useWatch('action', form);
+  const groups = _.uniqBy(
+    _.reduce(
+      selectedRows,
+      (prev, curr) => {
+        return _.concat(prev, curr.group_objs);
+      },
+      [],
+    ),
+    'id',
+  );
+  // gids 是列表筛选条件，-2（全部机器）和 0（未分组）都是预置值，不是可以提交的业务组 ID。
+  const filteredGroupIds = _.filter(
+    _.map(_.split(gids, ','), (id) => _.toNumber(id)),
+    (id) => id > 0,
+  );
+  const [tags, setTags] = useState<string[]>([]);
+
+  useEffect(() => {
+    getBusiGroupsTags().then((res) => {
+      setTags(res);
+    });
+  }, []);
+
+  return (
+    <>
+      <span
+        onClick={() => {
+          setVisible(true);
+          form.setFieldsValue({ idents: _.join(idents, '\n'), action: 'reset' });
+        }}
+      >
+        {t('update_busi.title')}
+      </span>
+      <Modal
+        title={t('update_busi.title')}
+        destroyOnClose
+        visible={visible}
+        onCancel={() => {
+          setVisible(false);
+        }}
+        onOk={() => {
+          form.validateFields().then((values) => {
+            const data = {
+              ...values,
+              idents: _.split(values.idents, '\n'),
+            };
+            putTargetsBgids(data).then((res) => {
+              if (_.isEmpty(res?.dat)) {
+                setVisible(false);
+                onOk();
+              } else {
+                const errData = _.map(res.dat, (val, key) => {
+                  return {
+                    host: key,
+                    error_msg: val,
+                  };
+                });
+                setErrorModal({ visible: true, errData, formData: data });
+              }
+            });
+          });
+        }}
+      >
+        <Form layout='vertical' preserve={false} form={form}>
+          <Form.Item label={t('targets')} name='idents' rules={[{ required: true }]}>
+            <Input.TextArea
+              autoSize={{
+                minRows: 4,
+                maxRows: 20,
+              }}
+            />
+          </Form.Item>
+          <Form.Item label={t('update_busi.mode.label')} name='action'>
+            <Radio.Group
+              options={[
+                {
+                  label: t('update_busi.mode.reset'),
+                  value: 'reset',
+                },
+                {
+                  label: t('update_busi.mode.add'),
+                  value: 'add',
+                },
+                {
+                  label: t('update_busi.mode.del'),
+                  value: 'del',
+                },
+              ]}
+              optionType='button'
+              buttonStyle='solid'
+              onChange={(e) => {
+                if (e.target.value === 'del') {
+                  if (filteredGroupIds.length) {
+                    form.setFieldsValue({ bgids: filteredGroupIds });
+                  }
+                }
+              }}
+            />
+          </Form.Item>
+          <Form.Item label={t('update_busi.label')} name='bgids'>
+            <Select
+              showSearch
+              optionFilterProp='label'
+              mode='multiple'
+              options={
+                action === 'reset' || action === 'add'
+                  ? _.map(busiGroups, (item) => {
+                      return {
+                        label: item.name,
+                        value: item.id,
+                      };
+                    })
+                  : _.map(groups, (item) => {
+                      return {
+                        label: item.name,
+                        value: item.id,
+                      };
+                    })
+              }
+            />
+          </Form.Item>
+          <Form.Item label={t('update_busi.tags')} name='tags' tooltip={t('update_busi.tags_tip')}>
+            <Select
+              mode='tags'
+              tokenSeparators={[' ']}
+              options={_.map(tags, (item) => {
+                return {
+                  label: item,
+                  value: item,
+                };
+              })}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+      <Modal
+        zIndex={1001}
+        visible={errorModal.visible}
+        title={t('hosts:batch_failed')}
+        onCancel={() => setErrorModal({ visible: false, errData: [], formData: null })}
+        footer={
+          <div className='flex justify-end gap-2'>
+            <Button
+              danger
+              onClick={() => {
+                putTargetsBgids({ ...errorModal.formData, force: true }).then((res) => {
+                  if (_.isEmpty(res?.dat)) {
+                    setErrorModal({ visible: false, errData: [], formData: null });
+                    setVisible(false);
+                    onOk();
+                  }
+                });
+              }}
+            >
+              {errorModal.formData?.action === 'del' ? t('hosts:force_delete') : t('hosts:force_cover')}
+            </Button>
+            <Button type='primary' onClick={() => setErrorModal({ visible: false, errData: [], formData: null })}>
+              {t('common:btn.ok')}
+            </Button>
+          </div>
+        }
+      >
+        <Table
+          size='small'
+          columns={[
+            {
+              title: t('common:table.host'),
+              dataIndex: 'host',
+              key: 'host',
+            },
+            {
+              title: t('common:table.error_msg'),
+              dataIndex: 'error_msg',
+              key: 'error_msg',
+            },
+          ]}
+          dataSource={errorModal.errData}
+          pagination={false}
+          rowKey='host'
+        />
+      </Modal>
+    </>
+  );
+}

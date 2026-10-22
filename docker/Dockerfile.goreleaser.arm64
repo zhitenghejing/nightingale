@@ -9,6 +9,7 @@ COPY agents /app/agents/
 ADD etc /app/etc/
 ADD integrations /app/integrations/
 ADD n9e /app/
+COPY frontend/.build-manifest.json /app/frontend-build.json
 
 EXPOSE 17000
 

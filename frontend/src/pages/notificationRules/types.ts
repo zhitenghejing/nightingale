@@ -1,0 +1,56 @@
+import { Moment } from 'moment';
+
+interface RuleConfig {
+  channel_id: number;
+  channel?: string;
+  template_id: number;
+  template?: string;
+  params: {
+    [index: string]: any;
+  }[];
+  severities: number[];
+  time_ranges: {
+    start: Moment;
+    end: Moment;
+    week: number[];
+  }[];
+  label_keys: {
+    [index: string]: string;
+  }[];
+  attributes: {
+    key: string;
+    func: string;
+    value: string;
+  }[];
+}
+
+export interface RuleItem {
+  id: number;
+  name: string;
+  description: string;
+  enable: boolean;
+  user_group_ids: number[];
+  notify_configs: RuleConfig[];
+  pipeline_configs?: {
+    pipeline_id?: number;
+    enable?: boolean;
+  }[];
+  extra_config?: {
+    escalations: EscalationItem[];
+  };
+}
+
+export interface EscalationItem extends RuleConfig {
+  interval: number;
+  duration: number;
+  duration_unit: string;
+}
+
+export interface NotifyStatistics {
+  total_notify_events: number;
+  total_notify_events_change: number;
+  escalation_events: number;
+  escalation_events_change: number;
+  noise_reduction_ratio: number;
+  noise_reduction_ratio_change: number;
+}

@@ -1,0 +1,16 @@
+{
+  "worktree": {
+    "setup": "bash scripts/install-git-hooks.sh",
+    "teardown": "python3 -B scripts/preview.py destroy --if-exists"
+  },
+  "scripts": {
+    "install": { "command": "go mod download && make frontend-install" },
+    "verify": { "command": "make verify" },
+    "preview": { "command": "python3 -B scripts/preview.py up" },
+    "preview-refresh": { "command": "python3 -B scripts/preview.py refresh" },
+    "preview-status": { "command": "python3 -B scripts/preview.py status" },
+    "preview-url": { "command": "python3 -B scripts/preview.py url" },
+    "preview-stop": { "command": "python3 -B scripts/preview.py stop --if-exists" },
+    "preview-destroy": { "command": "python3 -B scripts/preview.py destroy --if-exists" }
+  }
+}

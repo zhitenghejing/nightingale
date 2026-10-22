@@ -1,0 +1,61 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import React, { useContext, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { SettingOutlined } from '@ant-design/icons';
+import PageLayout from '@/components/pageLayout';
+import BusinessGroupSideBarWithAll, { getDefaultGids } from '@/components/BusinessGroup/BusinessGroupSideBarWithAll';
+import BlankBusinessPlaceholder from '@/components/BlankBusinessPlaceholder';
+import { CommonStateContext } from '@/App';
+import { IS_ENT } from '@/utils/constant';
+// @ts-ignore — ObsLoop AlertRulesTip（srm-fe parcel；开源/plus 源仓不挂此依赖）
+import ObsLoopAlertRulesTip from 'plus:/parcels/ObsLoop/AlertRulesTip';
+import List from './List';
+import Add from './Add';
+import Edit from './Edit';
+import './locale';
+import './style.less';
+
+export { Add, Edit };
+
+const N9E_GIDS_LOCALKEY = 'N9E_ALERT_NODE_ID';
+
+export default function index() {
+  const { businessGroup } = useContext(CommonStateContext);
+  const { t } = useTranslation('alertRules');
+  const [gids, setGids] = useState<string | undefined>(getDefaultGids(N9E_GIDS_LOCALKEY, businessGroup));
+  const [groupSwitchCount, setGroupSwitchCount] = useState(0);
+  // 切换业务组时通知列表重置到第一页（在业务组选择源头触发，不依赖 gids 变化时序）
+  const handleSelectGids = (ids: string) => {
+    setGids(ids);
+    setGroupSwitchCount((count) => count + 1);
+  };
+
+  return (
+    <PageLayout
+      title={t('title')}
+      icon={<SettingOutlined />}
+      doc='https://flashcat.cloud/docs/content/flashcat-monitor/nightingale-v9/usage/alert-notify/rules/alert-rules/'
+      headerCenter={IS_ENT ? <ObsLoopAlertRulesTip /> : undefined}
+    >
+      <div className='alert-rules-container'>
+        <BusinessGroupSideBarWithAll gids={gids} setGids={handleSelectGids} localeKey={N9E_GIDS_LOCALKEY} />
+        {businessGroup.ids ? <List gids={gids} groupSwitchCount={groupSwitchCount} /> : <BlankBusinessPlaceholder text={t('title')} />}
+      </div>
+    </PageLayout>
+  );
+}

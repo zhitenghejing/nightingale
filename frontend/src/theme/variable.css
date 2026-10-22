@@ -1,0 +1,511 @@
+/* 该文件变量用于定义不同模式下的颜色变量
+ * 浅色模式于深色模式变量一一对应
+ * 变量命名统一使用 --fc- 前缀，防止与其他变量冲突
+*/
+
+/* 浅色模式 */
+:root {
+  /* 填充色 */
+  --fc-fill-1-rgb: 252 252 253;
+  --fc-fill-1: rgb(var(--fc-fill-1-rgb));
+
+  --fc-fill-2-rgb: 255 255 255;
+  --fc-fill-2: rgb(var(--fc-fill-2-rgb));
+
+  --fc-fill-2-5-rgb: 249 249 250;
+  --fc-fill-2-5: rgb(var(--fc-fill-2-5-rgb));
+
+  --fc-fill-3-rgb: 244 244 246;
+  --fc-fill-3: rgb(var(--fc-fill-3-rgb));
+
+  --fc-fill-4-rgb: 234 234 236;
+  --fc-fill-4: rgb(var(--fc-fill-4-rgb));
+
+  --fc-fill-5-rgb: 228 228 231;
+  --fc-fill-5: rgb(var(--fc-fill-5-rgb));
+
+  --fc-fill-6-rgb: 220 220 224;
+  --fc-fill-6: rgb(var(--fc-fill-6-rgb));
+
+  --fc-fill-7-rgb: 212 212 217;
+  --fc-fill-7: rgb(var(--fc-fill-7-rgb));
+
+  --fc-fill-primary-rgb: 108 83 177;
+  --fc-fill-primary: rgb(var(--fc-fill-primary-rgb));
+
+  --fc-fill-success-rgb: 0 167 0;
+  --fc-fill-success: rgb(var(--fc-fill-success-rgb));
+
+  --fc-fill-warning-rgb: 250 200 0;
+  --fc-fill-warning: rgb(var(--fc-fill-warning-rgb));
+
+  --fc-fill-alert-rgb: 250 125 0;
+  --fc-fill-alert: rgb(var(--fc-fill-alert-rgb));
+
+  --fc-fill-error-rgb: 200 0 0;
+  --fc-fill-error: rgb(var(--fc-fill-error-rgb));
+
+  --fc-fill-gold: #ffbc0d;
+  --fc-primary-bg: #6c53b114;
+  /* 文本 */
+  --fc-text-1: #0c1018;
+  --fc-text-2: #181c25;
+  --fc-text-3: #3f4856;
+  --fc-text-4: #657386;
+  --fc-text-5: #65738666;
+  --fc-text-link: #8162dc;
+  --fc-text-link-light: #a186f4; /* 用于 tooltip 里加亮链接颜色 */
+  --fc-text-link-rgb: 129 98 220;
+  --fc-text-placeholder: #bfbfbf;
+
+  /* 其他 */
+  --fc-primary-color: var(--fc-text-link);
+  --fc-primary-rgb: var(--fc-text-link-rgb);
+  --fc-border-color: hsla(240, 5%, 89%, 0.7);
+  --fc-border-color2: hsla(240, 5%, 89%);
+  --fc-border-base: hsla(240, 5%, 89%, 0.4);
+  --fc-antd-border-color: #d9d9d9; /* 用于 跟antd button 连结的边框 */
+  /* 与 antd 禁用态一致，供自定义控件复用 */
+  --fc-disabled-color: rgba(0, 0, 0, 0.5);
+  --fc-disabled-bg: #f5f5f5;
+  --fc-disabled-checked-bg: #e6e6e6;
+  --fc-background-color-light: rgba(250, 250, 250, 1);
+  --fc-card-border: #f0f0f0;
+  --fc-border-radius-base: 8px;
+  --fc-menu-dark-bg: rgb(24, 27, 31);
+  --fc-menu-dark-sub-bg: var(--fc-menu-dark-bg);
+
+  /* 浅色侧栏（Firemap 参考，组件内 isLight 时引用） */
+  --fc-sidemenu-bg: rgb(247, 247, 248);
+  --fc-sidemenu-border: #e5e7eb;
+  --fc-sidemenu-section-title: rgba(101, 115, 134, 0.6);
+  /* 对齐 fc-firemap: --sidebar-foreground: 215 14% 34% => rgb(75, 85, 99) */
+  --fc-sidemenu-item-icon: rgb(75, 85, 99);
+  --fc-sidemenu-item-text: rgb(75, 85, 99);
+  /* 对齐 fc-firemap 子菜单默认色：text-muted-foreground => 215 14% 46% */
+  --fc-sidemenu-subitem-text: rgb(101, 115, 134);
+  --fc-sidemenu-item-active-bg: rgb(243, 238, 252);
+  --fc-sidemenu-item-active-text: #5720b6;
+  --fc-sidemenu-item-hover-bg: rgb(241, 241, 244);
+  --fc-sidemenu-item-hover-text: #1a1a1a;
+  --fc-sidemenu-beta-bg: #ede9fe;
+  --fc-sidemenu-beta-text: #6d28d9;
+
+  /* 需特殊处理额外加的变量 
+     灭火图一级卡片的header背景色:  --fc-variable-fill-1
+  */
+  --fc-variable-fill-1: var(--fc-fill-2);
+
+  /* 红色 */
+  --fc-red-1-color: #fff1f0;
+  --fc-red-2-color: #ffccc7;
+  --fc-red-3-color: #ffa39e;
+  --fc-red-4-color: #ff7875;
+  --fc-red-5-color: #ff4d4f;
+  --fc-red-6-color: #f5222d;
+
+  /* 橘色 */
+  --fc-orange-1-color: #fff7e6;
+  --fc-orange-2-color: #ffe7ba;
+  --fc-orange-3-color: #ffd591;
+  --fc-orange-4-color: #ffc069;
+  --fc-orange-5-color: #ffa940;
+  --fc-orange-6-color: #fa8c16;
+
+  /* 金色 */
+  --fc-gold-1-color: #fffbe6;
+  --fc-gold-2-color: #fff1b8;
+  --fc-gold-3-color: #ffe58f;
+  --fc-gold-4-color: #ffd666;
+  --fc-gold-5-color: #ffc53d;
+  --fc-gold-6-color: #faad14;
+
+  /* 绿色 */
+  --fc-green-1-color: #f6ffed;
+  --fc-green-2-color: #d9f7be;
+  --fc-green-3-color: #b7eb8f;
+  --fc-green-4-color: #95de64;
+  --fc-green-5-color: #73d13d;
+  --fc-green-6-color: #52c41a;
+
+  /* 紫色 */
+  --fc-purple-1-color: #f9f0ff;
+  --fc-purple-2-color: #efdbff;
+  --fc-purple-3-color: #d3adf7;
+  --fc-purple-4-color: #b37feb;
+  --fc-purple-5-color: #9254de;
+  --fc-purple-6-color: #722ed1;
+
+  /* Geek Blue / 极客蓝 */
+  --fc-geekblue-1-color: #f0f5ff;
+  --fc-geekblue-2-color: #d6e4ff;
+  --fc-geekblue-3-color: #adc6ff;
+  --fc-geekblue-4-color: #85a5ff;
+  --fc-geekblue-5-color: #597ef7;
+  --fc-geekblue-6-color: #2f54eb;
+
+  /* 渐变色 */
+  --fc-gradient-1-color: linear-gradient(90deg, #ebf4fe 0%, #edf5fb 25%, #f1f1f9 50%, #f4f3f7 75%, #f3f4f6 100%);
+
+  /* boxshadow*/
+  --fc-boxshadow-base-color: rgba(0, 0, 0, 0.08);
+  --fc-boxshadow-hover-color: rgba(0, 0, 0, 0.15);
+
+  /* 新版设计色阶 2026-03-24 release-23 */
+
+  --fc-violet-1: #0000aa03;
+  --fc-violet-2: #2500ff07;
+  --fc-violet-3: #2500ed0e;
+  --fc-violet-4: #2800ff1a;
+  --fc-violet-5: #2a00ff25;
+  --fc-violet-6: #2800e734;
+  --fc-violet-7: #2700cb49;
+  --fc-violet-8: #2700bd64;
+  --fc-violet-9-rgb: 108 83 177;
+  --fc-violet-9: rgb(var(--fc-violet-9-rgb));
+  --fc-violet-10-rgb: 95 69 161;
+  --fc-violet-10: rgb(var(--fc-violet-10-rgb));
+  --fc-violet-11-rgb: 107 81 175;
+  --fc-violet-11: rgb(var(--fc-violet-11-rgb));
+  --fc-violet-12-rgb: 52 38 89;
+  --fc-violet-12: rgb(var(--fc-violet-12-rgb));
+
+  --fc-indigo-1: #0000ff02;
+  --fc-indigo-2: #0020ff08;
+  --fc-indigo-3: #0020ff10;
+  --fc-indigo-4: #001dff1b;
+  --fc-indigo-5: #0014ff27;
+  --fc-indigo-6: #000fff36;
+  --fc-indigo-7: #010bff4b;
+  --fc-indigo-8: #0003ff66;
+  --fc-indigo-9-rgb: 92 64 230;
+  --fc-indigo-9: rgb(var(--fc-indigo-9-rgb));
+  --fc-indigo-10-rgb: 80 52 204;
+  --fc-indigo-10: rgb(var(--fc-indigo-10-rgb));
+  --fc-indigo-11-rgb: 91 69 221;
+  --fc-indigo-11: rgb(var(--fc-indigo-11-rgb));
+  --fc-indigo-12-rgb: 43 34 109;
+  --fc-indigo-12: rgb(var(--fc-indigo-12-rgb));
+
+  --fc-red-1: #ff000003;
+  --fc-red-2: #ff000008;
+  --fc-red-3: #ff0d0015;
+  --fc-red-4: #ff150026;
+  --fc-red-5: #ff0f0035;
+  --fc-red-6: #fc0f0046;
+  --fc-red-7: #e30c015a;
+  --fc-red-8: #d4090074;
+  --fc-red-9-rgb: 229 72 77;
+  --fc-red-9: rgb(var(--fc-red-9-rgb));
+  --fc-red-10-rgb: 215 56 64;
+  --fc-red-10: rgb(var(--fc-red-10-rgb));
+  --fc-red-11-rgb: 204 46 57;
+  --fc-red-11: rgb(var(--fc-red-11-rgb));
+  --fc-red-12-rgb: 100 24 27;
+  --fc-red-12: rgb(var(--fc-red-12-rgb));
+
+  --fc-orange-1: #c0400004;
+  --fc-orange-2: #ff55000f;
+  --fc-orange-3: #ff620022;
+  --fc-orange-4: #ff5e003f;
+  --fc-orange-5: #ff5d0053;
+  --fc-orange-6: #ff5a016a;
+  --fc-orange-7: #f94e007d;
+  --fc-orange-8: #e84a009c;
+  --fc-orange-9-rgb: 247 107 21;
+  --fc-orange-9: rgb(var(--fc-orange-9-rgb));
+  --fc-orange-10-rgb: 235 93 0;
+  --fc-orange-10: rgb(var(--fc-orange-10-rgb));
+  --fc-orange-11-rgb: 210 77 0;
+  --fc-orange-11: rgb(var(--fc-orange-11-rgb));
+  --fc-orange-12-rgb: 87 46 26;
+  --fc-orange-12: rgb(var(--fc-orange-12-rgb));
+
+  --fc-yellow-1: #cc990005;
+  --fc-yellow-2: #ffd10016;
+  --fc-yellow-3: #ffd90043;
+  --fc-yellow-4: #ffd10068;
+  --fc-yellow-5: #ffca008b;
+  --fc-yellow-6: #efb50090;
+  --fc-yellow-7: #d29d0097;
+  --fc-yellow-8: #c39600c4;
+  --fc-yellow-9-rgb: 255 214 0;
+  --fc-yellow-9: rgb(var(--fc-yellow-9-rgb));
+  --fc-yellow-10-rgb: 252 205 29;
+  --fc-yellow-10: rgb(var(--fc-yellow-10-rgb));
+  --fc-yellow-11-rgb: 149 115 0;
+  --fc-yellow-11: rgb(var(--fc-yellow-11-rgb));
+  --fc-yellow-12-rgb: 68 59 32;
+  --fc-yellow-12: rgb(var(--fc-yellow-12-rgb));
+
+  --fc-green-1: #00c04004;
+  --fc-green-2: #00a3460b;
+  --fc-green-3: #00a73b1a;
+  --fc-green-4: #00a83829;
+  --fc-green-5: #019c393b;
+  --fc-green-6: #00963c52;
+  --fc-green-7: #00903970;
+  --fc-green-8: #008d3f9f;
+  --fc-green-9-rgb: 48 164 108;
+  --fc-green-9: rgb(var(--fc-green-9-rgb));
+  --fc-green-10-rgb: 40 150 98;
+  --fc-green-10: rgb(var(--fc-green-10-rgb));
+  --fc-green-11-rgb: 0 129 76;
+  --fc-green-11: rgb(var(--fc-green-11-rgb));
+  --fc-green-12-rgb: 29 59 42;
+  --fc-green-12: rgb(var(--fc-green-12-rgb));
+}
+
+/* -------------------  分割线 ------------------- */
+
+/* 深色模式 */
+.theme-dark {
+  color-scheme: dark;
+  --fc-fill-1-rgb: 12 12 14;
+  --fc-fill-1: rgb(var(--fc-fill-1-rgb));
+
+  --fc-fill-2-rgb: 22 22 24;
+  --fc-fill-2: rgb(var(--fc-fill-2-rgb));
+  --fc-menu-dark-bg: var(--fc-fill-2);
+  --fc-menu-dark-sub-bg: var(--fc-menu-dark-bg);
+
+  --fc-fill-2-5-rgb: 27 27 29;
+  --fc-fill-2-5: rgb(var(--fc-fill-2-5-rgb));
+
+  --fc-fill-3-rgb: 37 37 40;
+  --fc-fill-3: rgb(var(--fc-fill-3-rgb));
+
+  --fc-fill-4-rgb: 39 39 42;
+  --fc-fill-4: rgb(var(--fc-fill-4-rgb));
+
+  --fc-fill-5-rgb: 44 44 48;
+  --fc-fill-5: rgb(var(--fc-fill-5-rgb));
+
+  --fc-fill-6-rgb: 49 49 53;
+  --fc-fill-6: rgb(var(--fc-fill-6-rgb));
+
+  --fc-fill-7-rgb: 54 54 58;
+  --fc-fill-7: rgb(var(--fc-fill-7-rgb));
+
+  --fc-fill-primary-rgb: 148 112 255;
+  --fc-fill-primary: rgb(var(--fc-fill-primary-rgb));
+
+  --fc-fill-success-rgb: 33 196 93;
+  --fc-fill-success: rgb(var(--fc-fill-success-rgb));
+
+  --fc-fill-warning-rgb: 245 194 10;
+  --fc-fill-warning: rgb(var(--fc-fill-warning-rgb));
+
+  --fc-fill-alert-rgb: 240 110 10;
+  --fc-fill-alert: rgb(var(--fc-fill-alert-rgb));
+
+  --fc-fill-error-rgb: 239 67 67;
+  --fc-fill-error: rgb(var(--fc-fill-error-rgb));
+
+  --fc-fill-gold: #ffbc0d;
+  --fc-primary-bg: #683bfc21;
+  /* 文本 */
+  --fc-text-link: #9470ff;
+  --fc-text-link-rgb: 148 112 255;
+  --fc-text-1: rgb(242, 242, 242);
+  --fc-text-2: rgb(201, 201, 207);
+  --fc-text-3: rgb(135, 135, 146);
+  --fc-text-4: rgb(109, 109, 120);
+  --fc-text-5: rgb(68, 68, 75);
+  --fc-text-placeholder: rgb(89, 89, 98);
+
+  /* 其他 */
+  --fc-primary-color: var(--fc-text-link);
+  --fc-border-color: rgba(255, 255, 255, 0.06);
+  --fc-border-color2: rgba(255, 255, 255, 0.08);
+  --fc-border-base: rgba(255, 255, 255, 0.03);
+  --fc-antd-border-color: #ccccdc33;
+  --fc-disabled-color: rgba(255, 255, 255, 0.3);
+  --fc-disabled-bg: rgba(255, 255, 255, 0.08);
+  --fc-disabled-checked-bg: rgba(255, 255, 255, 0.2);
+  --fc-background-color-light: rgba(255, 255, 255, 0.04);
+  --fc-card-border: #393c4d;
+
+  /* 需特殊处理额外加的变量 */
+  --fc-variable-fill-1: var(--fc-fill-3);
+
+  /* 红色 */
+  --fc-red-1-color: #2a1215;
+  --fc-red-2-color: #431418;
+  --fc-red-3-color: #58181c;
+  --fc-red-4-color: #6f1a20;
+  --fc-red-5-color: #851c24;
+  --fc-red-6-color: #9b1e28;
+
+  /* 橘色 */
+  --fc-orange-1-color: #2a1a0e;
+  --fc-orange-2-color: #431f11;
+  --fc-orange-3-color: #582414;
+  --fc-orange-4-color: #6f2917;
+  --fc-orange-5-color: #85331a;
+  --fc-orange-6-color: #9b3d1d;
+
+  /* 金色 */
+  --fc-gold-1-color: #2a1c0e;
+  --fc-gold-2-color: #432011;
+  --fc-gold-3-color: #582714;
+  --fc-gold-4-color: #6f2b17;
+  --fc-gold-5-color: #853f1a;
+  --fc-gold-6-color: #9b531d;
+
+  /* 绿色 */
+  --fc-green-1-color: #132a13;
+  --fc-green-2-color: #1f431f;
+  --fc-green-3-color: #295829;
+  --fc-green-4-color: #336f33;
+  --fc-green-5-color: #3d853d;
+  --fc-green-6-color: #479b47;
+
+  /* 紫色 */
+  --fc-purple-1-color: #1a132a;
+  --fc-purple-2-color: #261f43;
+  --fc-purple-3-color: #2f2958;
+  --fc-purple-4-color: #38336f;
+  --fc-purple-5-color: #414d85;
+  --fc-purple-6-color: #4a579b;
+
+  /* Geek Blue / 极客蓝 */
+  --fc-geekblue-1-color: #111d2c;
+  --fc-geekblue-2-color: #112a45;
+  --fc-geekblue-3-color: #15395b;
+  --fc-geekblue-4-color: #164c7e;
+  --fc-geekblue-5-color: #1765ad;
+  --fc-geekblue-6-color: #177ddc;
+
+  /* 渐变色 */
+  --fc-gradient-1-color: linear-gradient(90deg, #272c3c 0%, #24253b 25%, #221f33 50%, #1e1e28 75%, #181b1f 100%);
+
+  /* boxshadow：深色背景上用白色半透明，避免黑阴影发灰 */
+  --fc-boxshadow-base-color: rgba(255, 255, 255, 0.1);
+  --fc-boxshadow-hover-color: rgba(255, 255, 255, 0.18);
+
+  /* 新版设计色阶 2026-03-24 release-23 */
+
+  --fc-violet-1: #1600f00d;
+  --fc-violet-2: #4916fe14;
+  --fc-violet-3: #683bfc38;
+  --fc-violet-4: #7138ff54;
+  --fc-violet-5: #7a49fd64;
+  --fc-violet-6: #8359ff73;
+  --fc-violet-7: #8b66fe8c;
+  --fc-violet-8: #8f6cffb2;
+  --fc-violet-9-rgb: 148 112 255;
+  --fc-violet-9: rgb(var(--fc-violet-9-rgb));
+  --fc-violet-10-rgb: 136 99 241;
+  --fc-violet-10: rgb(var(--fc-violet-10-rgb));
+  --fc-violet-11-rgb: 184 164 255;
+  --fc-violet-11: rgb(var(--fc-violet-11-rgb));
+  --fc-violet-12-rgb: 225 220 255;
+  --fc-violet-12: rgb(var(--fc-violet-12-rgb));
+
+  --fc-indigo-1: #0300f00d;
+  --fc-indigo-2: #2416fd13;
+  --fc-indigo-3: #5138fe3d;
+  --fc-indigo-4: #5835fd61;
+  --fc-indigo-5: #6343ff72;
+  --fc-indigo-6: #6c55fe82;
+  --fc-indigo-7: #745ffe9a;
+  --fc-indigo-8: #7863ffbd;
+  --fc-indigo-9-rgb: 124 102 255;
+  --fc-indigo-9: rgb(var(--fc-indigo-9-rgb));
+  --fc-indigo-10-rgb: 113 88 240;
+  --fc-indigo-10: rgb(var(--fc-indigo-10-rgb));
+  --fc-indigo-11-rgb: 173 168 255;
+  --fc-indigo-11: rgb(var(--fc-indigo-11-rgb));
+  --fc-indigo-12-rgb: 222 222 255;
+  --fc-indigo-12: rgb(var(--fc-indigo-12-rgb));
+
+  --fc-red-1: #f1000007;
+  --fc-red-2: #f104000e;
+  --fc-red-3: #fe05002b;
+  --fc-red-4: #ff000043;
+  --fc-red-5: #fd110d56;
+  --fc-red-6: #ff312c68;
+  --fc-red-7: #fe494385;
+  --fc-red-8: #fe534fb3;
+  --fc-red-9-rgb: 239 67 67;
+  --fc-red-9: rgb(var(--fc-red-9-rgb));
+  --fc-red-10-rgb: 224 51 55;
+  --fc-red-10: rgb(var(--fc-red-10-rgb));
+  --fc-red-11-rgb: 255 143 134;
+  --fc-red-11: rgb(var(--fc-red-11-rgb));
+  --fc-red-12-rgb: 255 209 204;
+  --fc-red-12: rgb(var(--fc-red-12-rgb));
+
+  --fc-orange-1: #eb000006;
+  --fc-orange-2: #ee3e000d;
+  --fc-orange-3: #f94f0024;
+  --fc-orange-4: #ff3a0039;
+  --fc-orange-5: #fd520049;
+  --fc-orange-6: #ff6c1859;
+  --fc-orange-7: #ff803672;
+  --fc-orange-8: #fe833e9a;
+  --fc-orange-9-rgb: 240 110 10;
+  --fc-orange-9: rgb(var(--fc-orange-9-rgb));
+  --fc-orange-10-rgb: 226 98 0;
+  --fc-orange-10: rgb(var(--fc-orange-10-rgb));
+  --fc-orange-11-rgb: 255 157 97;
+  --fc-orange-11: rgb(var(--fc-orange-11-rgb));
+  --fc-orange-12-rgb: 255 221 202;
+  --fc-orange-12: rgb(var(--fc-orange-12-rgb));
+
+  --fc-yellow-1: #c0160003;
+  --fc-yellow-2: #fc96000a;
+  --fc-yellow-3: #f8a0001a;
+  --fc-yellow-4: #fd990029;
+  --fc-yellow-5: #fea90036;
+  --fc-yellow-6: #ffbb0044;
+  --fc-yellow-7: #ffc82359;
+  --fc-yellow-8: #fdca3678;
+  --fc-yellow-9-rgb: 245 194 10;
+  --fc-yellow-9: rgb(var(--fc-yellow-9-rgb));
+  --fc-yellow-10-rgb: 234 184 0;
+  --fc-yellow-10: rgb(var(--fc-yellow-10-rgb));
+  --fc-yellow-11-rgb: 255 206 53;
+  --fc-yellow-11: rgb(var(--fc-yellow-11-rgb));
+  --fc-yellow-12-rgb: 252 232 182;
+  --fc-yellow-12: rgb(var(--fc-yellow-12-rgb));
+
+  --fc-green-1: #00d60004;
+  --fc-green-2: #00f60008;
+  --fc-green-3: #16f8351a;
+  --fc-green-4: #00fe3c2b;
+  --fc-green-5: #17fc513b;
+  --fc-green-6: #2afd604b;
+  --fc-green-7: #32fd6a5e;
+  --fc-green-8: #31ff7072;
+  --fc-green-9-rgb: 33 196 93;
+  --fc-green-9: rgb(var(--fc-green-9-rgb));
+  --fc-green-10-rgb: 0 184 82;
+  --fc-green-10: rgb(var(--fc-green-10-rgb));
+  --fc-green-11-rgb: 65 216 112;
+  --fc-green-11: rgb(var(--fc-green-11-rgb));
+  --fc-green-12-rgb: 174 245 187;
+  --fc-green-12: rgb(var(--fc-green-12-rgb));
+}
+
+.theme-light-gold {
+  --fc-menu-dark-bg: #001529;
+  --fc-menu-dark-sub-bg: #000c17;
+  --fc-fill-primary: #ffbc0d;
+  --fc-primary-color: #ffbc0d;
+  --fc-gold-text: #222;
+  --fc-text-link: #4880ff;
+  --fc-primary-bg: #fff2cb;
+  --fc-disabled-color: rgba(0, 0, 0, 0.25);
+}
+
+.theme-light-blue {
+  --fc-menu-dark-bg: #001529;
+  --fc-menu-dark-sub-bg: #000c17;
+  --fc-fill-primary: #427af4;
+  --fc-primary-color: #427af4;
+  --fc-text-link: #2d5bcf;
+  --fc-primary-bg: #eef6fe;
+  --fc-disabled-color: rgba(0, 0, 0, 0.25);
+}

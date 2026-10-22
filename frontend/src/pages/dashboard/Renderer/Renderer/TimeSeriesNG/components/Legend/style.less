@@ -1,0 +1,96 @@
+.renderer-timeseries-ng-legend-container {
+  .renderer-timeseries-ng-legend-color-symbol {
+    width: 14px;
+    height: 4px;
+    border-radius: 10px;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+
+  .renderer-timeseries-ng-legend-table {
+    .ant-table-thead > tr > th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .renderer-timeseries-ng-legend-table-name-column {
+      width: 100%;
+      display: flex;
+      white-space: nowrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .renderer-timeseries-ng-legend-table-name-content {
+      white-space: nowrap;
+      background: none;
+      border: none;
+      font-size: inherit;
+      padding: 0px;
+      max-width: 600px;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      user-select: text;
+    }
+
+    .renderer-timeseries-ng-legend-table-row {
+      cursor: pointer;
+    }
+
+    .renderer-timeseries-ng-legend-table-row.disabled {
+      color: var(--fc-text-4);
+    }
+
+    .ant-table-thead,
+    .ant-table-tbody {
+      .ant-table-cell {
+        padding: 2px 4px !important;
+        white-space: nowrap;
+      }
+    }
+
+    .renderer-timeseries-ng-legend-table-spacer > td {
+      padding: 0 !important;
+      border: 0 !important;
+    }
+  }
+
+  .renderer-timeseries-ng-legend-list {
+    padding: 0;
+    margin: 4px 0 0;
+    list-style: none;
+
+    .renderer-timeseries-ng-legend-list-item {
+      width: 100%;
+      display: flex;
+      white-space: nowrap;
+      align-items: center;
+      gap: 8px;
+      padding-right: 10px;
+      cursor: pointer;
+
+      &.disabled {
+        color: var(--fc-text-4);
+      }
+    }
+
+    .renderer-timeseries-ng-legend-list-stat {
+      flex-grow: 1;
+      text-align: right;
+    }
+  }
+
+  .ant-table-container {
+    border: 0 none !important;
+    border-radius: 0 !important;
+  }
+
+  .ant-table-container table > thead > tr:first-child th:first-child {
+    border-top-left-radius: 0 !important;
+  }
+
+  .ant-table-container table > thead > tr:first-child th:last-child {
+    border-top-right-radius: 0 !important;
+  }
+}

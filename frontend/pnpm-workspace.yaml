@@ -1,0 +1,17 @@
+# A single frontend package; dependencies remain isolated in this worktree.
+packages:
+  - .
+overrides:
+  '@types/d3-dispatch': 3.0.6
+  'react-sortable-hoc>react': $react
+  'react-sortable-hoc>react-dom': $react-dom
+allowBuilds:
+  esbuild: true
+  sharp: true
+  core-js: false
+  core-js-pure: false
+  '@swc/core': false
+  '@parcel/watcher': false
+networkConcurrency: 32
+patchedDependencies:
+  antd@4.21.0: patches/antd@4.21.0.patch

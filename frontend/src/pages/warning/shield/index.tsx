@@ -1,0 +1,538 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import React, { useState, useEffect, useContext } from 'react';
+import { Button, Input, Tooltip, message, Modal, Switch, Space, Tag, Select } from 'antd';
+import { ColumnsType } from 'antd/lib/table';
+import { CloseCircleOutlined, ExclamationCircleOutlined, SearchOutlined } from '@ant-design/icons';
+import moment from 'moment';
+import _ from 'lodash';
+import { useTranslation } from 'react-i18next';
+import { useHistory, Link, useLocation } from 'react-router-dom';
+
+import Tags from '@/components/TableTags/Tags';
+import EnhancedTable, { getEnabledStatusColumn } from '@/components/EnhancedTable';
+import { dateColumn, updateByColumn } from '@/components/EnhancedTable/columns';
+import PageLayout from '@/components/pageLayout';
+import { getBusiGroupsAlertMutes, deleteShields, updateShields } from '@/services/shield';
+import { shieldItem, strategyStatus } from '@/store/warningInterface';
+import BusinessGroupSideBarWithAll, { getDefaultGids } from '@/components/BusinessGroup/BusinessGroupSideBarWithAll';
+import RefreshIcon from '@/components/RefreshIcon';
+import { DatasourceSelectV3 } from '@/components/DatasourceSelect';
+import { CommonStateContext } from '@/App';
+import usePagination from '@/components/usePagination';
+import { getPageFromSearch, setPageInSearch, removePageFromSearch } from '@/utils/urlPage';
+import { allCates, getCateDisplayLabel } from '@/components/AdvancedWrap/utils';
+import DocumentDrawer from '@/components/DocumentDrawer';
+import EmptyGuide from '@/components/EmptyGuide';
+import DeleteMutesModal from './components/DeleteMutesModal';
+
+import './locale';
+import './index.less';
+
+export { default as Add } from './add';
+export { default as Edit } from './edit';
+
+const { confirm } = Modal;
+const N9E_GIDS_LOCALKEY = 'n9e_mutes_gids';
+
+interface Filter {
+  query?: string;
+  datasourceIds?: number[];
+  disabled?: 0 | 1;
+}
+
+export const FILTER_SESSION_STORAGE_KEY = 'alert-mutes-filter';
+const DOC_PATH = 'https://flashcat.cloud/docs/content/flashcat-monitor/nightingale-v9/usage/alert-notify/rules/alert-mute/';
+
+const Shield: React.FC = () => {
+  const { t, i18n } = useTranslation('alertMutes');
+  const history = useHistory();
+  const location = useLocation();
+  const { datasourceList, groupedDatasourceList, datasourceCateOptions, businessGroup, busiGroups, darkMode } = useContext(CommonStateContext);
+  const [gids, setGids] = useState<string | undefined>(getDefaultGids(N9E_GIDS_LOCALKEY, businessGroup));
+  let defaultFilter = {} as Filter;
+  try {
+    const saved = JSON.parse(window.sessionStorage.getItem(FILTER_SESSION_STORAGE_KEY) || '{}');
+    defaultFilter = saved;
+  } catch (e) {
+    console.error(e);
+  }
+  const defaultPage = getPageFromSearch(location.search);
+  const [query, setQuery] = useState<string>(defaultFilter.query ?? '');
+  const [currentShieldDataAll, setCurrentShieldDataAll] = useState<Array<shieldItem>>([]);
+  const [currentShieldData, setCurrentShieldData] = useState<Array<shieldItem>>([]);
+  // 有业务组时首屏就会拉列表，初始即置为 loading，避免接口返回前闪现空态引导
+  const [loading, setLoading] = useState<boolean>(!!gids);
+  const [datasourceIds, setDatasourceIds] = useState<number[] | undefined>(defaultFilter.datasourceIds);
+  const [filterDisabled, setFilterDisabled] = useState<0 | 1 | undefined>(defaultFilter.disabled);
+  const [deleteMutesModalVisible, setDeleteMutesModalVisible] = useState(false);
+  const [current, setCurrent] = useState<number>(defaultPage);
+  const saveState = (patch: Record<string, any>) => {
+    const prev = JSON.parse(window.sessionStorage.getItem(FILTER_SESSION_STORAGE_KEY) || '{}');
+    window.sessionStorage.setItem(FILTER_SESSION_STORAGE_KEY, JSON.stringify({ ...prev, ...patch }));
+  };
+  // 切换业务组时清除 URL 里的页码，回到第一页（在业务组选择源头触发，不依赖 gids 变化时序）
+  const handleSelectGids = (ids: string) => {
+    setGids(ids);
+    setCurrent(1);
+    history.replace({ pathname: location.pathname, search: removePageFromSearch(location.search) });
+  };
+  const columns: ColumnsType = [
+    {
+      title: t('note'),
+      dataIndex: 'note',
+      render: (data, record: any) => {
+        const groupName = !(businessGroup.isLeaf && gids !== '-2') ? _.find(busiGroups, { id: record.group_id })?.name : undefined;
+        return (
+          <div className='flex flex-col gap-0.5'>
+            <Link
+              to={{
+                pathname: `/alert-mutes/edit/${record.id}`,
+                search: `?bgid=${record.group_id}&page=${current}`,
+              }}
+            >
+              {data}
+            </Link>
+            {groupName && <span className='text-soft text-xs'>{groupName}</span>}
+          </div>
+        );
+      },
+    },
+    {
+      title: t('common:datasource.name'),
+      dataIndex: 'datasource_ids',
+      render(value, record: any) {
+        if (!value) return null;
+        const cate = _.find(allCates, { value: record.cate });
+        const cateLabel = record.cate === 'host' ? 'Host' : getCateDisplayLabel(cate, i18n.language);
+        let logoSrc = cate?.logo;
+        if (record.cate === 'host') {
+          logoSrc = '/image/logos/host.png';
+        }
+        return (
+          <Space>
+            {logoSrc && (
+              <Tooltip title={cateLabel}>
+                <img alt={record.cate} src={logoSrc} height={18} />
+              </Tooltip>
+            )}
+            <Tags
+              type='outline'
+              maxWidth={180}
+              data={_.compact(
+                _.map(value, (item) => {
+                  if (item === 0) return '$all';
+                  const name = _.find(datasourceList, { id: item })?.name;
+                  if (!name) return '';
+                  return name;
+                }),
+              )}
+            />
+          </Space>
+        );
+      },
+    },
+    {
+      title: t('common:table.tag'),
+      dataIndex: 'tags',
+      render: (text: any) => {
+        return (
+          <Tags
+            type='outline'
+            maxWidth={180}
+            data={_.compact(_.map(text, (tag) => (tag ? `${tag.key} ${tag.func} ${tag.func === 'in' ? tag.value.split(' ').join(', ') : tag.value}` : '')))}
+          />
+        );
+      },
+    },
+    {
+      title: t('cause'),
+      dataIndex: 'cause',
+      render: (text: string, record: shieldItem) => {
+        if (text) {
+          return (
+            <>
+              <Tooltip placement='topLeft' title={text}>
+                <div
+                  style={{
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    overflow: 'hidden',
+                    lineHeight: '16px',
+                  }}
+                >
+                  {text}
+                </div>
+              </Tooltip>
+              by {record.create_by}
+            </>
+          );
+        }
+        return null;
+      },
+    },
+    {
+      title: t('time'),
+      dataIndex: 'btime',
+      render: (_val, record: shieldItem) => {
+        if (record.mute_time_type === 0) {
+          const now = moment().unix();
+          const isExpired = now > record.etime;
+          if (isExpired) {
+            return (
+              <Tooltip
+                title={
+                  <div className='shield-time'>
+                    <div>{moment.unix(record?.btime).format('YYYY-MM-DD HH:mm:ss')}</div>
+                    <div>{moment.unix(record?.etime).format('YYYY-MM-DD HH:mm:ss')}</div>
+                  </div>
+                }
+              >
+                <Tag color='red'>{t('expired')}</Tag>
+              </Tooltip>
+            );
+          }
+          return (
+            <div className='shield-time'>
+              <div>{moment.unix(record?.btime).format('YYYY-MM-DD HH:mm:ss')}</div>
+              <div>{moment.unix(record?.etime).format('YYYY-MM-DD HH:mm:ss')}</div>
+            </div>
+          );
+        } else if (record.mute_time_type === 1) {
+          return (
+            <Tooltip
+              overlayInnerStyle={{
+                width: 350,
+              }}
+              title={_.map(record.periodic_mutes, (item, idx) => {
+                return (
+                  <div key={idx}>
+                    <Space>
+                      <div>
+                        {item.enable_stime} ~ {item.enable_etime}
+                      </div>
+                      <Space>
+                        {_.map(_.split(item.enable_days_of_week, ' '), (item) => {
+                          return t(`common:time.weekdays.${item}`);
+                        })}
+                      </Space>
+                    </Space>
+                  </div>
+                );
+              })}
+            >
+              <a>{t('mute_type.1')}</a>
+            </Tooltip>
+          );
+        }
+      },
+    },
+    dateColumn({ title: t('common:table.update_at'), dataIndex: 'update_at', unix: true, sortable: true, defaultSortOrder: 'descend' }),
+    updateByColumn({ title: t('common:table.update_by'), dataIndex: 'update_by', nickname: 'update_by_nickname' }) as any,
+    {
+      ...getEnabledStatusColumn({
+        title: t('common:table.enabled'),
+        dataIndex: 'disabled',
+        enabledText: t('filter_disabled.0'),
+        disabledText: t('filter_disabled.1'),
+        enabledValue: 0,
+        disabledValue: 1,
+      }),
+      width: 80,
+      render: (disabled, record) => (
+        <Switch
+          checked={disabled === strategyStatus.Enable}
+          size='small'
+          onChange={() => {
+            // @ts-ignore
+            const { id, disabled, group_id } = record;
+            updateShields(
+              {
+                ids: [id],
+                fields: {
+                  disabled: !disabled ? 1 : 0,
+                },
+              },
+              group_id,
+            ).then(() => {
+              refreshList();
+            });
+          }}
+        />
+      ),
+    },
+  ];
+  const pagination = usePagination({ pageSizeLocalstorageKey: 'alert-mutes-table-pagesize' });
+
+  useEffect(() => {
+    getList();
+  }, [gids]);
+
+  useEffect(() => {
+    filterData();
+  }, [query, datasourceIds, filterDisabled, currentShieldDataAll]);
+
+  const includesProm = (ids) => {
+    return _.some(ids, (id) => {
+      return _.some(datasourceList, (item) => {
+        if (item.id === id) return item.plugin_type === 'prometheus';
+      });
+    });
+  };
+
+  const filterData = () => {
+    const data = JSON.parse(JSON.stringify(currentShieldDataAll));
+    const res = data.filter((item: shieldItem) => {
+      const tagFind = item.tags.find((tag) => {
+        return tag.key.indexOf(query) > -1 || tag.value.indexOf(query) > -1 || tag.func.indexOf(query) > -1;
+      });
+      const datsourceFind = datasourceIds?.length
+        ? _.some(item.datasource_ids, (id) => {
+            if (includesProm(datasourceIds) && id === 0) return true;
+            return _.includes(datasourceIds, id);
+          })
+        : true;
+      return (_.includes(item.note, query) || _.includes(item.cause, query) || !!tagFind) && datsourceFind && (filterDisabled === undefined || item.disabled === filterDisabled);
+    });
+    setCurrentShieldData(res || []);
+  };
+
+  const getList = async () => {
+    if (!gids) return;
+    setLoading(true);
+    const ids = gids === '-2' ? undefined : gids;
+    try {
+      const { success, dat } = await getBusiGroupsAlertMutes(ids);
+      if (success) {
+        setCurrentShieldDataAll(dat || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      // 请求失败也要结束 loading，否则表格会一直转圈且空态引导永远不出现
+      setLoading(false);
+    }
+  };
+
+  const refreshList = () => {
+    getList();
+  };
+
+  const onSearchQuery = (e) => {
+    let val = e.target.value;
+    setQuery(val);
+    setCurrent(1);
+    saveState({ query: val });
+    history.replace({ pathname: location.pathname, search: setPageInSearch(location.search, 1) });
+  };
+
+  // 只有选中了叶子业务组才能新建屏蔽规则
+  const canAdd = businessGroup.isLeaf && gids !== '-2';
+  const openDoc = () => {
+    DocumentDrawer({
+      language: i18n.language,
+      darkMode,
+      title: t('common:page_help'),
+      type: 'iframe',
+      documentPath: DOC_PATH,
+    });
+  };
+
+  return (
+    <PageLayout title={t('title')} icon={<CloseCircleOutlined />} doc={DOC_PATH}>
+      <div className='shield-content'>
+        <BusinessGroupSideBarWithAll gids={gids} setGids={handleSelectGids} localeKey={N9E_GIDS_LOCALKEY} />
+        <div className='shield-index fc-border rounded-lg' style={{ height: '100%', overflowY: 'auto' }}>
+          <div className='flex justify-between'>
+            <Space>
+              <RefreshIcon
+                onClick={() => {
+                  refreshList();
+                }}
+              />
+              <DatasourceSelectV3
+                style={{ width: 100 }}
+                filterKey='alertRule'
+                mode='multiple'
+                maxTagCount='responsive'
+                placeholder={t('common:datasource.name')}
+                datasourceCateList={datasourceCateOptions}
+                value={datasourceIds}
+                onChange={(val) => {
+                  setDatasourceIds(val);
+                  setCurrent(1);
+                  saveState({ datasourceIds: val });
+                  history.replace({ pathname: location.pathname, search: setPageInSearch(location.search, 1) });
+                }}
+                onClear={() => {
+                  setDatasourceIds(undefined);
+                  setCurrent(1);
+                  saveState({ datasourceIds: undefined });
+                  history.replace({ pathname: location.pathname, search: setPageInSearch(location.search, 1) });
+                }}
+              />
+              <Input
+                value={query}
+                onChange={onSearchQuery}
+                prefix={<SearchOutlined />}
+                placeholder={t('search_placeholder')}
+                style={{
+                  width: 300,
+                }}
+              />
+              <Select
+                allowClear
+                placeholder={t('filter_disabled.placeholder')}
+                options={[
+                  { label: t('filter_disabled.0'), value: 0 },
+                  { label: t('filter_disabled.1'), value: 1 },
+                ]}
+                value={filterDisabled}
+                onChange={(val) => {
+                  setFilterDisabled(val);
+                  setCurrent(1);
+                  saveState({ disabled: val });
+                  history.replace({ pathname: location.pathname, search: setPageInSearch(location.search, 1) });
+                }}
+              />
+            </Space>
+            <Space>
+              {canAdd && (
+                <Button
+                  type='primary'
+                  className='add'
+                  onClick={() => {
+                    history.push('/alert-mutes/add');
+                  }}
+                >
+                  {t('common:btn.add')}
+                </Button>
+              )}
+              <Button
+                onClick={() => {
+                  setDeleteMutesModalVisible(true);
+                }}
+              >
+                {t('delete_mutes.title')}
+              </Button>
+            </Space>
+          </div>
+          <EnhancedTable
+            className='mt-2'
+            size='small'
+            rowKey='id'
+            tableLayout='auto'
+            scroll={{ x: 'max-content' }}
+            pagination={{ ...pagination, current }}
+            onChange={(pag) => {
+              setCurrent(pag.current || 1);
+              history.replace({ pathname: location.pathname, search: setPageInSearch(location.search, pag.current || 1) });
+            }}
+            loading={loading}
+            dataSource={currentShieldData}
+            columns={columns}
+            // 仅在「确实一条规则都没有」时展示引导；筛选命中为空时回退到默认空态，避免误导
+            // 加载中不展示，否则首屏接口返回前会闪现「还没有屏蔽规则」
+            locale={
+              !loading && currentShieldDataAll.length === 0
+                ? {
+                    emptyText: (
+                      <EmptyGuide
+                        title={t('empty_guide.title')}
+                        description={t('empty_guide.desc')}
+                        actions={
+                          <>
+                            {canAdd ? (
+                              <Button
+                                type='primary'
+                                onClick={() => {
+                                  history.push('/alert-mutes/add');
+                                }}
+                              >
+                                {t('common:btn.add')}
+                              </Button>
+                            ) : (
+                              <span className='opacity-70'>{t('empty_guide.select_busi_group')}</span>
+                            )}
+                            <a onClick={openDoc}>{t('common:page_help')}</a>
+                          </>
+                        }
+                      />
+                    ),
+                  }
+                : undefined
+            }
+            rowActions={(record: shieldItem) => ({
+              inline: [
+                {
+                  key: 'clone',
+                  icon: 'copy',
+                  text: t('common:btn.clone'),
+                  onClick: () => {
+                    history.push({
+                      pathname: `/alert-mutes/edit/${record.id}`,
+                      search: `?mode=clone&bgid=${record.group_id}&page=${current}`,
+                    });
+                  },
+                },
+                {
+                  key: 'delete',
+                  icon: 'delete',
+                  text: t('common:btn.delete'),
+                  danger: true,
+                  disabled: record.disabled === 0,
+                  tooltip: record.disabled === 0 ? t('common:delete_disable_first') : undefined,
+                  onClick: () => {
+                    confirm({
+                      title: t('common:confirm.delete'),
+                      icon: <ExclamationCircleOutlined />,
+                      onOk: () => {
+                        deleteShields({ ids: [record.id] }, record.group_id).then((res) => {
+                          refreshList();
+                          if (res.err) {
+                            message.success(res.err);
+                          } else {
+                            message.success(t('common:success.delete'));
+                          }
+                        });
+                      },
+                      onCancel() {},
+                    });
+                  },
+                },
+              ],
+            })}
+            actionColumn={{ title: t('common:table.operations'), width: 80 }}
+          />
+          <DeleteMutesModal
+            visible={deleteMutesModalVisible}
+            gids={gids}
+            onCancel={() => {
+              setDeleteMutesModalVisible(false);
+            }}
+            onOk={() => {
+              setDeleteMutesModalVisible(false);
+              refreshList();
+            }}
+          />
+        </div>
+      </div>
+    </PageLayout>
+  );
+};
+
+export default Shield;

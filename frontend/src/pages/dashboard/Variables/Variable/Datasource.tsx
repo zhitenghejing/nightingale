@@ -1,0 +1,122 @@
+import React, { useEffect, useContext, useRef } from 'react';
+import { Select } from 'antd';
+import _ from 'lodash';
+
+import { CommonStateContext } from '@/App';
+import InputGroupWithFormItem from '@/components/InputGroupWithFormItem';
+import { useGlobalState } from '@/pages/dashboard/globalState';
+
+import getValueByOptions from '../utils/getValueByOptions';
+import stringToRegex from '../utils/stringToRegex';
+import { buildVariableInterpolations } from '../utils/ajustData';
+import { formatString } from '../utils/formatString';
+import { useVariableManager } from '../VariableManagerContext';
+import { Props } from './types';
+
+export default function Datasource(props: Props) {
+  const { datasourceList, groupedDatasourceList } = useContext(CommonStateContext);
+  const [range] = useGlobalState('range');
+
+  const { disabled, hide, item: variable, variableValueFixed, value, setValue } = props;
+  const { name, label, options } = variable;
+
+  const { getVariables, updateVariable, registerVariable, registeredVariables } = useVariableManager();
+  const variableRef = useRef(variable);
+  const rangeRef = useRef(range);
+
+  useEffect(() => {
+    variableRef.current = variable;
+  });
+
+  useEffect(() => {
+    rangeRef.current = range;
+  }, [range]);
+
+  // 执行查询的核心逻辑
+  const executeQuery = async () => {
+    const currentVariable = variableRef.current;
+    const currentRange = rangeRef.current;
+
+    const variableInterpolations = buildVariableInterpolations({
+      variable: currentVariable,
+      variables: getVariables(),
+      datasourceList,
+      range: currentRange,
+    });
+
+    let currentDatasourceList = currentVariable.definition ? groupedDatasourceList[currentVariable.definition] ?? [] : [];
+    const formatedRegex = currentVariable.regex ? formatString(currentVariable.regex, variableInterpolations) : '';
+    const regex = stringToRegex(formatedRegex);
+    if (regex) {
+      currentDatasourceList = _.filter(currentDatasourceList, (option) => {
+        return regex.test(option.name);
+      });
+    }
+    const itemOptions = _.map(currentDatasourceList, (ds) => {
+      return { label: ds.name, value: ds.id };
+    });
+
+    updateVariable(name, {
+      options: itemOptions,
+      value: getValueByOptions({
+        variableValueFixed,
+        variable: currentVariable,
+        itemOptions,
+      }),
+    });
+  };
+
+  // 计算变量的配置签名（排除 label, value, options, hide）
+  const variableConfigSignature = React.useMemo(() => {
+    const { label, value, options, hide, ...rest } = variable;
+    return JSON.stringify(rest);
+  }, [variable]);
+
+  // 注册变量到管理器
+  useEffect(() => {
+    const meta = {
+      name: variable.name,
+      variable,
+      executor: executeQuery,
+    };
+
+    registerVariable(meta);
+
+    // 配置变更时清理订阅
+    return () => {
+      const meta = registeredVariables.current.get(variable.name);
+      if (meta && meta.cleanup) meta.cleanup();
+    };
+  }, [variableConfigSignature]);
+
+  return (
+    <div className={hide ? 'hidden' : ''}>
+      <InputGroupWithFormItem label={label || name}>
+        <Select
+          disabled={disabled}
+          style={{
+            width: '180px',
+          }}
+          maxTagCount='responsive'
+          defaultActiveFirstOption={false}
+          showSearch
+          dropdownMatchSelectWidth={false}
+          value={value}
+          onChange={(newValue) => {
+            setValue(newValue);
+            updateVariable(name, {
+              value: newValue,
+            });
+          }}
+          optionFilterProp='children'
+        >
+          {options?.map((item) => (
+            <Select.Option key={item.value} value={item.value}>
+              {item.label}
+            </Select.Option>
+          ))}
+        </Select>
+      </InputGroupWithFormItem>
+    </div>
+  );
+}

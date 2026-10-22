@@ -1,0 +1,166 @@
+.n9e-log-explorer-raw-table {
+  // react-virtuoso 替换 antd Table 后不再有 .ant-table-container，
+  // 在此补回原表格容器的外框与圆角。
+  border: 1px solid var(--fc-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+
+  .ant-table-expanded-row {
+    display: none !important;
+  }
+
+  .ant-table-row-expand-icon-cell {
+    padding: 0 !important;
+    position: relative;
+  }
+
+  // P1-2: Origin 模式虚拟列表（react-virtuoso）自定义表头与行，样式对齐原 antd Table
+  .n9e-log-explorer-raw-header {
+    table {
+      border-spacing: 0;
+    }
+
+    // 覆盖 antd 默认 th 的 16px 内边距，对齐 ant-table-small 的 8px。
+    th {
+      padding: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1;
+      white-space: nowrap;
+    }
+  }
+
+  .n9e-log-explorer-raw-row {
+    border-bottom: 1px solid var(--fc-border-color);
+    font-size: 12px;
+
+    &:hover {
+      background: rgb(var(--fc-fill-5-rgb) / 0.2);
+    }
+  }
+}
+
+.n9e-log-explorer-log-viewer-tabs {
+  .ant-tabs-content {
+    height: 100%;
+  }
+}
+
+.log-field-select-popover {
+  .ant-popover-inner-content {
+    padding: 0 !important;
+  }
+
+  .ant-dropdown-menu {
+    box-shadow: unset !important;
+  }
+}
+
+.n9e-log-explorer-toolbar {
+  min-width: 0;
+}
+
+.n9e-log-explorer-toolbar-main {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 100%;
+
+  .ant-space-item {
+    flex-shrink: 0;
+  }
+}
+
+.n9e-log-explorer-log-mode {
+  white-space: nowrap;
+
+  .ant-radio-button-wrapper {
+    white-space: nowrap;
+  }
+}
+
+.n9e-log-explorer-toolbar-extra {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.n9e-log-clustering-extra {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+
+  .ant-divider-vertical {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+}
+
+.n9e-log-clustering-sampled-tip {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fc-text-2);
+  cursor: help;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.n9e-log-clustering-meta {
+  flex: 0 0 auto;
+}
+
+.log-clustering-group-by-select.ant-select-multiple.ant-select-sm {
+  .ant-select-selector {
+    min-height: 24px;
+    max-height: 24px;
+    align-items: center;
+    overflow: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .ant-select-selection-overflow {
+    align-items: center;
+  }
+
+  .ant-select-selection-overflow-item {
+    display: flex;
+    align-items: center;
+  }
+
+  .ant-select-selection-item {
+    height: 18px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    line-height: 16px;
+  }
+
+  .ant-select-selection-search {
+    display: flex;
+    align-items: center;
+    height: 18px;
+    line-height: 18px;
+    margin-top: 0;
+  }
+
+  .ant-select-selection-search-input,
+  .ant-select-selection-search-mirror {
+    height: 18px;
+    line-height: 16px;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* 日志详情抽屉左边框 */
+.log-explorer-ignore-click-away {
+  .ant-drawer-content-wrapper {
+    border-left: 1px solid var(--fc-border-color);
+  }
+}

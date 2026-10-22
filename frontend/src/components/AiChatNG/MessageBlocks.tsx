@@ -1,0 +1,440 @@
+import React from 'react';
+import { Button, Collapse, Space } from 'antd';
+import { ArrowRightOutlined } from '@ant-design/icons';
+import { Trans, useTranslation } from 'react-i18next';
+import { Sparkles } from 'lucide-react';
+
+import { IS_ENT } from '@/utils/constant';
+import {
+  AiChatExecuteQueryForQueryContent,
+  AiChatPageActionOutcomes,
+  EAiChatContentType,
+  IAiChatAction,
+  IAiChatInputRequest,
+  IAiChatMessage,
+  IAiChatMessageResponse,
+  IAiChatPageActionRequest,
+  IAiChatToolCallGroup,
+} from './types';
+import { cn } from './utils';
+import QueryContentBlock from './ContentRenderer/QueryContentBlock';
+import FormSelectContentBlock from './ContentRenderer/FormSelectContentBlock';
+import AlertRuleContentBlock from './ContentRenderer/AlertRuleContentBlock';
+import DashboardContentBlock from './ContentRenderer/DashboardContentBlock';
+import PageActionBlock from './ContentRenderer/PageActionBlock';
+import ToolGroupBlock from './ContentRenderer/ToolGroupBlock';
+import InputRequestBlock from './ContentRenderer/InputRequestBlock';
+import { NAME_SPACE } from './constants';
+import StreamingMarkdown from './StreamingMarkdown';
+
+function TypedGreeting({ prefix, brand }: { prefix: string; brand: string }) {
+  const fullText = `${prefix}${brand}`;
+  const textChars = React.useMemo(() => Array.from(fullText), [fullText]);
+  const prefixChars = React.useMemo(() => Array.from(prefix), [prefix]);
+  const [visibleCount, setVisibleCount] = React.useState(0);
+
+  React.useEffect(() => {
+    setVisibleCount(0);
+
+    if (!textChars.length) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setVisibleCount((prev) => {
+        if (prev >= textChars.length) {
+          window.clearInterval(timer);
+          return prev;
+        }
+
+        return prev + 1;
+      });
+    }, 90);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [textChars]);
+
+  const visiblePrefix = prefixChars.slice(0, visibleCount).join('');
+  const visibleBrand = textChars.slice(prefixChars.length, visibleCount).join('');
+  const showCursor = visibleCount < textChars.length;
+
+  return (
+    <span aria-label={fullText}>
+      <span>{visiblePrefix}</span>
+      <span className='text-primary'>{visibleBrand}</span>
+      {showCursor ? <span className='ml-0.5 inline-block h-[1em] w-[2px] animate-pulse align-[-0.1em] bg-current' aria-hidden='true' /> : null}
+    </span>
+  );
+}
+
+interface IAiChatResponseBlocksProps {
+  message: IAiChatMessage;
+  isStreaming: boolean;
+  onExecuteQueryForQueryContent?: AiChatExecuteQueryForQueryContent;
+  onActionClick: (action: IAiChatAction) => void;
+  onOKForFormSelectContent: (action: IAiChatAction, overrideContent: string) => void;
+  maybeScrollToBottom?: (behavior?: ScrollBehavior) => void;
+  /** What happened to the page actions in this message, by call id. */
+  pageActionOutcomes?: AiChatPageActionOutcomes;
+  /**
+   * The dock keeps the query on the left, next to the composer it was typed in,
+   * and tells it from the answer by the tinted bubble alone; smaller copy.
+   */
+  variant?: 'full' | 'slim';
+}
+
+interface IThinkingBlockProps {
+  title: string;
+  content: string;
+  isFinish?: boolean;
+  isStreaming: boolean;
+}
+
+function ThinkingBlockComponent({ title, content, isFinish, isStreaming }: IThinkingBlockProps) {
+  const { t } = useTranslation(NAME_SPACE);
+  const userInteractedRef = React.useRef(false);
+  const [activeKey, setActiveKey] = React.useState<string | undefined>('thinking');
+
+  // 流式时展开，收口后自动折叠（除非用户手动操作过）
+  React.useEffect(() => {
+    if (userInteractedRef.current) return;
+    if (isFinish) {
+      setActiveKey(undefined);
+    } else {
+      setActiveKey('thinking');
+    }
+  }, [isFinish]);
+
+  const displayTitle = isFinish ? title : `${t('message.generating').replace('...', '')}…`;
+
+  return (
+    <Collapse
+      ghost
+      className='w-full rounded-lg border border-fc-200 bg-fc-50'
+      activeKey={activeKey}
+      onChange={(keys) => {
+        userInteractedRef.current = true;
+        setActiveKey(Array.isArray(keys) ? (keys[0] as string) : undefined);
+      }}
+    >
+      <Collapse.Panel header={<span className='text-sm font-medium text-main'>{displayTitle}</span>} key='thinking'>
+        <div className='max-h-60 overflow-y-auto'>
+          <StreamingMarkdown content={content || ''} isStreaming={isStreaming && !isFinish} />
+        </div>
+      </Collapse.Panel>
+    </Collapse>
+  );
+}
+
+export const ThinkingBlock = React.memo(ThinkingBlockComponent);
+
+export function HintBlock({ response }: { response: IAiChatMessageResponse }) {
+  const { t } = useTranslation(NAME_SPACE);
+
+  return (
+    <div className='rounded-lg border border-fc-200 bg-fc-100 px-4 py-3'>
+      <div className='text-sm font-medium text-title'>{response.hint_text || t('message.hint')}</div>
+      <div className='mt-1 text-sm text-main'>{response.content}</div>
+    </div>
+  );
+}
+
+interface IMarkdownBlockProps {
+  response: IAiChatMessageResponse;
+  isStreaming?: boolean;
+}
+
+function MarkdownBlockComponent({ response, isStreaming }: IMarkdownBlockProps) {
+  return (
+    <div className='rounded-lg border border-transparent bg-transparent text-main'>
+      <StreamingMarkdown content={response.content || ''} isStreaming={!!isStreaming && !response.is_finish} />
+    </div>
+  );
+}
+
+export const MarkdownBlock = React.memo(
+  MarkdownBlockComponent,
+  (previous, next) =>
+    previous.isStreaming === next.isStreaming &&
+    previous.response.content === next.response.content &&
+    previous.response.is_finish === next.response.is_finish &&
+    previous.response.content_type === next.response.content_type,
+);
+
+export function CurStepBlock({ curStep }: { curStep: string }) {
+  return (
+    <div className='ai-chat-cur-step mt-1 flex items-center gap-2 py-1.5 text-base text-title'>
+      <img src='/image/ai-chat/ai_loading.svg' alt='' aria-hidden='true' className='h-5 w-5 shrink-0 animate-spin' />
+      <span className='truncate'>{curStep}</span>
+    </div>
+  );
+}
+
+export function ResponseBlocks(props: IAiChatResponseBlocksProps) {
+  const { t } = useTranslation(NAME_SPACE);
+  const { message, isStreaming, onExecuteQueryForQueryContent, onActionClick, onOKForFormSelectContent, maybeScrollToBottom, pageActionOutcomes } = props;
+  const curStep = message.cur_step?.trim() || t('message.generating');
+  const shouldShowCurStep = !message.is_finish && !message.err_code;
+
+  const getActionDisplayLabel = React.useCallback(
+    (action: IAiChatAction) => {
+      const actionKeyMap: Record<string, string> = {
+        query_generator: t('action.query_generator'),
+      };
+
+      const datasourceType = action.param?.datasource_type;
+      const datasourceId = action.param?.datasource_id;
+      const label = (action.key && actionKeyMap[action.key]) || action.key || '';
+
+      if (datasourceType && datasourceId) {
+        return `${label} · ${datasourceType} / ${datasourceId}`;
+      }
+
+      if (datasourceType) {
+        return `${label} · ${datasourceType}`;
+      }
+
+      return label;
+    },
+    [t],
+  );
+
+  if (message.err_code && message.err_code !== 0) {
+    if (message.err_code === 409) {
+      return (
+        <div className='rounded-lg border border-error/20 bg-error/10 px-4 py-3'>
+          <div className='text-sm font-medium text-title'>{t('message.no_llm_title')}</div>
+          <div className='mt-1 text-sm text-main'>
+            {
+              <Trans
+                ns={NAME_SPACE}
+                i18nKey='message.no_llm_content'
+                components={{
+                  a: <a href={IS_ENT ? '/flashai/llm-configs' : '/ai-config/llm-configs'} target='_blank' />,
+                }}
+              />
+            }
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className='rounded-lg border border-error/20 bg-error/10 px-4 py-3'>
+        <div className='text-sm font-medium text-title'>{message.err_title || (message.err_code === -2 ? t('message.stopped') : t('message.request_failed'))}</div>
+        <div className='mt-1 text-sm text-main'>{message.err_msg || (message.err_code === -2 ? t('message.cancelled') : t('message.retry_later'))}</div>
+      </div>
+    );
+  }
+
+  if (!message.response?.length) {
+    return shouldShowCurStep ? (
+      <CurStepBlock curStep={curStep} />
+    ) : (
+      <div className='rounded-lg border border-dashed border-fc-200 bg-fc-50 px-4 py-4 text-sm text-hint'>{t('message.empty_response')}</div>
+    );
+  }
+
+  return (
+    <div className='space-y-2.5'>
+      {shouldShowCurStep && <CurStepBlock curStep={curStep} />}
+
+      {message.response.map((response, index) => {
+        const contentType = response.content_type as EAiChatContentType;
+
+        switch (contentType) {
+          case EAiChatContentType.Thinking:
+          case EAiChatContentType.Reasoning:
+            return (
+              <ThinkingBlock
+                key={`${response.content_type}-${index}`}
+                title={t('message.thinking')}
+                content={response.content}
+                isFinish={response.is_finish}
+                isStreaming={isStreaming}
+              />
+            );
+          case EAiChatContentType.Markdown:
+            return <MarkdownBlock key={`${response.content_type}-${index}`} response={response} isStreaming={isStreaming} />;
+          case EAiChatContentType.Hint:
+            return <HintBlock key={`${response.content_type}-${index}`} response={response} />;
+          case EAiChatContentType.Query:
+            return (
+              <QueryContentBlock
+                key={`${response.content_type}-${index}`}
+                query={response.content}
+                onExecute={
+                  onExecuteQueryForQueryContent
+                    ? () =>
+                        onExecuteQueryForQueryContent(response.content, {
+                          message,
+                          response,
+                        })
+                    : undefined
+                }
+              />
+            );
+          case EAiChatContentType.FormSelect:
+            return (
+              <FormSelectContentBlock
+                key={`${response.content_type}-${index}`}
+                responseContent={response.content}
+                onConfirm={(result) => {
+                  onOKForFormSelectContent(
+                    {
+                      param: result.param,
+                    },
+                    result.content || '',
+                  );
+                  maybeScrollToBottom?.('smooth');
+                }}
+              />
+            );
+          case EAiChatContentType.AlertRule:
+            return <AlertRuleContentBlock key={`${response.content_type}-${index}`} responseContent={response.content} />;
+          case EAiChatContentType.Dashboard:
+            return <DashboardContentBlock key={`${response.content_type}-${index}`} responseContent={response.content} />;
+          case EAiChatContentType.ToolGroup:
+            return <ToolGroupBlock key={`${response.content_type}-${index}`} group={response.param as IAiChatToolCallGroup | undefined} isFinish={response.is_finish} />;
+          case EAiChatContentType.InputRequest:
+            return (
+              <InputRequestBlock
+                key={`${response.content_type}-${index}`}
+                request={response.param as IAiChatInputRequest | undefined}
+                fallbackQuestion={response.content}
+                answered={index < (message.response?.length ?? 0) - 1}
+                onAnswer={(text) => onOKForFormSelectContent({}, text)}
+              />
+            );
+          case EAiChatContentType.PageAction: {
+            const request = response.param as IAiChatPageActionRequest | undefined;
+            return <PageActionBlock key={`${response.content_type}-${index}`} request={request} outcome={request ? pageActionOutcomes?.[request.call_id] : undefined} />;
+          }
+          default: {
+            return (
+              <div key={`${response.content_type}-${index}`} className='rounded-lg border border-dashed border-fc-200 px-4 py-3 text-sm text-hint'>
+                {t('message.unsupported_type', { type: response.content_type })}
+              </div>
+            );
+          }
+        }
+      })}
+
+      {!!message.recommend_action?.length && (
+        <div className='flex flex-wrap gap-2'>
+          {message.recommend_action.map((action, index) => (
+            <Button key={`${action.key}-${index}`} size='small' onClick={() => onActionClick(action)}>
+              {getActionDisplayLabel(action)}
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function EmptyConversation({ prompts, onPromptClick, children }: { prompts?: string[]; onPromptClick: (prompt: string) => void; children?: React.ReactNode }) {
+  const { t } = useTranslation(NAME_SPACE);
+  const greetingPrefix = t('empty.greeting_prefix');
+  const hasCustomContent = children != null;
+
+  return (
+    <div className={cn('w-full h-full flex flex-col items-center text-center', hasCustomContent && 'justify-center gap-10')}>
+      <div className={cn('w-full flex justify-center items-center', hasCustomContent ? 'shrink-0' : 'h-[40%]')}>
+        <div className='text-l4 font-bold'>
+          <Space align='baseline'>
+            <img src='/image/ai-chat/ai.gif' className='w-[24px] h-[24px]' />
+            <TypedGreeting prefix={greetingPrefix} brand='NightingaleAI' />
+          </Space>
+        </div>
+      </div>
+      {children ??
+        (prompts?.length ? (
+          <div className='w-[90%] mt-4 flex flex-col gap-2'>
+            {prompts.map((prompt) => (
+              <div
+                key={prompt}
+                className='w-full h-[32px] cursor-pointer flex items-center justify-between gap-2 px-2 fc-border rounded-lg hover:border-primary hover:ring-[3px] hover:ring-primary/10'
+                onClick={() => onPromptClick(prompt)}
+              >
+                <div className='flex items-center gap-2'>
+                  <Sparkles size={14} className='text-primary/80' />
+                  <span className='truncate text-sm text-main'>{prompt}</span>
+                </div>
+                <ArrowRightOutlined />
+              </div>
+            ))}
+          </div>
+        ) : null)}
+    </div>
+  );
+}
+
+const bottomStatusContentTypes = [EAiChatContentType.Thinking, EAiChatContentType.Reasoning];
+
+function shouldShowInitialRunningStatus(isFinish?: boolean, responseList?: IAiChatMessageResponse[]) {
+  return !isFinish && !responseList?.length;
+}
+
+function shouldShowRunningStatusAtMessageBottom(isFinish?: boolean, responseList?: IAiChatMessageResponse[]) {
+  if (isFinish) return false;
+  const lastResponse = responseList?.[responseList.length - 1];
+  if (!lastResponse?.content_type) return false;
+  return bottomStatusContentTypes.includes(lastResponse.content_type as EAiChatContentType);
+}
+
+function MessageItemComponent({
+  message,
+  isStreaming,
+  onExecuteQueryForQueryContent,
+  onActionClick,
+  onOKForFormSelectContent,
+  maybeScrollToBottom,
+  pageActionOutcomes,
+  variant,
+}: IAiChatResponseBlocksProps) {
+  const { t } = useTranslation(NAME_SPACE);
+  const slim = variant === 'slim';
+  const showInitialRunningStatus = shouldShowInitialRunningStatus(message.is_finish, message.response);
+  const showBottomRunningStatus = shouldShowRunningStatusAtMessageBottom(message.is_finish, message.response);
+
+  return (
+    <div className='ai-chat-message-item w-full space-y-3'>
+      <div className={cn('flex', !slim && 'justify-end')}>
+        <div className={cn('max-w-[85%] rounded-lg bg-primary/10 px-2 py-1', slim ? 'text-[13px] leading-[1.72]' : 'text-sm')}>
+          <div className='whitespace-pre-wrap break-words'>
+            {message.query.content.replace(/<@([^>]+)>/g, (token, id: string) => {
+              const reference = message.query.references?.find((item) => item.id === id);
+              return reference ? `@${reference.name || reference.skill.name}` : token;
+            })}
+          </div>
+        </div>
+      </div>
+      <div className={cn('space-y-3', isStreaming ? 'animate-in fade-in-50 duration-300' : '')}>
+        <ResponseBlocks
+          message={message}
+          isStreaming={isStreaming}
+          pageActionOutcomes={pageActionOutcomes}
+          onExecuteQueryForQueryContent={onExecuteQueryForQueryContent}
+          onActionClick={onActionClick}
+          onOKForFormSelectContent={onOKForFormSelectContent}
+          maybeScrollToBottom={maybeScrollToBottom}
+        />
+        {!message.is_finish && (
+          <div className='inline-flex items-center w-fit text-main text-sm'>
+            {!!showInitialRunningStatus && <span className='mr-1.5'>{message.cur_step ?? t('message.generating')}</span>}
+            {!!showBottomRunningStatus && <span className='mr-1.5'>{message.cur_step ?? t('message.processing')}</span>}
+            <span className='inline-flex items-center gap-[3px]' aria-hidden='true'>
+              <span className='inline-block w-[5px] h-[5px] rounded-full bg-primary animate-dot-pulse' />
+              <span className='inline-block w-[5px] h-[5px] rounded-full bg-primary animate-dot-pulse [animation-delay:160ms]' />
+              <span className='inline-block w-[5px] h-[5px] rounded-full bg-primary animate-dot-pulse [animation-delay:320ms]' />
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export const MessageItem = React.memo(MessageItemComponent);

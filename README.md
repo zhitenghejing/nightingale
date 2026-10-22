@@ -26,6 +26,9 @@
 
 [English](README.md) | [中文](README_zh.md)
 
+Developers and coding agents: [Development workflow](doc/agent-development-workflow.md) ·
+[Environment setup](doc/development-environment.md) · [Worktree previews](doc/worktree-preview.md)
+
 Nightingale brings alert rules, event processing, and notification routing into one place. Connect Prometheus, VictoriaMetrics, Elasticsearch, Loki, ClickHouse, and other data sources you already run, then deliver alerts to Slack, PagerDuty, and your team's existing tools.
 
 **Self-hosted · Apache-2.0 · Built-in AI agent · MCP server**

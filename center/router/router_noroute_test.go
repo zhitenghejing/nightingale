@@ -22,6 +22,7 @@ func newFixturePub(t *testing.T) string {
 		"pub/index.html": "<!doctype html>\n<html><body>n9e spa</body></html>\n",
 		"pub/n9e-collect-templates/nvidia_smi.toml": "# nvidia_smi\n[[instances]]\nlabels = { job = \"nvidia_smi\" }\n",
 		"pub/font/Inter-latin.woff2":                "wOF2-fake-font-bytes",
+		"pub/image/page-error/404.webp":             "RIFF-fake-webp-bytes",
 	}
 
 	for name, content := range files {
@@ -51,6 +52,8 @@ func noRouteCases() []noRouteCase {
 		{"builtin collect template", "/n9e-collect-templates/nvidia_smi.toml", http.StatusOK, "[[instances]]"},
 		// 同一批漏掉的还有字体 woff2
 		{"woff2 font", "/font/Inter-latin.woff2", http.StatusOK, "wOF2"},
+		{"webp error page image", "/image/page-error/404.webp", http.StatusOK, "RIFF"},
+		{"missing webp image", "/image/page-error/not-exist.webp", http.StatusNotFound, ""},
 		// 资源确实不存在时必须 404：前端 loadTemplate 判的是 res.ok，
 		// 返回 200 + index.html 会把整个 HTML 当模板内容塞进 toml 编辑器
 		{"missing collect template", "/n9e-collect-templates/not-exist.toml", http.StatusNotFound, ""},

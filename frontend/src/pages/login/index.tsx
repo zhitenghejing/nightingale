@@ -1,0 +1,402 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { Form, Input, Button, message, Space, Dropdown, Menu, Spin } from 'antd';
+import { useLocation } from 'react-router-dom';
+import { PictureOutlined, UserOutlined, LockOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
+import _ from 'lodash';
+
+import {
+  ifShowCaptcha,
+  getCaptcha,
+  getSsoConfig,
+  getRedirectURL,
+  getRedirectURLCAS,
+  getRedirectURLOAuth,
+  getRedirectURLCustom,
+  getRedirectURLDingtalk,
+  getRedirectURLFeishu,
+  authLogin,
+  getRSAConfig,
+} from '@/services/login';
+import { RsaEncry } from '@/utils/rsa';
+import { CommonStateContext } from '@/App';
+import { AccessTokenKey } from '@/utils/constant';
+
+// @ts-ignore
+import useSsoWay from 'plus:/parcels/SSOConfigs/useSsoWay';
+
+import { NAME_SPACE } from './constants';
+import './locale';
+import './login.less';
+
+const i18nMap = {
+  zh_CN: '简体',
+  zh_HK: '繁體',
+  en_US: 'En',
+  ja_JP: '日本語',
+  ru_RU: 'Русский',
+  id_ID: 'Bahasa Indonesia',
+  es_ES: 'Español',
+  pt_BR: 'Português',
+  ko_KR: '한국어',
+  fr_FR: 'Français',
+};
+
+export interface DisplayName {
+  oidc: string;
+  cas: string;
+  oauth: string;
+  custom?: string;
+  dingTalk?: string;
+  feishu?: string;
+}
+
+// /login?sso=oidc 支持的取值，用于免去手动点击第三方登录链接
+const SSO_REDIRECT_GETTERS: Record<string, (redirect: string) => Promise<any>> = {
+  oidc: getRedirectURL,
+  cas: getRedirectURLCAS,
+  oauth: getRedirectURLOAuth,
+  oauth2: getRedirectURLOAuth,
+  custom: getRedirectURLCustom,
+  dingtalk: getRedirectURLDingtalk,
+  feishu: getRedirectURLFeishu,
+};
+
+export default function Login() {
+  const { t, i18n } = useTranslation(NAME_SPACE);
+  const [form] = Form.useForm();
+  const location = useLocation();
+  const { siteInfo } = useContext(CommonStateContext);
+  const redirect = (location.search && new URLSearchParams(location.search).get('redirect')) || '';
+  const searchParams = new URLSearchParams(location.search);
+  // 带 ?admin 表示要用本地账号登录，此时不自动跳转，与 Plus 侧全局自动跳转的约定保持一致
+  const ssoWay = searchParams.has('admin') ? '' : (searchParams.get('sso') || '').toLowerCase();
+  const [ssoRedirecting, setSsoRedirecting] = useState(!!SSO_REDIRECT_GETTERS[ssoWay]);
+  const [displayName, setDis] = useState<DisplayName>({
+    oidc: 'OIDC',
+    cas: 'CAS',
+    oauth: 'OAuth',
+    custom: 'Custom',
+    dingTalk: 'dingTalk',
+    feishu: 'Feishu',
+  });
+  const [showcaptcha, setShowcaptcha] = useState(false);
+  const [curLanguage, setCurLanguage] = useState(i18nMap[i18n.language] || i18nMap.zh_CN);
+  const verifyimgRef = useRef<HTMLImageElement>(null);
+  const captchaidRef = useRef<string>();
+  const refreshCaptcha = () => {
+    getCaptcha().then((res) => {
+      if (res.dat && verifyimgRef.current) {
+        verifyimgRef.current.src = res.dat.imgdata;
+        captchaidRef.current = res.dat.captchaid;
+      } else {
+        message.warning(t('get_captcha_failed'));
+      }
+    });
+  };
+  useSsoWay(redirect);
+
+  // /login?sso=oidc 直接跳转到指定的第三方登录，跳转成功后浏览器会离开当前页面，
+  // 只有拿不到登录地址或接口异常时才复位 loading，把登录表单还给用户
+  useEffect(() => {
+    const getSSORedirectURL = SSO_REDIRECT_GETTERS[ssoWay];
+    if (!getSSORedirectURL) return;
+    getSSORedirectURL(redirect)
+      .then((res) => {
+        if (!res.dat) {
+          message.warning(t('sso_no_url', { name: ssoWay }));
+          setSsoRedirecting(false);
+        } else if (ssoWay === 'cas') {
+          localStorage.setItem('CAS_state', res.dat.state);
+          window.location.href = res.dat.redirect;
+        } else {
+          window.location.href = res.dat;
+        }
+      })
+      .catch(() => {
+        setSsoRedirecting(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    // 自动跳转期间登录表单未挂载，verifyimgRef 为空，此时拉验证码会误报「获取验证码失败」，
+    // 且跳转失败复位后验证码图没有 src。等 ssoRedirecting 复位、表单挂载后再拉
+    if (ssoRedirecting) return;
+    getSsoConfig().then((res) => {
+      if (res.dat) {
+        setDis({
+          oidc: res.dat.oidcDisplayName,
+          cas: res.dat.casDisplayName,
+          oauth: res.dat.oauthDisplayName,
+          custom: res.dat.customDisplayName,
+          dingTalk: res.dat.dingTalkDisplayName,
+          feishu: res.dat.feishuDisplayName,
+        });
+      }
+    });
+
+    ifShowCaptcha().then((res) => {
+      setShowcaptcha(res?.dat?.show);
+      if (res?.dat?.show) {
+        getCaptcha().then((res) => {
+          if (res.dat && verifyimgRef.current) {
+            verifyimgRef.current.src = res.dat.imgdata;
+            captchaidRef.current = res.dat.captchaid;
+          } else {
+            message.warning(t('get_captcha_failed'));
+          }
+        });
+      }
+    });
+  }, [ssoRedirecting]);
+
+  const handleSubmit = () => {
+    form.validateFields().then(() => {
+      login();
+    });
+  };
+
+  const login = async () => {
+    let { username, password, verifyvalue } = form.getFieldsValue();
+    const rsaConf = await getRSAConfig();
+    const {
+      dat: { OpenRSA, RSAPublicKey },
+    } = rsaConf;
+    const authPassWord = OpenRSA ? RsaEncry(password, RSAPublicKey) : password;
+    authLogin(username, authPassWord, captchaidRef.current!, verifyvalue)
+      .then((res) => {
+        const { dat, err } = res;
+        const { access_token, refresh_token } = dat;
+        localStorage.setItem(AccessTokenKey, access_token);
+        localStorage.setItem('refresh_token', refresh_token);
+        if (!err) {
+          window.location.href = redirect || '/';
+        }
+      })
+      .catch(() => {
+        if (showcaptcha) {
+          refreshCaptcha();
+        }
+      });
+  };
+
+  if (ssoRedirecting) {
+    return (
+      <div className='login-warp'>
+        <Spin size='large' />
+      </div>
+    );
+  }
+
+  return (
+    <div className='login-warp'>
+      <div className='banner integration'>
+        <img src={'/image/login-dashboard.svg'} style={{ margin: '0 60px', zIndex: 5, width: 632 }}></img>
+      </div>
+      <div className='login-panel'>
+        <div className='login-main  integration'>
+          <div className='login-title'>
+            <img src={siteInfo?.login_page_logo_url || '/image/login-logo.png'} style={{ width: '120px' }} />
+          </div>
+          <Form form={form} layout='vertical' requiredMark={true}>
+            <Form.Item
+              label={t('username')}
+              name='username'
+              rules={[
+                {
+                  required: true,
+                  message: t('username_required'),
+                },
+              ]}
+            >
+              <Input placeholder={t('username_required')} prefix={<UserOutlined />} />
+            </Form.Item>
+            <Form.Item
+              label={t('password')}
+              name='password'
+              rules={[
+                {
+                  required: true,
+                  message: t('password_required'),
+                },
+              ]}
+            >
+              <Input type='password' placeholder={t('password_required')} onPressEnter={handleSubmit} prefix={<LockOutlined />} />
+            </Form.Item>
+
+            <div className='text-[14px]'>
+              <Form.Item
+                label={t('verifyvalue')}
+                name='verifyvalue'
+                rules={[
+                  {
+                    required: showcaptcha,
+                    message: t('verifyvalue_required'),
+                  },
+                ]}
+                hidden={!showcaptcha}
+              >
+                <Input placeholder={t('verifyvalue_required')} onPressEnter={handleSubmit} prefix={<PictureOutlined />} />
+              </Form.Item>
+
+              <img
+                ref={verifyimgRef}
+                className='mb-4'
+                style={{
+                  display: showcaptcha ? 'inline-block' : 'none',
+                }}
+                onClick={refreshCaptcha}
+                alt={t('click_get_verify')}
+              />
+            </div>
+
+            <Form.Item>
+              <Button type='primary' onClick={handleSubmit}>
+                {t('login')}
+              </Button>
+            </Form.Item>
+            {_.some(displayName, (value) => {
+              return !!value;
+            }) && (
+              <div className='mb-2 text-[14px]'>
+                <Space align='baseline'>
+                  <div>{t('other_types')}:</div>
+                  {displayName.oidc && (
+                    <a
+                      onClick={() => {
+                        getRedirectURL(redirect).then((res) => {
+                          if (res.dat) {
+                            window.location.href = res.dat;
+                          } else {
+                            message.warning(t('sso_no_url', { name: 'OIDC' }));
+                          }
+                        });
+                      }}
+                    >
+                      {displayName.oidc}
+                    </a>
+                  )}
+                  {displayName.cas && (
+                    <a
+                      onClick={() => {
+                        getRedirectURLCAS(redirect).then((res) => {
+                          if (res.dat) {
+                            window.location.href = res.dat.redirect;
+                            localStorage.setItem('CAS_state', res.dat.state);
+                          } else {
+                            message.warning(t('sso_no_url', { name: 'CAS' }));
+                          }
+                        });
+                      }}
+                    >
+                      {displayName.cas}
+                    </a>
+                  )}
+                  {displayName.oauth && (
+                    <a
+                      onClick={() => {
+                        getRedirectURLOAuth(redirect).then((res) => {
+                          if (res.dat) {
+                            window.location.href = res.dat;
+                          } else {
+                            message.warning(t('sso_no_url', { name: 'OAuth' }));
+                          }
+                        });
+                      }}
+                    >
+                      {displayName.oauth}
+                    </a>
+                  )}
+                  {displayName.custom && (
+                    <a
+                      onClick={() => {
+                        getRedirectURLCustom(redirect).then((res) => {
+                          if (res.dat) {
+                            window.location.href = res.dat;
+                          } else {
+                            message.warning(t('sso_no_url', { name: 'custom' }));
+                          }
+                        });
+                      }}
+                    >
+                      {displayName.custom}
+                    </a>
+                  )}
+                  {displayName.dingTalk && (
+                    <a
+                      onClick={() => {
+                        getRedirectURLDingtalk(redirect).then((res) => {
+                          if (res.dat) {
+                            window.location.href = res.dat;
+                          } else {
+                            message.warning(t('sso_no_url', { name: 'dingTalk' }));
+                          }
+                        });
+                      }}
+                    >
+                      {displayName.dingTalk}
+                    </a>
+                  )}
+                  {displayName.feishu && (
+                    <a
+                      onClick={() => {
+                        getRedirectURLFeishu(redirect).then((res) => {
+                          if (res.dat) {
+                            window.location.href = res.dat;
+                          } else {
+                            message.warning(t('sso_no_url', { name: 'feishu' }));
+                          }
+                        });
+                      }}
+                    >
+                      {displayName.feishu}
+                    </a>
+                  )}
+                </Space>
+              </div>
+            )}
+            <div className='text-[14px]'>
+              <Space>
+                <div>{t('language')}:</div>
+                <Dropdown
+                  overlay={
+                    <Menu
+                      onSelect={({ key }) => {
+                        i18n.changeLanguage(key);
+                        setCurLanguage(i18nMap[key]);
+                        localStorage.setItem('language', key);
+                      }}
+                      selectable
+                    >
+                      {Object.keys(i18nMap).map((el) => {
+                        return <Menu.Item key={el}>{i18nMap[el]}</Menu.Item>;
+                      })}
+                    </Menu>
+                  }
+                >
+                  <a onClick={(e) => e.preventDefault()}>{curLanguage}</a>
+                </Dropdown>
+              </Space>
+            </div>
+          </Form>
+        </div>
+      </div>
+    </div>
+  );
+}

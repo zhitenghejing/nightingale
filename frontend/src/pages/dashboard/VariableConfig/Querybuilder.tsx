@@ -1,0 +1,106 @@
+import React, { useContext, useMemo } from 'react';
+import { Form, Space, Input } from 'antd';
+import { QuestionCircleOutlined } from '@ant-design/icons';
+import _ from 'lodash';
+import { useTranslation } from 'react-i18next';
+
+import { CommonStateContext } from '@/App';
+import DocumentDrawer from '@/components/DocumentDrawer';
+import { withFlashcatFrom } from '@/utils/flashcatFrom';
+import { N9E_SITE_ORIGIN, isChineseLanguage } from '@/utils/n9eSiteDoc';
+import { DatasourceCateEnum } from '@/utils/constant';
+import { VariableQuerybuilder as ClickHouse } from '@/plugins/clickHouse';
+
+import { IVariable } from './definition';
+import ElasticsearchSettings from './datasource/elasticsearch';
+import { replaceExpressionVars, getVaraiableSelected } from './constant';
+
+// @ts-ignore
+import VariableQuerybuilderPro from 'plus:/parcels/Dashboard/VariableQuerybuilder';
+
+interface Props {
+  dashboardId: string;
+  variables: IVariable[];
+}
+
+export default function Querybuilder(props: Props) {
+  const { t, i18n } = useTranslation('dashboard');
+  const { darkMode, datasourceList } = useContext(CommonStateContext);
+  const { dashboardId, variables } = props;
+  const datasourceCate = Form.useWatch(['datasource', 'cate']);
+  const datasourceValue = Form.useWatch(['datasource', 'value']);
+  const definition = Form.useWatch(['definition']);
+  const currentdatasourceValue = _.toNumber(
+    replaceExpressionVars({
+      text: datasourceValue,
+      variables: variables,
+      limit: variables.length,
+      dashboardId,
+      datasourceList,
+    }),
+  );
+  const variablesWithSelectedValue = useMemo(() => variables.map((variable) => ({ ...variable, value: getVaraiableSelected(variable, dashboardId) })), [dashboardId, variables]);
+
+  if (_.includes(['prometheus', 'elasticsearch', 'pgsql'], datasourceCate)) {
+    return (
+      <div>
+        {datasourceCate === 'elasticsearch' && <ElasticsearchSettings datasourceValue={currentdatasourceValue} />}
+        <Form.Item
+          label={
+            <Space>
+              {t('var.definition')}
+              {_.includes(['prometheus', 'elasticsearch'], datasourceCate) && (
+                <QuestionCircleOutlined
+                  onClick={() => {
+                    if (datasourceCate === 'prometheus') {
+                      // 非中文界面跳转新官网的英文变量文档，中文界面保留视频教程
+                      if (!isChineseLanguage(i18n.language)) {
+                        window.open(withFlashcatFrom(`${N9E_SITE_ORIGIN}/docs/query/variables`));
+                        return;
+                      }
+                      window.open(withFlashcatFrom('https://flashcat.cloud/media/?type=夜莺监控&source=aHR0cHM6Ly9kb3dubG9hZC5mbGFzaGNhdC5jbG91ZC9uOWUtMTMtZGFzaGJvYXJkLWludHJvLm1wNA=='));
+                    } else if (datasourceCate === 'elasticsearch') {
+                      DocumentDrawer({
+                        language: i18n.language,
+                        darkMode,
+                        title: t('var.definition'),
+                        documentPath: '/n9e-docs/elasticsearch-template-variables',
+                      });
+                    }
+                  }}
+                />
+              )}
+            </Space>
+          }
+          name='definition'
+          rules={[
+            () => ({
+              validator(_) {
+                if (definition) {
+                  if (datasourceCate === 'elasticsearch') {
+                    try {
+                      JSON.parse(definition);
+                      return Promise.resolve();
+                    } catch (e) {
+                      return Promise.reject(t('var.definition_msg2'));
+                    }
+                  }
+                  return Promise.resolve();
+                } else {
+                  return Promise.reject(new Error(t('var.definition_msg1')));
+                }
+              },
+            }),
+          ]}
+          required
+        >
+          <Input.TextArea autoSize={{ minRows: 2, maxRows: 6 }} />
+        </Form.Item>
+      </div>
+    );
+  }
+  if (datasourceCate === DatasourceCateEnum.ck) {
+    return <ClickHouse />;
+  }
+  return <VariableQuerybuilderPro {...props} variables={variablesWithSelectedValue} datasourceCate={datasourceCate} datasourceValue={currentdatasourceValue} />;
+}

@@ -1,0 +1,122 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import _ from 'lodash';
+
+import { N9E_PATHNAME } from '@/utils/constant';
+import request from '@/utils/request';
+import { RequestMethod } from '@/store/common';
+
+// 匿名获取数据源列表
+export function getDatasourceBriefList(): Promise<{ name: string; id: number; plugin_type: string; is_default: boolean; plugin_type_name: string }[]> {
+  const url = '/api/n9e/datasource/brief';
+  return request(url, {
+    method: RequestMethod.Get,
+  })
+    .then((res) => {
+      return res.dat || [];
+    })
+    .catch(() => {
+      return [];
+    });
+}
+
+export function getBusiGroups(query = '', limit: number = 5000) {
+  return request(`/api/n9e/busi-groups`, {
+    method: RequestMethod.Get,
+    params: Object.assign(
+      {
+        limit,
+      },
+      query ? { query } : {},
+    ),
+  }).then((res) => {
+    return {
+      dat: _.sortBy(res.dat, (item) => _.lowerCase(item.name)),
+    };
+  });
+}
+
+export function getPerm(busiGroup: string, perm: 'ro' | 'rw') {
+  return request(`/api/n9e/busi-group/${busiGroup}/perm/${perm}`, {
+    method: RequestMethod.Get,
+  });
+}
+
+export function getMenuPerm() {
+  return request(`/api/${N9E_PATHNAME}/self/perms`, {
+    method: RequestMethod.Get,
+  }).then((res) => {
+    // TODO 这里是为了处理一些菜单地址不便设置为权限点，但是又希望走统一的权限控制逻辑
+    const whitelist = ['/event-pipelines-executions'];
+    let perms = _.concat(res.dat || [], whitelist);
+    // 如果存在 /embedded-products 权限点时就插入 /embedded-product 权限点，确保集成系统的详情页权限控制正常
+    if (_.includes(perms, '/embedded-products')) {
+      perms = _.concat(perms, ['/embedded-product']);
+    }
+    return {
+      ...(res || {}),
+      dat: perms,
+    };
+  });
+}
+
+export function postSourceToken(data: {
+  source_type: string;
+  source_id: string;
+  expire_at: number; // 过期时间戳
+  note?: string;
+}) {
+  return request('/api/n9e/source-token', {
+    method: RequestMethod.Post,
+    data,
+  });
+}
+
+export interface SourceTokenItem {
+  id: number;
+  source_type: string;
+  source_id: string;
+  token: string;
+  note: string;
+  expire_at: number;
+  create_at: number;
+  create_by: string;
+}
+
+export function getSourceTokens(params: { source_type: string; source_id: string }): Promise<SourceTokenItem[]> {
+  return request('/api/n9e/source-tokens', {
+    method: RequestMethod.Get,
+    params,
+  }).then((res) => res.dat || []);
+}
+
+// 注销分享令牌，对应链接立即失效
+export function deleteSourceToken(id: number) {
+  return request(`/api/n9e/source-token/${id}`, {
+    method: RequestMethod.Delete,
+  });
+}
+
+export const getInstallDate = (): Promise<number> => {
+  return request('/api/n9e/install-date', {
+    method: RequestMethod.Get,
+  })
+    .then((res) => res.dat)
+    .catch(() => {
+      return 0; // 如果请求失败，返回0作为默认值
+    });
+};

@@ -1,0 +1,492 @@
+import React, { useState, useEffect, createContext, useContext, useMemo, useCallback } from 'react';
+import { Spin, Space, Radio } from 'antd';
+import _ from 'lodash';
+import moment, { Moment } from 'moment';
+import { useTranslation } from 'react-i18next';
+import classNames from 'classnames';
+
+import { CommonStateContext } from '@/App';
+import { parseRange } from '@/components/TimeRangePicker';
+import { IRawTimeRange } from '@/components/TimeRangePicker/types';
+
+import { NAME_SPACE } from '../../constants';
+import { Field } from '../../components/FieldsList/types';
+import FullscreenButton from '../../components/FullscreenButton';
+import HistogramChart from './components/HistogramChart';
+import OriginSettings from './components/OriginSettings';
+import Raw from './Raw';
+import Table from './Table';
+import ClusteringTable, { LogClusting } from './Clustering/Table';
+import ClusteringHistogram from './Clustering/Histogram';
+import { OptionsType, OnValueFilterParams } from './types';
+
+import './style.less';
+import DrilldownBtn, { type DrilldownInitialValues } from 'plus:/pages/LogExploreLinkSetting/components/DrilldownBtn';
+
+interface Props {
+  /** 时间字段 */
+  timeField?: string;
+  /** 直方图数据 */
+  hideHistogram?: boolean;
+  histogramLoading?: boolean;
+  histogram?: {
+    metric: string;
+    data: [number, number][];
+  }[];
+  histogramHash?: string;
+  /** 日志数据加载状态 */
+  loading: boolean;
+  /** 日志数据 */
+  logs: { [index: string]: string }[];
+  highlights?: {
+    [key: string]: string[];
+  }[];
+  logsHash?: string;
+  logTotal?: number;
+  /** 字段列表 */
+  fields: string[];
+  /** 日志格式配置项 */
+  options: OptionsType;
+  /** 配置项变更回调 */
+  onOptionsChange?: (options: OptionsType, reload?: boolean) => void;
+  /** 添加过滤条件回调 */
+  onAddToQuery?: (condition: OnValueFilterParams) => void;
+  /** 时间范围变更回调 */
+  onRangeChange?: (range: { start: Moment; end: Moment }) => void;
+  /** 更新日志请求参数回调 */
+  onLogRequestParamsChange?: (params: any) => void;
+  /** 滚动捕获回调 */
+  onScrollCapture?: () => void;
+  /** 每行日志前面的额外内容 */
+  rowPrefixRender?: (record: { [index: string]: any }) => React.ReactNode;
+  /** 过滤每行日志的字段，返回需要显示的字段数组 */
+  filterFields?: (fieldKeys: string[]) => string[];
+  organizeFields?: string[];
+  setOrganizeFields?: (value?: string[]) => void;
+  histogramAddonBeforeRender?: React.ReactNode;
+  renderHistogramAddonAfterRender?: (toggleNode: React.ReactNode) => React.ReactNode;
+  optionsExtraRender?: React.ReactNode;
+  showDateField?: boolean;
+  stacked?: boolean;
+  colWidths?: { [key: string]: number };
+  tableColumnsWidthCacheKey?: string;
+  showPageLoadMode?: boolean;
+  showJSONSettings?: boolean;
+  showTopNSettings?: boolean;
+  showFlattenSettings?: boolean;
+  showLogMode?: boolean;
+  addonBefore?: React.ReactNode;
+  timeColumnWidth?: number;
+  timeFieldColumnFormat?: (timeFieldValue: string | number) => React.ReactNode;
+  linesColumnFormat?: (linesValue: number) => React.ReactNode;
+  id_key?: string;
+  raw_key?: string;
+  logViewerExtraRender?: (log: { [index: string]: any }) => React.ReactNode;
+  logViewerFilterFields?: (log: Record<string, any>) => string[];
+  logViewerRenderCustomTagsArea?: (log: Record<string, any>) => React.ReactNode;
+  adjustFieldValue?: (formatedValue: string, highlightValue?: string[]) => React.ReactNode;
+  showExistsAction?: boolean;
+  customLogFieldRender?: (
+    key: string,
+    value: any,
+    context: {
+      rawValue: Record<string, any>;
+      highlight?: { [index: string]: string[] };
+      renderScene?: 'raw' | 'logViewer';
+      onValueFilter?: (parmas: OnValueFilterParams) => void;
+    },
+  ) => React.ReactNode | false;
+
+  // 日志聚类参数
+  logClusting?: LogClusting;
+
+  /** 以下是 context 依赖的数据 */
+  /** 字段下钻、格式化相关配置 */
+  fieldConfig?: any;
+  /** 日志索引数据 */
+  indexData?: Field[];
+  range?: IRawTimeRange;
+  getAddToQueryInfo?: (params: { parentKey?: string; fieldName: string; logRowData: { [index: string]: any }; indexData: Field[] }) => {
+    isIndex: boolean;
+    indexName: string;
+  };
+  drilldownContext?: DrilldownInitialValues;
+  /** 为 true 时字段值不按 delimiter 分词，划选文本后弹出与点击 token 相同的菜单（与分词互斥） */
+  enableLogTextSelectMenu?: boolean;
+  hideTypeIcon?: boolean;
+}
+
+interface LogsViewerState {
+  id_key: string;
+  raw_key: string;
+  /** 字段下钻、格式化相关配置 */
+  fieldConfig?: Props['fieldConfig'];
+  indexData?: Props['indexData'];
+  /** field → Field 的索引 Map，供 Token/LogFieldValue 快速查找，避免线性扫描 */
+  indexDataMap?: Map<string, Field>;
+  range?: Props['range'];
+  /** 时间范围解析结果（unix 秒），Provider 层算一次，避免每个 Token 重复 parseRange */
+  rangeStart?: number;
+  rangeEnd?: number;
+  getAddToQueryInfo?: Props['getAddToQueryInfo'];
+  drilldownContext?: Props['drilldownContext'];
+  openAddDrilldownLink?: (params: { linkField: string; linkName: string }) => void;
+  enableLogTextSelectMenu?: boolean;
+}
+export const LogsViewerStateContext = createContext({} as LogsViewerState);
+
+export default function LogsViewer(props: Props) {
+  const { t } = useTranslation(NAME_SPACE);
+  const { isPlus } = useContext(CommonStateContext);
+  const {
+    timeField,
+    hideHistogram = false,
+    histogramLoading = false,
+    histogram,
+    loading,
+    logs,
+    highlights,
+    logsHash,
+    fields,
+    onOptionsChange,
+    onAddToQuery,
+    onRangeChange,
+    onLogRequestParamsChange,
+    onScrollCapture,
+    rowPrefixRender,
+    filterFields,
+    organizeFields,
+    setOrganizeFields,
+    histogramAddonBeforeRender,
+    renderHistogramAddonAfterRender,
+    optionsExtraRender,
+    showDateField = true,
+    stacked = false,
+    colWidths,
+    tableColumnsWidthCacheKey,
+    showPageLoadMode,
+    showJSONSettings,
+    showTopNSettings,
+    showFlattenSettings,
+    showLogMode = true,
+    addonBefore,
+    timeColumnWidth,
+    timeFieldColumnFormat,
+    linesColumnFormat,
+    id_key = '___id___',
+    raw_key = '___raw___',
+    logViewerExtraRender,
+    logViewerFilterFields,
+    logViewerRenderCustomTagsArea,
+    adjustFieldValue,
+    showExistsAction,
+    logClusting,
+    customLogFieldRender,
+    enableLogTextSelectMenu = false,
+    hideTypeIcon = false,
+  } = props;
+  const [options, setOptions] = useState(props.options);
+  const [histogramVisible, setHistogramVisible] = useState(true);
+  const isClusteringEnabled = !!logClusting?.enabled;
+  const logMode = options.logMode === 'clustering' && !isClusteringEnabled ? 'origin' : options.logMode;
+  const viewerOptions = logMode === options.logMode ? options : { ...options, logMode };
+  const [drilldownDrawerVisible, setDrilldownDrawerVisible] = useState(false);
+  const [drilldownInitialValues, setDrilldownInitialValues] = useState<DrilldownInitialValues | undefined>();
+
+  const updateOptions = (newOptions: any, reload?: boolean) => {
+    onOptionsChange?.(newOptions, reload);
+  };
+
+  const originSettingsRef = React.useRef<{
+    setOrganizeFieldsModalVisible: (newVisible: boolean) => void;
+  }>(null);
+
+  useEffect(() => {
+    setOptions(props.options);
+  }, [props.options]);
+
+  const drilldownContext = useMemo(() => {
+    if (!isPlus || !props.drilldownContext) return undefined;
+    return {
+      ...props.drilldownContext,
+      logMode: props.drilldownContext.logMode || options.logMode,
+    };
+  }, [isPlus, props.drilldownContext, options.logMode]);
+
+  const openAddDrilldownLink = useCallback(
+    ({ linkField, linkName }: { linkField: string; linkName: string }) => {
+      if (!drilldownContext) return;
+      setDrilldownInitialValues({
+        ...drilldownContext,
+        linkField,
+        linkName,
+      });
+      setDrilldownDrawerVisible(true);
+    },
+    [drilldownContext],
+  );
+
+  const handleDrilldownVisibleChange = useCallback((visible: boolean) => {
+    setDrilldownDrawerVisible(visible);
+    if (!visible) {
+      setDrilldownInitialValues(undefined);
+    }
+  }, []);
+
+  // 日志聚类相关状态
+  const clusteringOptionsEleRef = React.useRef<HTMLDivElement>(null);
+  const clusteringExtraEleRef = React.useRef<HTMLDivElement>(null);
+  const [patternHistogramState, setPatternHistogramState] = useState<{
+    visible: boolean;
+    uuid?: string; // 用户查询柱状图数据的相关参数
+    rowIndex?: number;
+  }>({
+    visible: false,
+  });
+
+  // P0-2: 稳定 context value，避免 LogsViewer 任何 state 变化都让所有 Token/LogFieldValue 消费者重渲
+  const logsViewerState = useMemo(() => {
+    const indexDataMap = new Map<string, Field>();
+    _.forEach(props.indexData, (item) => {
+      indexDataMap.set(item.field, item);
+    });
+    const parsedRange = props.range ? parseRange(props.range) : null;
+    return {
+      id_key,
+      raw_key,
+      fieldConfig: props.fieldConfig,
+      indexData: props.indexData,
+      indexDataMap,
+      range: props.range,
+      rangeStart: parsedRange ? moment(parsedRange.start).unix() : 0,
+      rangeEnd: parsedRange ? moment(parsedRange.end).unix() : 0,
+      getAddToQueryInfo: props.getAddToQueryInfo,
+      drilldownContext,
+      openAddDrilldownLink: drilldownContext ? openAddDrilldownLink : undefined,
+      enableLogTextSelectMenu,
+    };
+  }, [id_key, raw_key, props.fieldConfig, props.indexData, props.range, props.getAddToQueryInfo, drilldownContext, openAddDrilldownLink, enableLogTextSelectMenu]);
+
+  return (
+    <LogsViewerStateContext.Provider value={logsViewerState}>
+      <>
+        {patternHistogramState.visible && isClusteringEnabled ? (
+          <ClusteringHistogram {...patternHistogramState} setPatternHistogramState={setPatternHistogramState} />
+        ) : (
+          <>
+            {!hideHistogram && (
+              <div
+                className={classNames('flex-shrink-0', {
+                  'h-[130px]': histogramVisible,
+                  'h-[30px]': !histogramVisible,
+                })}
+              >
+                <div className='mt-1 px-2 flex justify-between h-[19px] overflow-hidden'>
+                  <Space>
+                    <span>{t('clustering.all_log_statistics')}</span>
+                    {histogramAddonBeforeRender}
+                    <Spin spinning={histogramLoading} size='small' />
+                  </Space>
+
+                  {renderHistogramAddonAfterRender?.(
+                    <a
+                      onClick={() => {
+                        setHistogramVisible(!histogramVisible);
+                      }}
+                    >
+                      {histogramVisible ? t('histogram_hide') : t('histogram_show')}
+                    </a>,
+                  )}
+                </div>
+                <div
+                  className={classNames('flex-shrink-0', {
+                    'h-[120px]': histogramVisible,
+                    block: histogramVisible,
+                    hidden: !histogramVisible,
+                  })}
+                >
+                  {props.range && histogram && (
+                    <HistogramChart
+                      series={histogram}
+                      stacked={stacked}
+                      onClick={(start, end) => {
+                        if (start && end) {
+                          onLogRequestParamsChange?.({
+                            from: start,
+                            to: end,
+                            context: undefined,
+                          });
+                        }
+                      }}
+                      onZoomWithoutDefult={(times) => {
+                        onRangeChange?.({
+                          start: moment(times[0]),
+                          end: moment(times[1]),
+                        });
+                      }}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+        <FullscreenButton.Provider>
+          <div className='n9e-log-explorer-toolbar flex justify-between items-center gap-2 pb-2'>
+            <Space className='n9e-log-explorer-toolbar-main'>
+              {addonBefore}
+              {showLogMode && (
+                <Radio.Group
+                  className='n9e-log-explorer-log-mode'
+                  size='small'
+                  optionType='button'
+                  options={_.concat(
+                    [
+                      {
+                        label: t('logs.settings.mode.origin'),
+                        value: 'origin',
+                      },
+                      {
+                        label: t('logs.settings.mode.table'),
+                        value: 'table',
+                      },
+                    ],
+                    isClusteringEnabled
+                      ? [
+                          {
+                            label: t('logs.settings.mode.clustering'),
+                            value: 'clustering',
+                          },
+                        ]
+                      : [],
+                  )}
+                  value={logMode}
+                  onChange={(e) => {
+                    updateOptions({
+                      logMode: e.target.value,
+                    });
+                    setPatternHistogramState({ visible: false });
+                  }}
+                />
+              )}
+              {logMode === 'clustering' && isClusteringEnabled && <div ref={clusteringOptionsEleRef} />}
+              <OriginSettings
+                ref={originSettingsRef}
+                options={viewerOptions}
+                updateOptions={updateOptions}
+                fields={fields}
+                showDateField={showDateField && logMode !== 'clustering'}
+                showMoreSettings={logMode !== 'clustering'}
+                showPageLoadMode={showPageLoadMode}
+                showJSONSettings={showJSONSettings}
+                showTopNSettings={showTopNSettings}
+                showFlattenSettings={showFlattenSettings}
+                organizeFields={organizeFields}
+                setOrganizeFields={setOrganizeFields}
+              />
+              <FullscreenButton />
+              <Spin spinning={loading} size='small' />
+            </Space>
+            {logMode === 'clustering' && isClusteringEnabled ? <div className='n9e-log-explorer-toolbar-extra' ref={clusteringExtraEleRef} /> : optionsExtraRender}
+          </div>
+          <div className='h-full min-h-0' onScrollCapture={onScrollCapture}>
+            <div className='n9e-antd-table-height-full'>
+              {logMode === 'origin' && (
+                <Raw
+                  id_key={id_key}
+                  raw_key={raw_key}
+                  logsHash={logsHash}
+                  timeField={timeField}
+                  data={logs}
+                  highlights={highlights}
+                  options={viewerOptions}
+                  onReverseChange={(val) => {
+                    onLogRequestParamsChange?.({
+                      reverse: val,
+                      context: undefined,
+                    });
+                  }}
+                  onValueFilter={onAddToQuery}
+                  rowPrefixRender={rowPrefixRender}
+                  filterFields={filterFields}
+                  organizeFields={organizeFields}
+                  fieldConfig={props.fieldConfig}
+                  timeColumnWidth={timeColumnWidth}
+                  timeFieldColumnFormat={timeFieldColumnFormat}
+                  linesColumnFormat={linesColumnFormat}
+                  logViewerExtraRender={logViewerExtraRender}
+                  logViewerFilterFields={logViewerFilterFields}
+                  logViewerRenderCustomTagsArea={logViewerRenderCustomTagsArea}
+                  adjustFieldValue={adjustFieldValue}
+                  showExistsAction={showExistsAction}
+                  customLogFieldRender={customLogFieldRender}
+                  hideTypeIcon={hideTypeIcon}
+                />
+              )}
+              {logMode === 'table' && (
+                <Table
+                  id_key={id_key}
+                  raw_key={raw_key}
+                  indexData={props.indexData}
+                  timeField={timeField}
+                  data={logs}
+                  highlights={highlights}
+                  logsHash={logsHash}
+                  options={viewerOptions}
+                  onReverseChange={(val) => {
+                    onLogRequestParamsChange?.({
+                      reverse: val,
+                      context: undefined,
+                    });
+                  }}
+                  onValueFilter={onAddToQuery}
+                  filterFields={filterFields}
+                  organizeFields={organizeFields}
+                  fieldConfig={props.fieldConfig}
+                  colWidths={colWidths}
+                  tableColumnsWidthCacheKey={tableColumnsWidthCacheKey}
+                  onOpenOrganizeFieldsModal={() => {
+                    originSettingsRef.current?.setOrganizeFieldsModalVisible(true);
+                  }}
+                  timeColumnWidth={timeColumnWidth}
+                  timeFieldColumnFormat={timeFieldColumnFormat}
+                  linesColumnFormat={linesColumnFormat}
+                  logViewerExtraRender={logViewerExtraRender}
+                  logViewerFilterFields={logViewerFilterFields}
+                  logViewerRenderCustomTagsArea={logViewerRenderCustomTagsArea}
+                  adjustFieldValue={adjustFieldValue}
+                  showExistsAction={showExistsAction}
+                  customLogFieldRender={customLogFieldRender}
+                  hideTypeIcon={hideTypeIcon}
+                />
+              )}
+              {logMode === 'clustering' && isClusteringEnabled && logClusting && (
+                <ClusteringTable
+                  logClusting={logClusting}
+                  onValueFilter={onAddToQuery || (() => {})}
+                  clusteringExtraEleRef={clusteringExtraEleRef}
+                  clusteringOptionsEleRef={clusteringOptionsEleRef}
+                  logs={logs}
+                  logsHash={logsHash}
+                  setPatternHistogramState={setPatternHistogramState}
+                  options={viewerOptions}
+                  indexData={props.indexData || []}
+                />
+              )}
+            </div>
+          </div>
+        </FullscreenButton.Provider>
+        {isPlus && (
+          <DrilldownBtn
+            type='none'
+            dataSourceId={drilldownInitialValues?.datasource_id}
+            visible={drilldownDrawerVisible}
+            onVisibleChange={handleDrilldownVisibleChange}
+            initialMode='add'
+            initialValues={drilldownInitialValues}
+          />
+        )}
+      </>
+    </LogsViewerStateContext.Provider>
+  );
+}

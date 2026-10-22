@@ -1,0 +1,124 @@
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import _ from 'lodash';
+import { useTranslation } from 'react-i18next';
+import { Space } from 'antd';
+import { LinkOutlined } from '@ant-design/icons';
+
+import useOnClickOutside from '@/components/useOnClickOutside';
+import replaceTemplateVariables from '@/pages/dashboard/Variables/utils/replaceTemplateVariables';
+
+import { IOptions, ScopedVariables } from '../../../types';
+
+type RowValue = string | number | null;
+type RowData = Record<string, RowValue>;
+
+export interface LinksHandle {
+  show: (item: RowData, position: { left: number; top: number }) => void;
+}
+
+interface Props {
+  links: IOptions['links'];
+}
+
+export function cellClickCallback(
+  cellEvent: { data?: Record<string, { value?: RowValue }>; event?: Event | null },
+  {
+    links,
+    linksRef,
+  }: {
+    links: IOptions['links'];
+    linksRef: React.RefObject<LinksHandle>;
+  },
+) {
+  if (_.isEmpty(links)) return;
+
+  const data: RowData = {};
+  _.forEach(cellEvent.data, (valueState, key) => {
+    data[`__row.${key}`] = valueState.value as RowValue;
+  });
+
+  if (links?.length === 1) {
+    const link = links[0];
+    const interpolatedUrl = replaceTemplateVariables(link.url, {
+      // 运行时 scopedVars 为扁平字符串映射（非 { value } 结构），仅做类型收窄
+      scopedVars: data as unknown as ScopedVariables,
+    });
+    window.open(interpolatedUrl, link.targetBlank ? '_blank' : '_self');
+  } else {
+    const event = cellEvent.event;
+    const { x: left, y: top } = (event as { x?: number; y?: number } | null) || {};
+    if (left !== undefined && top !== undefined) {
+      linksRef.current?.show(data, { left, top });
+    }
+  }
+}
+
+function Links(props: Props, ref: React.ForwardedRef<LinksHandle>) {
+  const { t } = useTranslation('dashboard');
+  const { links } = props;
+  const [visible, setVisible] = useState(false);
+  const [rowDataItem, setRowDataItem] = useState<RowData>({});
+  const linksPopverRef = React.useRef<HTMLDivElement>(null);
+
+  useImperativeHandle(
+    ref,
+    () => {
+      return {
+        show: (item: RowData, { left, top }: { left: number; top: number }) => {
+          setRowDataItem(item);
+          setVisible(true);
+          const placement = (
+            window as Window & {
+              placement?: (target: HTMLElement | null, position: { left: number; top: number }, side: string, align: string, options: { bound: HTMLElement }) => void;
+            }
+          ).placement;
+          placement?.(
+            linksPopverRef.current,
+            {
+              left,
+              top,
+            },
+            'right',
+            'start',
+            { bound: document.body },
+          );
+        },
+      };
+    },
+    [],
+  );
+
+  useOnClickOutside(linksPopverRef, () => {
+    setVisible(false);
+  });
+
+  return (
+    <div
+      className='n9e-dashboard-panel-table-ng-links-popover bg-fc-200 pb-2 min-w-[120px] max-w-[400px] rounded n9e-base-shadow'
+      ref={linksPopverRef}
+      style={{ display: visible ? 'block' : 'none' }}
+    >
+      <div className='p-2'>{t('panel.options.links.label')}</div>
+      <div>
+        {_.map(links, (link, index) => {
+          const interpolatedUrl = replaceTemplateVariables(link.url, {
+            // 运行时 scopedVars 为扁平字符串映射（非 { value } 结构），仅做类型收窄
+            scopedVars: rowDataItem as unknown as ScopedVariables,
+          });
+          return (
+            <div key={index} className='py-1.5 px-2 n9e-dashboard-panel-table-ng-links-item'>
+              <a href={interpolatedUrl} target={link.targetBlank ? '_blank' : '_self'} rel='noopener noreferrer'>
+                <Space>
+                  <LinkOutlined />
+                  {link.title}
+                </Space>
+              </a>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default forwardRef<LinksHandle, Props>(Links);

@@ -1,0 +1,8 @@
+const ja_JP = {
+  type: 'データソースタイプ',
+  id: 'データソースID',
+  allCates: 'すべてのタイプ',
+  deleted: '削除済み',
+  default: 'デフォルト',
+};
+export default ja_JP;

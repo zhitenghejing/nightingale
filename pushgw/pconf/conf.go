@@ -11,6 +11,7 @@ import (
 	"github.com/ccfos/nightingale/v6/pkg/tlsx"
 
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/prometheus/model/labels"
 )
 
 type Pushgw struct {
@@ -117,11 +118,13 @@ type RelabelConfig struct {
 	Regex         string           `json:"regex"`
 	RegexCompiled *regexp.Regexp
 	If            string `json:"if"`
-	IfRegex       *regexp.Regexp
-	Modulus       uint64 `json:"modulus"`
-	TargetLabel   string `json:"target_label"`
-	Replacement   string `json:"replacement"`
-	Action        string `json:"action"`
+	// IfRegex is retained for source compatibility; If uses label selector syntax.
+	IfRegex     *regexp.Regexp
+	ifMatchers  []*labels.Matcher
+	Modulus     uint64 `json:"modulus"`
+	TargetLabel string `json:"target_label"`
+	Replacement string `json:"replacement"`
+	Action      string `json:"action"`
 }
 
 func (p *Pushgw) PreCheck() {
@@ -207,6 +210,13 @@ func (p *Pushgw) PreCheck() {
 		p.ProxyMaxBodyBytes = 32 * 1024 * 1024
 	}
 
+	for _, writer := range p.KafkaWriters {
+		for _, relabel := range writer.WriteRelabels {
+			if err := relabel.CompileIf(); err != nil {
+				log.Fatalln("invalid Kafka relabel if condition:", err)
+			}
+		}
+	}
 	for index := range p.Writers {
 		// 超时不能为 0：0 会被透传成 transport 的"无超时"，端点 hang 死时
 		// 写出 goroutine 永久卡住，非关键 backend 的并发配额也永不释放。
@@ -224,6 +234,9 @@ func (p *Pushgw) PreCheck() {
 		}
 
 		for _, relabel := range p.Writers[index].WriteRelabels {
+			if err := relabel.CompileIf(); err != nil {
+				log.Fatalln("invalid relabel if condition:", err)
+			}
 			if relabel.Regex == "" {
 				relabel.Regex = "(.*)"
 			}

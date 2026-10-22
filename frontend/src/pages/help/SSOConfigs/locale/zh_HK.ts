@@ -1,0 +1,42 @@
+const zh_HK = {
+  title: '單點登入管理',
+  LDAP: 'LDAP',
+  CAS: 'CAS',
+  OIDC: 'OIDC',
+  OAuth2: 'OAuth2',
+  dingtalk: '釘釘',
+  feishu: '飛書',
+  callback_url: '回調地址',
+  feishu_setting: {
+    app_id_tip: '飛書開放平台應用唯一識別碼, 在創建應用時，由系統自動生成，用戶不能自行修改。可以在<1>開發者後台</1>的憑證與基本信息頁面查看app_id',
+    app_secret_tip: '應用密碼。在創建應用時，由系統自動生成',
+    cover_attributes_tip: '每次登入後，如果用戶信息有變化，會使用飛書中用戶的信息覆蓋夜鶯中用戶的信息(手機號、郵箱)',
+  },
+  dingtalk_setting: {
+    enable: '啟用',
+    display_name: '顯示名稱',
+    corpId: '所屬組織 ID',
+    corpId_tip: '所屬組織 ID，CorpId 需要在釘釘開放平台首頁可以看到',
+    client_id: 'Client ID',
+    client_secret: 'Client secret',
+    cover_attributes: '更新用戶信息',
+    cover_attributes_tip: '每次登入後，如果用戶信息有變化，會使用釘釘中用戶的信息覆蓋夜鶯中用戶的信息(手機號、郵箱)',
+    username_field: '用戶名字段',
+    default_team: '默認團隊',
+    username_field_map: {
+      phone: '手機號',
+      name: '名稱',
+      email: '郵箱',
+      userid: '用户ID',
+    },
+    default_roles: '默認角色',
+    auth_url: '登入認證地址',
+    proxy: '代理地址',
+    use_member_info: '用戶詳情',
+    use_member_info_tip: '當需要取得通訊錄中的員工信箱、手機號碼時需要開啟；開啟此功能需要開通「通訊錄使用者詳情」相關權限，請在釘釘開放平台新增對應權限',
+    dingtalk_api: '釘釘 API',
+    dingtalk_api_tip: '設置通訊錄員工信息查詢 API 接口',
+  },
+};
+
+export default zh_HK;

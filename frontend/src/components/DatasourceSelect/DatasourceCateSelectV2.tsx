@@ -1,0 +1,45 @@
+import React, { useContext } from 'react';
+import { useTranslation } from 'react-i18next';
+import _ from 'lodash';
+import classNames from 'classnames';
+import { Cate } from '@/components/AdvancedWrap';
+import { getCateDisplayLabel } from '@/components/AdvancedWrap/utils';
+import { CommonStateContext } from '@/App';
+import './style.less';
+
+interface IProps {
+  value?: string;
+  onChange?: (value: string, record: Cate) => void;
+  filterCates?: (cates: Cate[]) => Cate[];
+  disabled?: boolean;
+}
+
+export default function DatasourceCateSelectV2(props: IProps) {
+  const { value, onChange, filterCates, disabled } = props;
+  const { i18n } = useTranslation();
+  const { datasourceCateOptions } = useContext(CommonStateContext);
+  const cates = filterCates ? filterCates(datasourceCateOptions) : datasourceCateOptions;
+
+  return (
+    <div className='n9e-db-cate-grid'>
+      {_.map(cates, (item) => {
+        return (
+          <div
+            key={item.value}
+            className={classNames('n9e-db-cate-grid-item', {
+              'n9e-db-cate-grid-item-selected': value === item.value,
+            })}
+            onClick={() => {
+              if (item.value !== value) {
+                onChange && onChange(item.value, item);
+              }
+            }}
+          >
+            <img src={item.logo} style={{ height: 42 }} />
+            <div>{getCateDisplayLabel(item, i18n.language)}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

@@ -1,0 +1,201 @@
+/**
+ * 这是开源版的菜单配置，专业版和企业版的配置在其他对应的仓库文件里
+ */
+import React from 'react';
+import { RobotOutlined } from '@ant-design/icons';
+import { Sparkles } from 'lucide-react';
+
+import IconFont from '@/components/IconFont';
+
+import { MenuItem } from './types';
+import './locale';
+
+export const getMenuList = (embeddedProductMenu: MenuItem[] = [], hideDeprecatedMenus: boolean = false) => {
+  const menu: MenuItem[] = [
+    {
+      key: '/nightingale-ai',
+      label: 'menu.nightingale_ai',
+      icon: <Sparkles className='-ml-0.5 h-4 w-4' strokeWidth={1.8} />,
+      children: [],
+    },
+    {
+      key: 'explorer',
+      label: 'menu.explorer',
+      icon: <IconFont type='icon-nav_metrics_light' />,
+      children: [
+        {
+          key: 'metrics',
+          label: 'menu.metrics',
+          type: 'tabs',
+          children: [
+            { key: '/metric/explorer', label: 'menu.metric_explorer' },
+            { key: '/metrics-built-in', label: 'menu.metrics_built_in' },
+            { key: '/object/explorer', label: 'menu.object_explorer' },
+            { key: '/recording-rules', label: 'menu.recording_rules' },
+          ],
+        },
+        {
+          key: '/log/explorer',
+          label: 'menu.logs_explorer',
+        },
+        {
+          key: 'dashboards',
+          label: 'menu.dashboards',
+          type: 'tabs',
+          children: [{ key: '/dashboards', label: 'menu.dashboards' }],
+        },
+      ],
+    },
+    {
+      key: 'alerts_notifications',
+      label: 'menu.alerts_notifications',
+      icon: <IconFont type='icon-nav_alerts_light' />,
+      children: [
+        {
+          key: 'rules',
+          label: 'menu.rules',
+          type: 'tabs',
+          children: [
+            { key: '/alert-rules', label: 'menu.alert_rules' },
+            { key: '/alert-mutes', label: 'menu.alert_mutes' },
+            { key: '/alert-subscribes', label: 'menu.alert_subscribes' },
+          ],
+        },
+        {
+          key: 'job',
+          label: 'menu.job',
+          type: 'tabs',
+          children: [
+            { key: '/job-tpls', label: 'menu.job_tpls' },
+            { key: '/job-tasks', label: 'menu.job_tasks' },
+          ],
+        },
+        {
+          key: 'events',
+          label: 'menu.events',
+          type: 'tabs',
+          children: [
+            { key: '/alert-cur-events', label: 'menu.cur_events' },
+            { key: '/alert-his-events', role: ['Admin'], label: 'menu.his_events' },
+          ],
+        },
+        {
+          key: '/notification-rules',
+          label: 'menu.notification_rules',
+        },
+        {
+          key: '/notification-channels',
+          label: 'menu.notification_channels',
+        },
+        {
+          key: '/notification-templates',
+          label: 'menu.notification_templates',
+        },
+        {
+          key: 'event-pipelines',
+          label: 'menu.event_pipeline',
+          type: 'tabs',
+          children: [
+            { key: '/event-pipelines', label: 'menu.event_pipeline' },
+            { key: '/event-pipelines-executions', label: 'menu.event_pipeline_executions' },
+          ],
+        },
+        ...(hideDeprecatedMenus
+          ? []
+          : [
+              {
+                key: '/help/notification-settings',
+                label: 'menu.notification_settings',
+                deprecated: true,
+              },
+              {
+                key: '/help/notification-tpls',
+                label: 'menu.notification_tpls',
+                deprecated: true,
+              },
+            ]),
+      ],
+    },
+    {
+      key: 'infrastructure',
+      label: 'menu.infrastructure',
+      icon: <IconFont type='icon-nav_devicelist_light' />,
+      children: [
+        {
+          key: 'devices',
+          label: 'menu.devices',
+          type: 'tabs',
+          children: [{ key: '/targets', label: 'menu.targets' }],
+        },
+      ],
+    },
+    {
+      key: 'integrations',
+      label: 'menu.integrations',
+      icon: <IconFont type='icon-nav_infrastructure_light' />,
+      children: [
+        {
+          key: '/datasources',
+          label: 'menu.data_source',
+        },
+        {
+          key: '/components',
+          label: 'menu.built_in_components',
+        },
+        {
+          key: '/embedded-products',
+          label: 'menu.embedded_products',
+        },
+        ...embeddedProductMenu,
+      ],
+    },
+    {
+      key: 'organization',
+      label: 'menu.organization',
+      icon: <IconFont type='icon-nav_organization_light' />,
+      children: [
+        {
+          key: '/users',
+          label: 'menu.users',
+        },
+        {
+          key: '/user-groups',
+          label: 'menu.teams',
+        },
+        {
+          key: '/roles',
+          label: 'menu.roles',
+        },
+      ],
+    },
+    {
+      key: 'setting',
+      label: 'menu.setting',
+      icon: <IconFont type='icon-nav_system_light' />,
+      children: [
+        {
+          key: '/system/site-settings',
+          label: 'menu.site_setting',
+        },
+        {
+          key: '/system/variable-settings',
+          label: 'menu.variable_configs',
+        },
+        {
+          key: '/system/sso-settings',
+          label: 'menu.sso',
+        },
+        {
+          key: '/system/alerting-engines',
+          label: 'menu.alert_servers',
+        },
+        {
+          key: '/system/version',
+          label: 'menu.about',
+        },
+      ],
+    },
+  ];
+
+  return menu;
+};

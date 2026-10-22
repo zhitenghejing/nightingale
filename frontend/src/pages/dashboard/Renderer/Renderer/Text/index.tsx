@@ -1,0 +1,37 @@
+import React from 'react';
+
+import replaceTemplateVariables from '@/pages/dashboard/Variables/utils/replaceTemplateVariables';
+
+import { IPanel, ITextStyles } from '../../../types';
+import Markdown from '../../../Editor/Components/Markdown';
+import type { CalculatedSeries } from '../../utils/getCalculatedValuesBySeries';
+
+interface IProps {
+  values: IPanel;
+  series: CalculatedSeries[];
+  themeMode?: 'dark';
+}
+
+export default function index(props: IProps) {
+  const { values, themeMode } = props;
+  const { custom } = values;
+  const { textColor, textDarkColor, bgColor, textSize, justifyContent, alignItems } = custom as unknown as ITextStyles;
+  const content = replaceTemplateVariables(custom.content as string);
+
+  return (
+    <Markdown
+      content={content}
+      style={{
+        height: '100%',
+        overflow: 'auto',
+        padding: 10,
+        fontSize: textSize,
+        color: themeMode === 'dark' ? textDarkColor : textColor,
+        backgroundColor: bgColor,
+        display: justifyContent !== 'unset' && alignItems !== 'unset' ? 'flex' : 'block',
+        justifyContent,
+        alignItems,
+      }}
+    />
+  );
+}

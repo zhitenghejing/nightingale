@@ -103,6 +103,9 @@ func (l *LabelBuilder) labels() []prompb.Label {
 }
 
 func relabel(lset []prompb.Label, cfg *pconf.RelabelConfig) []prompb.Label {
+	if !cfg.IfMatches(lset) {
+		return lset
+	}
 	values := make([]string, 0, len(cfg.SourceLabels))
 	for _, ln := range cfg.SourceLabels {
 		values = append(values, getValue(lset, ln))

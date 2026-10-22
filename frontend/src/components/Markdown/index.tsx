@@ -1,0 +1,129 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import React, { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import gfm from 'remark-gfm';
+import rehypeRaw from 'rehype-raw';
+import classNames from 'classnames';
+import { Button, Tooltip } from 'antd';
+import { CopyOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { dark } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+import { copy2ClipBoard } from '@/utils';
+
+import './index.less';
+import './typora-theme-lark.less';
+
+interface IMarkDownPros {
+  content: string;
+  style?: any;
+  inTooltip?: boolean;
+  showCodeCopy?: boolean;
+}
+
+dark['pre[class*="language-"]'] = {
+  ...dark['pre[class*="language-"]'],
+  background: '#161b22',
+  border: '0 none',
+  'box-shadow': 'none',
+};
+
+// https://github.com/vitejs/vite/issues/3592 bug solve 记录
+const Markdown: React.FC<IMarkDownPros> = ({ content, style = {}, inTooltip, showCodeCopy = false }) => {
+  const { t } = useTranslation('common');
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(typeof document !== 'undefined' ? document.body.classList.contains('theme-dark') : false);
+
+  useEffect(() => {
+    const update = () => {
+      setIsDarkMode(document.body.classList.contains('theme-dark'));
+    };
+    window.addEventListener('n9e-dark-mode-update', update);
+    return () => {
+      window.removeEventListener('n9e-dark-mode-update', update);
+    };
+  }, []);
+
+  const renderCodeBlock = (code: string, children: React.ReactNode) => {
+    if (!showCodeCopy) return <>{children}</>;
+
+    return (
+      <div className='markdown-code-block'>
+        <Tooltip title={t('btn.copy2')}>
+          <Button
+            className='markdown-code-copy-btn'
+            size='small'
+            type='text'
+            icon={<CopyOutlined />}
+            onClick={() => {
+              copy2ClipBoard(code);
+            }}
+          />
+        </Tooltip>
+        {children}
+      </div>
+    );
+  };
+
+  return (
+    <div className={inTooltip ? 'theme-dark bg-transparent' : ''}>
+      <div className='typora-theme-lark' style={style}>
+        <ReactMarkdown
+          remarkPlugins={[gfm]}
+          children={content}
+          rehypePlugins={[rehypeRaw]}
+          components={{
+            code({ node, inline, className, children, ...props }) {
+              const match = /language-(\w+)/.exec(className || '');
+              if (inline) {
+                return (
+                  <div
+                    className={classNames({
+                      [className || '']: !!className,
+                      'base-code': true,
+                      'base-code-inline': true,
+                    })}
+                  >
+                    <code {...props}>{children}</code>
+                  </div>
+                );
+              }
+
+              const code = String(children).replace(/\n$/, '');
+              return match
+                ? renderCodeBlock(code, <SyntaxHighlighter {...props} children={code} language={match[1]} PreTag='div' style={inTooltip || isDarkMode ? dark : undefined} />)
+                : renderCodeBlock(
+                    code,
+                    <div
+                      className={classNames({
+                        [className || '']: !!className,
+                        'base-code': true,
+                      })}
+                    >
+                      <code {...props}>{children}</code>
+                    </div>,
+                  );
+            },
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
+export default Markdown;

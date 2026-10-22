@@ -1,0 +1,209 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import React, { useEffect, useMemo } from 'react';
+import _ from 'lodash';
+import { useTranslation } from 'react-i18next';
+
+import G2PieChart from '@/components/G2PieChart';
+import replaceTemplateVariables from '@/pages/dashboard/Variables/utils/replaceTemplateVariables';
+
+import { IPanel, ScopedVariables } from '../../../types';
+import getCalculatedValuesBySeries from '../../utils/getCalculatedValuesBySeries';
+import type { CalculatedSeries } from '../../utils/getCalculatedValuesBySeries';
+import valueFormatter from '../../utils/valueFormatter';
+import { useGlobalState } from '../../../globalState';
+import useStableValue from '../../../hooks/useStableValue';
+import './style.less';
+
+interface IProps {
+  values: IPanel;
+  series: CalculatedSeries[];
+  themeMode?: 'dark';
+  isPreview?: boolean;
+  dataRevision?: number;
+}
+
+type PieMetric = Record<string, string | number | undefined>;
+
+interface PieDatum {
+  name: string;
+  value: number;
+  metric: PieMetric;
+}
+
+const getColumnsKeys = (data: Array<{ metric: PieMetric }>) => {
+  const keys = _.reduce(
+    data,
+    (result, item) => {
+      return _.union(result, _.keys(item.metric));
+    },
+    [],
+  );
+  return _.uniq(keys);
+};
+
+export default function Pie(props: IProps) {
+  const { t } = useTranslation('dashboard');
+  const [, setStatFields] = useGlobalState('statFields');
+  const { values, series, themeMode, isPreview } = props;
+  const dataDependency = props.dataRevision ?? series;
+  const { custom, options } = values;
+  const stableCustom = useStableValue(custom);
+  const stableOptions = useStableValue(options);
+  // custom 为 JsonObject（宽类型），按 pie 面板实际使用的结构收窄
+  const {
+    calc,
+    legengPosition,
+    max,
+    labelWithName,
+    labelWithValue,
+    detailUrl,
+    detailName,
+    donut = false,
+    valueField = 'Value',
+    countOfValueField = true,
+  } = custom as {
+    calc?: string;
+    legengPosition?: 'right' | 'top' | 'left' | 'bottom' | 'hidden';
+    max?: number;
+    labelWithName?: boolean;
+    labelWithValue?: boolean;
+    detailUrl?: string;
+    detailName?: string;
+    donut?: boolean;
+    valueField?: string;
+    countOfValueField?: boolean;
+  };
+  const dataFormatter = (text: number) => {
+    const resFormatter = valueFormatter(
+      {
+        unit: options?.standardOptions?.unit,
+        decimals: options?.standardOptions?.decimals,
+        dateFormat: options?.standardOptions?.dateFormat,
+      },
+      text,
+    );
+    return `${resFormatter.value}${resFormatter.unit}`;
+  };
+
+  const detailFormatter = (data: PieDatum) => {
+    const scopedVars = {
+      '__field.name': data.name,
+      '__field.value': data.value,
+    };
+    _.forEach(data.metric, (value, key) => {
+      scopedVars[`__field.labels.${key}`] = value;
+    });
+    return replaceTemplateVariables(detailUrl as string, {
+      // 运行时 scopedVars 为扁平字符串映射（非 { value } 结构），仅做类型收窄
+      scopedVars: scopedVars as unknown as ScopedVariables,
+    });
+  };
+
+  const calculatedValues = useMemo(
+    () =>
+      getCalculatedValuesBySeries(
+        series,
+        calc as string,
+        {
+          unit: options?.standardOptions?.unit,
+          decimals: options?.standardOptions?.decimals,
+          dateFormat: options?.standardOptions?.dateFormat,
+        },
+        options?.valueMappings,
+      ),
+    [dataDependency, stableCustom, stableOptions],
+  );
+
+  let data: PieDatum[] = [];
+  if (valueField !== 'Value') {
+    if (countOfValueField === true) {
+      data = _.map(
+        _.groupBy(
+          _.map(calculatedValues, (item) => {
+            return {
+              name: valueField,
+              value: _.toNumber(_.get(item, ['metric', valueField as string])),
+            };
+          }),
+          'value',
+        ),
+        (vals, name) => {
+          return {
+            name,
+            value: _.size(vals),
+            metric: {
+              [valueField]: name,
+            },
+          };
+        },
+      );
+    } else {
+      data = _.map(calculatedValues, (item) => {
+        return {
+          name: item.name ?? '',
+          value: _.toNumber(_.get(item, ['metric', valueField as string])),
+          metric: item.metric,
+        };
+      });
+    }
+    data =
+      max && data.length > max
+        ? data.slice(0, max).concat({ name: 'Other', value: data.slice(max).reduce((previousValue: number, currentValue) => currentValue.value + previousValue, 0), metric: {} })
+        : data;
+  } else {
+    const sortedValues = calculatedValues.sort((a, b) => (b.stat as number) - (a.stat as number));
+    data =
+      max && sortedValues.length > max
+        ? sortedValues
+            .slice(0, max)
+            .map((i) => ({ name: i.name ?? '', value: i.stat as number, metric: i.metric }))
+            .concat({
+              name: 'Other',
+              value: sortedValues.slice(max).reduce((previousValue: number, currentValue: (typeof sortedValues)[number]) => (currentValue.stat as number) + previousValue, 0),
+              metric: {},
+            })
+        : sortedValues.map((i) => ({ name: i.name ?? '', value: i.stat as number, metric: i.metric }));
+  }
+
+  // 只有单个序列值且是背景色模式，则填充整个卡片的背景色
+  useEffect(() => {
+    // 当编辑状态是设置 statFields，同时关闭编辑后需要清空 statFields
+    if (isPreview) {
+      setStatFields(getColumnsKeys(calculatedValues));
+    }
+  }, [isPreview, dataDependency, stableCustom, stableOptions]);
+
+  return (
+    <div className='renderer-pie-container'>
+      <G2PieChart
+        themeMode={themeMode}
+        data={data}
+        positon={legengPosition !== 'hidden' ? (legengPosition as 'right' | 'top' | 'left' | 'bottom') : undefined}
+        hidden={legengPosition === 'hidden'}
+        labelWithName={labelWithName ?? false}
+        labelWithValue={labelWithValue ?? false}
+        dataFormatter={dataFormatter}
+        detailFormatter={detailFormatter}
+        detailName={detailName || t('common:btn.detail')}
+        detailUrl={detailUrl}
+        donut={donut}
+        decimals={options?.standardOptions?.decimals}
+      />
+    </div>
+  );
+}

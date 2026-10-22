@@ -2,7 +2,8 @@ before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
-    - go install github.com/rakyll/statik
+    # Compile and embed this checkout's frontend once, before either architecture.
+    - sh ./fe.sh
     # Sandbox assets are pre-built by the `sandbox-assets` CI job (native per-arch
     # runners) and staged into pkg/sandbox/embedassets/ before this runs. Fail
     # fast with a clear message if they're missing, instead of a cryptic go:embed
@@ -29,10 +30,6 @@ changelog:
 
 builds:
   - id: build
-    hooks:
-      pre:
-      - cmd: sh -x ./fe.sh
-        output: true
     main: ./cmd/center/
     binary: n9e
     env:
@@ -98,6 +95,7 @@ archives:
       - cli/*
       - agents/categraf/*
       - n9e.sql
+      - frontend/.build-manifest.json
 
 release:
   github:
@@ -117,6 +115,7 @@ dockers:
       - etc
       - integrations
       - agents
+      - frontend/.build-manifest.json
     use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
@@ -131,6 +130,7 @@ dockers:
       - etc
       - integrations
       - agents
+      - frontend/.build-manifest.json
     use: buildx
     build_flag_templates:
       - "--platform=linux/arm64/v8"

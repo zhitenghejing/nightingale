@@ -1,0 +1,428 @@
+import React, { useContext, useEffect, useState } from 'react';
+import { useHistory } from 'react-router';
+import moment from 'moment';
+import _ from 'lodash';
+import { Button, message, Space, Spin, Tag, Typography } from 'antd';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { CommonStateContext, basePrefix } from '@/App';
+import { getESIndexPatternsWithParmas } from '@/pages/log/IndexPatterns/services';
+import { DatasourceCateEnum, IS_ENT } from '@/utils/constant';
+import { AiButton } from '@/components/AiChatNG/FlashAiButton';
+import { getAlertEventDetailPrompts } from '@/components/AiChatNG/recommend';
+import { getAlertSeverityName } from '@/utils/alertSeverity';
+
+import EventNotifyRecords from '../EventNotifyRecords';
+import TaskTpls from '../TaskTpls';
+import eventDetailByCate from './eventDetailByCate';
+
+// @ts-ignore
+import plusEventDetail from 'plus:/parcels/Event/eventDetail';
+// @ts-ignore
+import PlusPreview from 'plus:/parcels/Event/Preview';
+// @ts-ignore
+import PlusLogsDetail from 'plus:/parcels/Event/LogsDetail';
+
+import '../detail.less';
+
+const { Paragraph } = Typography;
+
+interface Props {
+  data: any;
+  showGraph?: boolean;
+  token?: string;
+}
+
+export default function DetailNG(props: Props) {
+  const { t, i18n } = useTranslation('AlertCurEvents');
+  const commonState = useContext(CommonStateContext);
+  const { busiGroups, datasourceList } = commonState;
+  const { data: eventDetail, showGraph, token } = props;
+
+  const history = useHistory();
+
+  if (eventDetail) eventDetail.cate = eventDetail.cate || 'prometheus'; // TODO: 兼容历史的告警事件
+
+  const [indexPatterns, setIndexPatterns] = useState<{ id: number; name: string }[]>([]);
+
+  useEffect(() => {
+    if (eventDetail?.cate === DatasourceCateEnum.elasticsearch) {
+      const params = token
+        ? {
+            __token: token,
+            source_type: 'event',
+            eid: eventDetail?.id,
+          }
+        : undefined;
+      getESIndexPatternsWithParmas(params).then((res) => {
+        setIndexPatterns(res);
+      });
+    }
+  }, [eventDetail?.cate]);
+
+  const descriptionInfo = [
+    {
+      label: t('detail.rule_name'),
+      key: 'rule_name',
+      render(content, { rule_id }) {
+        // 从 tags 中解析出 spaceId、businessId 和 alertRuleId
+        const parseIdsFromTags = (tags: string[]) => {
+          const result: { spaceId?: string; businessId?: string; alertRuleId?: string } = {};
+          tags.forEach((tag) => {
+            const [key, value] = tag.split('=');
+            if (key === 'workspace_id') {
+              result.spaceId = value;
+            } else if (key === 'business_id') {
+              result.businessId = value;
+            } else if (key === 'rule_id') {
+              result.alertRuleId = value;
+            }
+          });
+          return result;
+        };
+
+        const { spaceId, businessId, alertRuleId } = parseIdsFromTags(eventDetail.tags || []);
+
+        if (eventDetail?.rule_prod === 'firemap') {
+          return (
+            <Link to={`/firemap?spaceId=${spaceId}&alertRuleId=${alertRuleId}`} target='_blank'>
+              {content}
+            </Link>
+          );
+        } else if (eventDetail?.rule_prod === 'northstar') {
+          return (
+            <Link to={`/polaris/${businessId}?spaceId=${spaceId}&alertRuleId=${alertRuleId}`} target='_blank'>
+              {content}
+            </Link>
+          );
+        } else {
+          return (
+            <Space>
+              <Link
+                to={{
+                  pathname: `/alert-rules/edit/${rule_id}`,
+                }}
+                target='_blank'
+              >
+                {content}
+              </Link>
+              <AiButton
+                size='small'
+                queryAction={{
+                  content: IS_ENT
+                    ? t('detail.ai_analysis_content_ent', {
+                        id: eventDetail.id,
+                      })
+                    : t('detail.ai_analysis_content'),
+                  prefillOnly: false,
+                  key: 'troubleshooting',
+                  param: {
+                    event_id: eventDetail.id,
+                  },
+                }}
+                promptList={getAlertEventDetailPrompts(i18n.language)}
+                initialMessage={getAlertEventDetailPrompts(i18n.language)[0]}
+              >
+                {t('detail.ai_analysis')}
+              </AiButton>
+            </Space>
+          );
+        }
+      },
+    },
+    {
+      label: t('detail.hash'),
+      key: 'hash',
+      render(content) {
+        return (
+          <Paragraph copyable style={{ margin: 0, display: 'inline' }}>
+            {content}
+          </Paragraph>
+        );
+      },
+    },
+    ...(!_.includes(['firemap', 'northstar'], eventDetail?.rule_prod)
+      ? [
+          {
+            label: t('detail.group_name'),
+            key: 'group_name',
+            render(content, { group_id }) {
+              return (
+                <Button
+                  size='small'
+                  type='link'
+                  className='rule-link-btn'
+                  onClick={() => {
+                    if (busiGroups.find((item) => item.id === group_id)) {
+                      window.open(`${basePrefix}/alert-rules?ids=${group_id}&isLeaf=true`);
+                    } else {
+                      message.error(t('detail.buisness_not_exist'));
+                    }
+                  }}
+                >
+                  {content}
+                </Button>
+              );
+            },
+          },
+        ]
+      : [
+          {
+            label: t('detail.detail_url'),
+            key: 'rule_config',
+            render(val) {
+              const detail_url = _.get(val, 'detail_url');
+              return (
+                <a href={detail_url} target='_blank'>
+                  {detail_url}
+                </a>
+              );
+            },
+          },
+        ]),
+    { label: t('detail.rule_note'), key: 'rule_note' },
+    ...(!_.includes(['firemap', 'northstar'], eventDetail?.rule_prod)
+      ? [
+          {
+            label: t('detail.datasource_id'),
+            key: 'cluster',
+          },
+        ]
+      : [false]),
+    {
+      label: t('detail.severity'),
+      key: 'severity',
+      render: (severity) => {
+        const severityMap = {
+          1: { color: '#cc0204' },
+          2: { color: '#fd6e00' },
+          3: { color: '#f2d204' },
+        };
+        return <Tag color={severityMap[severity].color}>{getAlertSeverityName(severity)}</Tag>;
+      },
+    },
+    {
+      label: t('detail.is_recovered'),
+      key: 'is_recovered',
+      render(isRecovered) {
+        return <Tag color={isRecovered ? 'green' : 'red'}>{isRecovered ? 'Recovered' : 'Triggered'}</Tag>;
+      },
+    },
+    {
+      label: t('detail.tags'),
+      key: 'tags',
+      render(tags) {
+        return (
+          <Space wrap size={[0, 8]}>
+            {_.map(tags, (tag) => {
+              return (
+                <Tag className='n9e-event-detail-tag' key={tag}>
+                  {tag}
+                </Tag>
+              );
+            })}
+          </Space>
+        );
+      },
+    },
+    ...(!_.includes(['firemap', 'northstar'], eventDetail?.rule_prod) ? [{ label: t('detail.target_note'), key: 'target_note' }] : [false]),
+    {
+      label: t('detail.first_trigger_time'),
+      key: 'first_trigger_time',
+      render(time) {
+        return moment(time * 1000).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
+    ...(_.includes(['firemap', 'northstar'], eventDetail?.rule_prod)
+      ? [
+          {
+            label: t('detail.current_anomaly_time'),
+            key: 'trigger_time',
+            render(time) {
+              return moment(time * 1000).format('YYYY-MM-DD HH:mm:ss');
+            },
+          },
+        ]
+      : [false]),
+    {
+      label: t('detail.last_eval_time'),
+      key: 'last_eval_time',
+      render(time) {
+        return moment(time * 1000).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
+    {
+      label:
+        eventDetail?.is_recovered && eventDetail?.cate === 'prometheus' && (eventDetail?.rule_config?.version === 'v1' || eventDetail?.rule_config?.version === undefined)
+          ? t('detail.trigger_value')
+          : t('detail.trigger_value2'),
+      key: 'trigger_value',
+      render(val) {
+        return (
+          <span>
+            {val}
+            <PlusLogsDetail data={eventDetail} />
+          </span>
+        );
+      },
+    },
+    {
+      label: t('detail.recover_time'),
+      key: 'recover_time',
+      render(time) {
+        return moment((time || 0) * 1000).format('YYYY-MM-DD HH:mm:ss');
+      },
+    },
+    {
+      label: t('detail.cate'),
+      key: 'cate',
+    },
+    ...(_.includes(['firemap', 'northstar'], eventDetail?.rule_prod)
+      ? [
+          {
+            label: t(`detail.${eventDetail?.rule_prod}_ql_label`),
+            key: 'prom_ql',
+            render: (val) => {
+              return val;
+            },
+          },
+        ]
+      : [false]),
+    ...(eventDetailByCate({
+      eventDetail,
+      t,
+      history,
+      commonState,
+      indexPatterns,
+    }) || []),
+    ...(plusEventDetail(eventDetail?.cate, t) || []),
+    ...(!_.includes(['firemap', 'northstar'], eventDetail?.rule_prod)
+      ? [
+          {
+            label: t('detail.prom_eval_interval'),
+            key: 'prom_eval_interval',
+            render(content) {
+              return `${content} s`;
+            },
+          },
+          {
+            label: t('detail.prom_for_duration'),
+            key: 'prom_for_duration',
+            render(content) {
+              return `${content} s`;
+            },
+          },
+        ]
+      : [
+          {
+            label: t('detail.trigger_label'),
+            key: 'rule_config.anomaly_params',
+            render(content, record) {
+              return <Tag>{record.rule_config.anomaly_params}</Tag>;
+            },
+          },
+        ]),
+    ...(eventDetail?.notify_version === 0
+      ? [
+          {
+            label: t('detail.notify_channels'),
+            key: 'notify_channels',
+            render(channels) {
+              return _.join(channels, ' ');
+            },
+          },
+          {
+            label: t('detail.notify_groups_obj'),
+            key: 'notify_groups_obj',
+            render(groups) {
+              return groups ? groups.map((group) => <Tag color='purple'>{group.name}</Tag>) : '';
+            },
+          },
+          {
+            label: t('detail.callbacks'),
+            key: 'callbacks',
+            render(callbacks) {
+              return callbacks
+                ? callbacks.map((callback) => (
+                    <Tag>
+                      <Paragraph copyable style={{ margin: 0 }}>
+                        {callback}
+                      </Paragraph>
+                    </Tag>
+                  ))
+                : '';
+            },
+          },
+        ]
+      : []),
+    ...(eventDetail?.notify_version === 1
+      ? [
+          {
+            label: t('detail.notify_rules'),
+            key: 'notify_rules',
+            render(notifyRules) {
+              return (
+                <Space>
+                  {_.map(notifyRules, (item) => {
+                    return (
+                      <Link to={`/notification-rules/edit/${item.id}`} target='_blank' key={item.id}>
+                        {item.name}
+                      </Link>
+                    );
+                  })}
+                </Space>
+              );
+            },
+          },
+        ]
+      : []),
+  ];
+
+  if (eventDetail?.annotations) {
+    _.forEach(eventDetail.annotations, (value, key) => {
+      descriptionInfo.push({
+        label: key,
+        key,
+        render: () => {
+          if (value.indexOf('http') === 0) {
+            return (
+              <a href={value} target='_blank'>
+                {value}
+              </a>
+            );
+          }
+          return <span>{value}</span>;
+        },
+      });
+    });
+  }
+
+  return (
+    <div className='event-detail-container'>
+      <Spin spinning={!eventDetail}>
+        <div className='desc-container min-h-[200px]'>
+          {eventDetail && (
+            <div>
+              {showGraph && <PlusPreview data={eventDetail} token={token} />}
+              {descriptionInfo
+                .filter((item: any) => {
+                  if (!item) return false;
+                  return eventDetail.is_recovered ? true : item.key !== 'recover_time';
+                })
+                .map(({ label, key, render }: any, i) => {
+                  return (
+                    <div className='desc-row' key={key + i}>
+                      <div className='desc-label'>{label}：</div>
+                      <div className='desc-content'>{render ? render(eventDetail[key], eventDetail) : eventDetail[key]}</div>
+                    </div>
+                  );
+                })}
+              <EventNotifyRecords eventId={eventDetail.id} />
+              <TaskTpls eventDetail={eventDetail} />
+            </div>
+          )}
+        </div>
+      </Spin>
+    </div>
+  );
+}

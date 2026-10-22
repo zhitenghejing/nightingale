@@ -29,6 +29,9 @@
 
 [English](./README.md) | [中文](./README_zh.md)
 
+开发者与编程 Agent：[开发工作流](doc/agent-development-workflow.md) ·
+[环境准备](doc/development-environment.md) · [Worktree 预览](doc/worktree-preview.md)
+
 ## 夜莺是什么
 
 夜莺 Nightingale 是一款开源云原生监控告警工具，是中国计算机学会接受捐赠并托管的第一个开源项目，在 GitHub 上有超过 12000 颗星，广受关注和使用。夜莺的统一告警引擎，可以对接 Prometheus、Elasticsearch、ClickHouse、Loki、MySQL 等多种数据源，提供全面的告警判定、丰富的事件处理和灵活的告警分发及通知能力。
@@ -122,7 +125,7 @@
 - 📚 [夜莺介绍PPT](https://mp.weixin.qq.com/s/Mkwx_46xrltSq8NLqAIYow) 对您了解夜莺各项关键特性会有帮助（PPT链接在文末）
 - 👉 [文档中心](https://flashcat.cloud/docs/) 为了更快的访问速度，站点托管在 [FlashcatCloud](https://flashcat.cloud)
 - ❤️ [报告 Bug](https://github.com/ccfos/nightingale/issues/new?assignees=&labels=&projects=&template=question.yml) 写清楚问题描述、复现步骤、截图等信息，更容易得到答案
-- 💡 前后端代码分离，前端代码仓库：[https://github.com/n9e/fe](https://github.com/n9e/fe)
+- 💡 前端源码在 [frontend/](frontend/)，与后端同仓维护；来源和固定版本见 [UPSTREAM.md](frontend/UPSTREAM.md)，开发使用 Node 24 + pnpm。
 - 🎯 关注[这个公众号](https://gitlink.org.cn/UlricQin)了解更多夜莺动态和知识
 - 🌟 加我微信：`picobyte`（我已关闭好友验证）拉入微信群，备注：`夜莺互助群`，如果已经把夜莺上到生产环境，可联系我拉入资深监控用户群
 

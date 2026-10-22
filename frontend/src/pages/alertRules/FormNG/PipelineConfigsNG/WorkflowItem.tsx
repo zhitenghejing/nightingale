@@ -1,0 +1,359 @@
+import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { Space, Spin, Switch, Dropdown, Menu, Button, Form, Row, Col, Tag, Tooltip, Modal, Input, Popover, message, Alert } from 'antd';
+import { PlusOutlined, DeleteOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { FormListFieldData } from 'antd/lib/form/FormList';
+import { useTranslation } from 'react-i18next';
+import _ from 'lodash';
+
+import { SIZE } from '@/utils/constant';
+import { postItem as postWorkflow, putItem as putWorkflow } from '@/pages/eventPipeline/services';
+import { DEFAULT_VALUES, NS as EVENTPIPELINE_NS } from '@/pages/eventPipeline/constants';
+import { hasRunnableProcessors } from '@/pages/eventPipeline/utils/processors';
+import { normalizeProcessorsForForm, normalizeProcessorsForSubmit } from '@/pages/eventPipeline/utils/normalizeValues';
+import TestModal from '@/pages/eventPipeline/pages/Form/TestModal';
+
+import { useFormNGData } from '../context';
+import Processor from './Processor';
+
+export function WorkflowTabTitle(props: { workflowId?: number; fallbackTitle?: string }) {
+  const { workflowId, fallbackTitle } = props;
+  const { workflowMap, workflowItemsLoading, workflowsLoading, permissions } = useFormNGData();
+  const shouldFetchWorkflow = _.isNumber(workflowId);
+  const item = shouldFetchWorkflow ? workflowMap[workflowId as number] : undefined;
+  const loading = permissions.eventPipelines && shouldFetchWorkflow && !item && (workflowItemsLoading || workflowsLoading);
+
+  if (!shouldFetchWorkflow) return <span>{fallbackTitle ?? '--'}</span>;
+  if (loading) return <Spin size='small' />;
+
+  return <span>{item?.name ?? workflowId}</span>;
+}
+
+interface Props {
+  field: FormListFieldData;
+  namePath: (string | number)[];
+  prefixNamePath?: (string | number)[];
+  workflowId?: number;
+  workflowEnabled: boolean;
+  isMultiWorkflow?: boolean;
+  collapsed?: boolean;
+  remove: () => void;
+}
+
+export interface WorkflowItemRef {
+  isUnsaved: () => boolean;
+  focusSaveButtonWithPopover: () => void;
+  closeUnsavedPopover: () => void;
+}
+
+const WorkflowItem = React.forwardRef<WorkflowItemRef, Props>((props, ref) => {
+  const { t } = useTranslation('alertRules');
+  const { field, namePath = [], prefixNamePath = [], workflowId, workflowEnabled, isMultiWorkflow, collapsed = false, remove } = props;
+  const { workflows: workflowList, workflowMap, workflowItemsLoading, workflowsLoading, permissions, refreshWorkflows } = useFormNGData();
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [saveWorkflowName, setSaveWorkflowName] = useState('');
+  const [savingWorkflow, setSavingWorkflow] = useState(false);
+  const [unsavedPopoverVisible, setUnsavedPopoverVisible] = useState(false);
+  const [savedProcessorsSnapshot, setSavedProcessorsSnapshot] = useState<any[]>();
+
+  const resetField = _.omit(field, ['name', 'key']);
+  const saveButtonRef = useRef<HTMLButtonElement>(null);
+
+  const form = Form.useFormInstance();
+  const group_id = Form.useWatch('group_id');
+  const processors = Form.useWatch([...prefixNamePath, ...namePath, 'processors']);
+  const item = workflowId ? workflowMap[workflowId] : undefined;
+  const loading = permissions.eventPipelines && !!workflowId && !item && (workflowItemsLoading || workflowsLoading);
+  const shouldAutoEnable = !workflowEnabled && (!processors || processors.length === 0);
+
+  useEffect(() => {
+    if (workflowId && item?.processors) {
+      // 将 data.processors 设置到 form 中, path 是 [...prefixNamePath, ...namePath, 'processors']
+      // 使用 setFieldsValue 而非 setFields，避免 Form.List 内部 key 未正确初始化导致重复 key
+      // 后端返回的 header / custom_params 是对象，表单 Form.List 需要数组，先转换再回填
+      const currentValues = _.cloneDeep(form.getFieldsValue());
+      _.set(currentValues, [...prefixNamePath, ...namePath, 'processors'], normalizeProcessorsForForm(item.processors));
+      form.setFieldsValue(currentValues);
+    }
+  }, [workflowId, item?.processors]);
+
+  useEffect(() => {
+    if (workflowId !== undefined && item?.processors) {
+      setSavedProcessorsSnapshot(_.cloneDeep(normalizeProcessorsForForm(item.processors)));
+    }
+  }, [workflowId, item?.processors]);
+
+  const processorsChanged = workflowId !== undefined && savedProcessorsSnapshot !== undefined && !_.isEqual(savedProcessorsSnapshot, processors);
+  const canSaveWorkflow = workflowId ? processorsChanged : _.get(processors, 'length', 0) > 0;
+  const saveWorkflowTooltip = workflowId && !processorsChanged ? t('pipeline_configuration_ng.no_changes') : t('pipeline_configuration_ng.save_workflow_tip');
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      isUnsaved: () => canSaveWorkflow,
+      focusSaveButtonWithPopover: () => {
+        setUnsavedPopoverVisible(true);
+        saveButtonRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+        saveButtonRef.current?.focus();
+      },
+      closeUnsavedPopover: () => {
+        setUnsavedPopoverVisible(false);
+      },
+    }),
+    [canSaveWorkflow],
+  );
+
+  useEffect(() => {
+    if (!canSaveWorkflow && unsavedPopoverVisible) {
+      setUnsavedPopoverVisible(false);
+    }
+  }, [canSaveWorkflow, unsavedPopoverVisible]);
+
+  const getDefaultWorkflowName = () => {
+    const processorTypes = _.chain(processors)
+      .map((processor) => processor?.typ ?? processor?.type)
+      .filter((processorType) => _.isString(processorType) && processorType.length > 0)
+      .value();
+    const namePrefix = _.get(processorTypes, 'length', 0) > 0 ? processorTypes.join('_') : 'relabel';
+    return `${namePrefix}_${Date.now()}`;
+  };
+
+  const openSaveWorkflowModal = () => {
+    setUnsavedPopoverVisible(false);
+    if (workflowId && item?.name) {
+      setSaveWorkflowName(item.name);
+    } else {
+      setSaveWorkflowName(getDefaultWorkflowName());
+    }
+    setSaveModalVisible(true);
+  };
+
+  const handleSaveWorkflow = async () => {
+    const name = saveWorkflowName.trim();
+    if (!name) {
+      message.error(t('pipeline_configuration_ng.workflow_name_required'));
+      return;
+    }
+    // 这里不走告警规则表单的 validateFields，typ 的必填校验拦不到，必须自己挡一次：
+    // 类型为空或一个处理器都没有时落库，工作流执行时必然失败
+    if (!hasRunnableProcessors(processors)) {
+      message.error(t(`${EVENTPIPELINE_NS}:processor.typ_required`));
+      return;
+    }
+
+    setSavingWorkflow(true);
+    try {
+      // 表单里的 header 等是数组，后端要对象，保存前必须转换（与事件流页 Add/Edit 同一套逻辑）
+      const submitProcessors = normalizeProcessorsForSubmit(processors);
+      if (workflowId) {
+        await putWorkflow({
+          id: workflowId,
+          group_id,
+          use_case: 'alert_rule',
+          name,
+          processors: submitProcessors,
+        });
+        setSavedProcessorsSnapshot(_.cloneDeep(processors));
+        refreshWorkflows();
+        message.success(t('common:success.edit'));
+      } else {
+        const createdWorkflow = await postWorkflow({
+          group_id,
+          use_case: 'alert_rule',
+          name,
+          processors: submitProcessors,
+        });
+
+        const createdWorkflowId = _.get(createdWorkflow, 'id', createdWorkflow);
+        if (_.isNumber(createdWorkflowId)) {
+          const currentValues = _.cloneDeep(form.getFieldsValue());
+          _.set(currentValues, [...prefixNamePath, ...namePath, 'pipeline_id'], createdWorkflowId);
+          _.set(currentValues, [...prefixNamePath, ...namePath, 'enable'], _.get(currentValues, [...prefixNamePath, ...namePath, 'enable'], true));
+          form.setFieldsValue(currentValues);
+          setSavedProcessorsSnapshot(_.cloneDeep(processors));
+        }
+        refreshWorkflows();
+        message.success(t('common:success.add'));
+      }
+      setSaveModalVisible(false);
+    } catch (error) {
+      message.error(_.get(error, 'message') || _.get(error, 'error') || t('pipeline_configuration_ng.save_workflow_failed'));
+    } finally {
+      setSavingWorkflow(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div>
+        <Spin spinning />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div>
+        <Space>
+          {isMultiWorkflow && <Button size='small' icon={<DeleteOutlined />} onClick={remove} />}
+          <span>{t('pipeline_configuration_ng.enabled')}</span>
+          <Switch
+            size='small'
+            checked={workflowEnabled}
+            onChange={(checked) => {
+              // 更新 pipeline_configs 中对应项的 enable 字段
+              const currentValues = _.cloneDeep(form.getFieldsValue());
+              _.set(currentValues, [...prefixNamePath, ...namePath, 'enable'], checked);
+              form.setFieldsValue(currentValues);
+            }}
+          />
+          {_.get(workflowList, 'length', 0) > 0 && (
+            <Dropdown
+              overlay={
+                <Menu className='max-h-64 overflow-y-auto overflow-x-hidden'>
+                  <Menu.Item
+                    key='add'
+                    onClick={() => {
+                      // 删除 pipeline_configs 中对应项的 workflow_id，并重置 processors
+                      const currentValues = _.cloneDeep(form.getFieldsValue());
+                      _.unset(currentValues, [...prefixNamePath, ...namePath, 'pipeline_id']);
+                      _.set(currentValues, [...prefixNamePath, ...namePath, 'processors'], [DEFAULT_VALUES.processors[0]]);
+                      if (shouldAutoEnable) {
+                        _.set(currentValues, [...prefixNamePath, ...namePath, 'enable'], true);
+                      }
+                      form.setFieldsValue(currentValues);
+                    }}
+                  >
+                    {t('pipeline_configuration_ng.add_workflow')}
+                  </Menu.Item>
+                  {_.map(workflowList, (workflow) => {
+                    return (
+                      <Menu.Item
+                        key={workflow.id}
+                        disabled={workflow.id === workflowId}
+                        onClick={() => {
+                          // 更新 pipeline_configs 中对应项的 workflow_id，并重置 processors
+                          const currentValues = _.cloneDeep(form.getFieldsValue());
+                          _.set(currentValues, [...prefixNamePath, ...namePath, 'pipeline_id'], workflow.id);
+                          _.set(currentValues, [...prefixNamePath, ...namePath, 'processors'], []);
+                          if (shouldAutoEnable) {
+                            _.set(currentValues, [...prefixNamePath, ...namePath, 'enable'], true);
+                          }
+                          form.setFieldsValue(currentValues);
+                        }}
+                      >
+                        {workflow.name}
+                      </Menu.Item>
+                    );
+                  })}
+                </Menu>
+              }
+            >
+              <Button size='small'>
+                <Space>
+                  {t('pipeline_configuration_ng.select_workflow')}
+                  <Tooltip title={t('pipeline_configuration_ng.select_workflow_tooltip')}>
+                    <QuestionCircleOutlined />
+                  </Tooltip>
+                </Space>
+              </Button>
+            </Dropdown>
+          )}
+          {workflowId !== undefined && item?.name && <Tag color='orange'>{t('pipeline_configuration_ng.reference_workflow_tip', { workflowName: item.name })}</Tag>}
+        </Space>
+      </div>
+      <Form.List {...resetField} name={[...namePath, 'processors']}>
+        {(fields, { add, remove, move }) => (
+          <Space direction='vertical' size={SIZE} className='w-full'>
+            {fields.map((field) => {
+              return (
+                <Processor
+                  key={field.key}
+                  fields={fields}
+                  field={field}
+                  namePath={[field.name]}
+                  prefixNamePath={[...prefixNamePath, ...namePath, 'processors']}
+                  add={add}
+                  remove={remove}
+                  move={move}
+                />
+              );
+            })}
+            <Row gutter={SIZE} className={`${fields.length === 0 ? 'mt-4' : ''}`}>
+              <Col flex='none'>
+                <Tooltip title={saveWorkflowTooltip}>
+                  <Popover
+                    content={<Alert showIcon type='warning' message={t('pipeline_configuration_ng.workflow_unsaved')} />}
+                    placement='top'
+                    visible={unsavedPopoverVisible}
+                    trigger='click'
+                    onVisibleChange={(visible) => {
+                      if (!visible) {
+                        setUnsavedPopoverVisible(false);
+                      }
+                    }}
+                  >
+                    <Button ref={saveButtonRef} type='primary' disabled={!canSaveWorkflow} onClick={openSaveWorkflowModal}>
+                      {t('pipeline_configuration_ng.save_workflow')}
+                    </Button>
+                  </Popover>
+                </Tooltip>
+              </Col>
+              <Col flex='none'>
+                <TestModal
+                  disabled={!canSaveWorkflow}
+                  type='pipeline'
+                  config={{
+                    processors,
+                  }}
+                />
+              </Col>
+              <Col flex='auto'>
+                <Button
+                  className='w-full'
+                  type='dashed'
+                  onClick={() => {
+                    add(DEFAULT_VALUES.processors[0]);
+                    if (shouldAutoEnable) {
+                      const currentValues = _.cloneDeep(form.getFieldsValue());
+                      _.set(currentValues, [...prefixNamePath, ...namePath, 'enable'], true);
+                      form.setFieldsValue(currentValues);
+                    }
+                  }}
+                  icon={<PlusOutlined />}
+                >
+                  {t(`${EVENTPIPELINE_NS}:processor.add_btn`)}
+                </Button>
+              </Col>
+            </Row>
+          </Space>
+        )}
+      </Form.List>
+      <Modal
+        title={t(workflowId ? 'pipeline_configuration_ng.save_workflow_modal_title_edit' : 'pipeline_configuration_ng.save_workflow_modal_title_new')}
+        visible={saveModalVisible}
+        confirmLoading={savingWorkflow}
+        onOk={handleSaveWorkflow}
+        onCancel={() => setSaveModalVisible(false)}
+      >
+        <Form layout='vertical'>
+          <Form.Item label={t('pipeline_configuration_ng.workflow_name')} required>
+            <Input
+              value={saveWorkflowName}
+              onChange={(e) => {
+                setSaveWorkflowName(e.target.value);
+              }}
+              placeholder={t('pipeline_configuration_ng.workflow_name_placeholder')}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
+  );
+});
+
+WorkflowItem.displayName = 'WorkflowItem';
+
+export default WorkflowItem;

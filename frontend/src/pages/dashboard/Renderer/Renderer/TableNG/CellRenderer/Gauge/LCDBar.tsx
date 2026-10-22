@@ -1,0 +1,83 @@
+import React, { CSSProperties } from 'react';
+import _ from 'lodash';
+import Color from 'color';
+
+import { IOptions } from '@/pages/dashboard/types';
+import { getSerieTextObj } from '@/pages/dashboard/Renderer/utils/getCalculatedValuesBySeries';
+
+import { TextObject } from '../types';
+
+interface Props {
+  maxFieldTextWidth: number;
+  item: TextObject;
+  valueMode: 'color' | 'text' | 'hidden';
+  options: IOptions;
+  minValue: number;
+  maxValue: number;
+  maxBarWidth: number;
+  rangeMode?: 'lcro' | 'lcrc';
+}
+
+const CELL_WIDTH = 10;
+const CELL_HEIGHT = 23;
+const CELL_SPACING = 2;
+
+export default function LCDBar(props: Props) {
+  const { maxFieldTextWidth, item, valueMode, options, minValue, maxValue, maxBarWidth, rangeMode } = props;
+  const valueRange = maxValue - minValue;
+  const cellCount = Math.floor(maxBarWidth / (CELL_WIDTH + CELL_SPACING));
+  const cells: JSX.Element[] = [];
+
+  for (let i = 0; i < cellCount; i++) {
+    const currentValue = minValue + (valueRange / cellCount) * i;
+    const textObj = getSerieTextObj(
+      currentValue,
+      {
+        unit: options?.standardOptions?.unit,
+        decimals: options?.standardOptions?.decimals,
+        dateFormat: options?.standardOptions?.dateFormat,
+      },
+      options?.valueMappings,
+      options?.thresholds,
+      [minValue, maxValue],
+      true,
+      rangeMode,
+    );
+    const cellStyles: CSSProperties = {};
+    cellStyles.width = `${CELL_WIDTH}px`;
+    cellStyles.height = `${CELL_HEIGHT}px`;
+    cellStyles.marginRight = `${CELL_SPACING}px`;
+
+    if (item.stat != null && currentValue <= item.stat) {
+      cellStyles.backgroundColor = textObj.color;
+    } else {
+      let backgroundColor = 'unset';
+      try {
+        backgroundColor = Color(textObj.color).alpha(0.3).string();
+      } catch (e) {
+        console.warn('Invalid color:', textObj.color);
+      }
+      cellStyles.backgroundColor = backgroundColor;
+    }
+    cells.push(<div key={i.toString()} style={cellStyles} className='renderer-table-ng-bar-gauge-lcd-item-cells' />);
+  }
+
+  return (
+    <div className='renderer-table-ng-bar-gauge-lcd'>
+      <div className='renderer-table-ng-bar-gauge-lcd-item'>
+        <div className='renderer-table-ng-bar-gauge-lcd-item-cells-wrapper'>{cells}</div>
+        {valueMode !== 'hidden' && (
+          <div
+            className='renderer-table-ng-bar-gauge-lcd-item-value'
+            style={{
+              color: valueMode === 'color' ? item.color : 'inherit',
+              width: maxFieldTextWidth,
+            }}
+          >
+            {item.text}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

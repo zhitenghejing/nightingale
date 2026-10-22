@@ -1,0 +1,476 @@
+import React, { useEffect, useState, useMemo, useContext } from 'react';
+import { Button, Modal, message, Dropdown, Switch, Select, Space } from 'antd';
+import { useHistory, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { ColumnType } from 'antd/lib/table';
+import _ from 'lodash';
+import RefreshIcon from '@/components/RefreshIcon';
+import { DownOutlined } from '@ant-design/icons';
+import { getBusiGroupsRecordingRules, updateRecordingRules } from '@/services/recording';
+import SearchInput from '@/components/BaseSearchInput';
+import { strategyItem, strategyStatus } from '@/store/warningInterface';
+import { deleteRecordingRule } from '@/services/recording';
+import { CommonStateContext } from '@/App';
+import localeCompare from '@/pages/dashboard/Renderer/utils/localeCompare';
+import EnhancedTable, { getEnabledStatusColumn } from '@/components/EnhancedTable';
+import { tagsColumn, dateColumn, updateByColumn } from '@/components/EnhancedTable/columns';
+import Tags from '@/components/TableTags/Tags';
+import usePagination from '@/components/usePagination';
+import EditModal from './components/editModal';
+import Import from './components/Import';
+import Export from './components/Export';
+import { getPageFromSearch, setPageInSearch, removePageFromSearch } from '@/utils/urlPage';
+
+interface Props {
+  gids?: string;
+  groupSwitchCount?: number;
+}
+
+interface Filter {
+  query?: string;
+  datasourceIds?: number[];
+  disabled?: 0 | 1;
+}
+
+export const FILTER_SESSION_STORAGE_KEY = 'recording-rules-filter';
+
+const { confirm } = Modal;
+const exportIgnoreAttrsObj = {
+  id: undefined,
+  group_id: undefined,
+  datasource_ids: undefined,
+  create_at: undefined,
+  create_by: undefined,
+  update_at: undefined,
+  update_by: undefined,
+};
+
+const PageTable: React.FC<Props> = ({ gids, groupSwitchCount = 0 }) => {
+  const [severity] = useState<number>();
+  const { t } = useTranslation('recordingRules');
+  const history = useHistory();
+  const location = useLocation();
+  const [selectRowKeys, setSelectRowKeys] = useState<React.Key[]>([]);
+  const [selectedRows, setSelectedRows] = useState<strategyItem[]>([]);
+  const clearSelection = () => {
+    setSelectRowKeys([]);
+    setSelectedRows([]);
+  };
+  const { groupedDatasourceList, businessGroup, busiGroups } = useContext(CommonStateContext);
+  let defaultFilter = {} as Filter;
+  try {
+    const saved = JSON.parse(window.sessionStorage.getItem(FILTER_SESSION_STORAGE_KEY) || '{}');
+    defaultFilter = saved;
+  } catch (e) {
+    console.error(e);
+  }
+  const defaultPage = getPageFromSearch(location.search);
+  const [query, setQuery] = useState<string>(defaultFilter.query ?? '');
+  const [isModalVisible, setisModalVisible] = useState<boolean>(false);
+  const [currentStrategyDataAll, setCurrentStrategyDataAll] = useState([]);
+  const [currentStrategyData, setCurrentStrategyData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [datasourceIds, setDatasourceIds] = useState<number[] | undefined>(defaultFilter.datasourceIds);
+  const [filterDisabled, setFilterDisabled] = useState<0 | 1 | undefined>(defaultFilter.disabled);
+  const [current, setCurrent] = useState<number>(defaultPage);
+  const pagination = usePagination({ pageSizeLocalstorageKey: 'recording-rules-pagesize' });
+  const saveState = (patch: Record<string, any>) => {
+    const prev = JSON.parse(window.sessionStorage.getItem(FILTER_SESSION_STORAGE_KEY) || '{}');
+    window.sessionStorage.setItem(FILTER_SESSION_STORAGE_KEY, JSON.stringify({ ...prev, ...patch }));
+  };
+
+  useEffect(() => {
+    getRecordingRules();
+  }, [gids, severity]);
+
+  useEffect(() => {
+    filterData();
+  }, [query, datasourceIds, filterDisabled, currentStrategyDataAll]);
+
+  const getRecordingRules = async () => {
+    if (!gids) {
+      return;
+    }
+    setLoading(true);
+    const ids = gids === '-2' ? undefined : gids;
+    const { success, dat } = await getBusiGroupsRecordingRules(ids);
+    if (success) {
+      setCurrentStrategyDataAll(dat.filter((item) => !severity || item.severity === severity) || []);
+      setLoading(false);
+    }
+  };
+
+  const filterData = () => {
+    const data = JSON.parse(JSON.stringify(currentStrategyDataAll));
+    const res = data.filter((item) => {
+      const lowerCaseQuery = query.toLowerCase();
+      return (
+        (item.name.toLowerCase().indexOf(lowerCaseQuery) > -1 || item.append_tags.join(' ').toLowerCase().indexOf(lowerCaseQuery) > -1) &&
+        (_.some(item.datasource_ids, (id) => {
+          if (id === 0) return true;
+          return _.includes(datasourceIds, id);
+        }) ||
+          datasourceIds?.length === 0 ||
+          !datasourceIds) &&
+        (filterDisabled === undefined || item.disabled === filterDisabled)
+      );
+    });
+    setCurrentStrategyData(res || []);
+  };
+  const goToAddWarningStrategy = () => {
+    history.push(`/recording-rules/add/${businessGroup.id}`);
+  };
+
+  const handleClickEdit = (id, isClone = false) => {
+    history.push(`/recording-rules/edit/${id}${isClone ? '?mode=clone&' : '?'}fromGids=${gids ?? '-2'}&page=${current}`);
+  };
+
+  const refreshList = () => {
+    getRecordingRules();
+  };
+  // 重置到第一页：清除 URL 里的 page 参数（切换业务组时调用，保留其余筛选条件）
+  const resetPaging = () => {
+    setCurrent(1);
+    clearSelection();
+    history.replace({ pathname: location.pathname, search: removePageFromSearch(location.search) });
+  };
+  // 切换业务组时重置到第一页（父组件在业务组选择源头递增计数触发，不依赖 gids 变化时序）
+  useEffect(() => {
+    if (groupSwitchCount) {
+      resetPaging();
+    }
+  }, [groupSwitchCount]);
+
+  const columns: ColumnType<strategyItem>[] = _.concat([
+    {
+      title: t('common:datasource.name'),
+      dataIndex: 'datasource_ids',
+      render: (data) => {
+        return (
+          <Tags
+            type='outline'
+            maxWidth={180}
+            data={_.map(
+              _.filter(data, (item) => item === 0 || _.find(groupedDatasourceList.prometheus, { id: item })),
+              (item) => {
+                if (item === 0) return '$all';
+                return _.find(groupedDatasourceList.prometheus, { id: item })?.name!;
+              },
+            )}
+          />
+        );
+      },
+    },
+    {
+      title: t('name'),
+      dataIndex: 'name',
+      sorter: (a, b) => {
+        return localeCompare(a.name, b.name);
+      },
+      render: (data, record) => {
+        const groupName = !(businessGroup.isLeaf && gids !== '-2') ? _.find(busiGroups, { id: record.group_id })?.name : undefined;
+        return (
+          <div className='flex flex-col gap-0.5'>
+            <div
+              className='table-active-text'
+              onClick={() => {
+                handleClickEdit(record.id);
+              }}
+            >
+              {data}
+            </div>
+            {groupName && <span className='text-soft text-xs'>{groupName}</span>}
+          </div>
+        );
+      },
+    },
+    {
+      title: t('cron_pattern'),
+      dataIndex: 'cron_pattern',
+    },
+    tagsColumn({ title: t('append_tags'), dataIndex: 'append_tags', maxWidth: 180 }),
+    dateColumn<strategyItem>({ title: t('common:table.update_at'), dataIndex: 'update_at', unix: true, sortable: true, defaultSortOrder: 'descend' }),
+    updateByColumn<strategyItem>({ title: t('common:table.update_by'), dataIndex: 'update_by', nickname: 'update_by_nickname' }),
+    {
+      ...getEnabledStatusColumn({
+        title: t('disabled'),
+        dataIndex: 'disabled',
+        enabledText: t('filter_disabled.0'),
+        disabledText: t('filter_disabled.1'),
+        enabledValue: 0,
+        disabledValue: 1,
+      }),
+
+      render: (disabled, record) => (
+        <Switch
+          checked={disabled === strategyStatus.Enable}
+          size='small'
+          onChange={() => {
+            const { id, disabled } = record;
+            updateRecordingRules(
+              {
+                ids: [id],
+                fields: {
+                  disabled: !disabled ? 1 : 0,
+                },
+              },
+              record.group_id,
+            ).then(() => {
+              refreshList();
+            });
+          }}
+        />
+      ),
+    },
+  ]);
+
+  const toOneArr = (arr, res, name) => {
+    arr.forEach((ele) => {
+      if (Array.isArray(ele)) {
+        toOneArr(ele, res, name);
+      } else {
+        res.push(ele[name]);
+      }
+    });
+  };
+
+  const menu = useMemo(() => {
+    return (
+      <ul className='ant-dropdown-menu'>
+        <li
+          className='ant-dropdown-menu-item'
+          onClick={() => {
+            if (businessGroup.id) {
+              Import({
+                busiId: businessGroup.id,
+                refreshList,
+              });
+            }
+          }}
+        >
+          <span>{t('batch.import.title')}</span>
+        </li>
+        <li
+          className='ant-dropdown-menu-item'
+          onClick={() => {
+            if (selectedRows.length) {
+              const exportData = selectedRows.map((item) => {
+                return { ...item, ...exportIgnoreAttrsObj };
+              });
+              Export({
+                data: JSON.stringify(exportData, null, 2),
+              });
+            } else {
+              message.warning(t('batch.must_select_one'));
+            }
+          }}
+        >
+          <span>{t('batch.export.title')}</span>
+        </li>
+        <li
+          className='ant-dropdown-menu-item'
+          onClick={() => {
+            if (selectRowKeys.length) {
+              confirm({
+                title: t('common:confirm.delete'),
+                onOk: () => {
+                  if (businessGroup.id) {
+                    deleteRecordingRule(selectRowKeys as number[], businessGroup.id).then(() => {
+                      message.success(t('common:success.delete'));
+                      clearSelection();
+                      refreshList();
+                    });
+                  }
+                },
+
+                onCancel() {},
+              });
+            } else {
+              message.warning(t('batch.must_select_one'));
+            }
+          }}
+        >
+          <span>{t('batch.delete')}</span>
+        </li>
+        <li
+          className='ant-dropdown-menu-item'
+          onClick={() => {
+            if (selectRowKeys.length == 0) {
+              message.warning(t('batch.must_select_one'));
+              return;
+            }
+            setisModalVisible(true);
+          }}
+        >
+          <span>{t('batch.update.title')}</span>
+        </li>
+      </ul>
+    );
+  }, [selectRowKeys, t, businessGroup.id]);
+
+  const editModalFinish = async (isOk, fieldsData?) => {
+    if (isOk && businessGroup.id) {
+      const res = await updateRecordingRules(
+        {
+          ids: selectRowKeys,
+          fields: fieldsData,
+        },
+        businessGroup.id,
+      );
+      if (!res.err) {
+        message.success(t('common:success.edit'));
+        clearSelection();
+        refreshList();
+        setisModalVisible(false);
+      } else {
+        message.error(res.err);
+      }
+    } else {
+      setisModalVisible(false);
+    }
+  };
+
+  return (
+    <div className='strategy-table-content fc-border rounded-lg'>
+      <div className='strategy-table-search'>
+        <Space>
+          <RefreshIcon
+            onClick={() => {
+              refreshList();
+            }}
+          />
+          <Select
+            allowClear
+            placeholder={t('common:datasource.name')}
+            style={{ minWidth: 100 }}
+            dropdownMatchSelectWidth={false}
+            mode='multiple'
+            value={datasourceIds}
+            onChange={(val) => {
+              setDatasourceIds(val);
+              setCurrent(1);
+              saveState({ datasourceIds: val });
+              history.replace({ pathname: location.pathname, search: setPageInSearch(location.search, 1) });
+            }}
+          >
+            {_.map(groupedDatasourceList?.prometheus, (item) => (
+              <Select.Option value={item.id} key={item.id}>
+                {item.name}
+              </Select.Option>
+            ))}
+          </Select>
+          <SearchInput
+            placeholder={t('search_placeholder')}
+            value={query}
+            onSearch={(val) => {
+              setQuery(val);
+              setCurrent(1);
+              saveState({ query: val });
+              history.replace({ pathname: location.pathname, search: setPageInSearch(location.search, 1) });
+            }}
+            allowClear
+          />
+          <Select
+            allowClear
+            placeholder={t('filter_disabled.placeholder')}
+            options={[
+              { label: t('filter_disabled.0'), value: 0 },
+              { label: t('filter_disabled.1'), value: 1 },
+            ]}
+            value={filterDisabled}
+            onChange={(val) => {
+              setFilterDisabled(val);
+              setCurrent(1);
+              saveState({ disabled: val });
+              history.replace({ pathname: location.pathname, search: setPageInSearch(location.search, 1) });
+            }}
+          />
+        </Space>
+        {businessGroup.isLeaf && gids !== '-2' && (
+          <div className='strategy-table-search-right'>
+            <Space>
+              <Button type='primary' onClick={goToAddWarningStrategy} className='strategy-table-search-right-create'>
+                {t('common:btn.add')}
+              </Button>
+              <div className={'table-more-options'}>
+                <Dropdown overlay={menu} trigger={['click']}>
+                  <Button onClick={(e) => e.stopPropagation()}>
+                    {t('common:btn.more')}
+                    <DownOutlined
+                      style={{
+                        marginLeft: 2,
+                      }}
+                    />
+                  </Button>
+                </Dropdown>
+              </div>
+            </Space>
+          </div>
+        )}
+      </div>
+
+      <EnhancedTable
+        className='mt-2'
+        size='small'
+        rowKey='id'
+        pagination={{
+          ...pagination,
+          total: currentStrategyData.length,
+          showQuickJumper: true,
+          current,
+          onChange: (page) => {
+            setCurrent(page);
+            history.replace({ pathname: location.pathname, search: setPageInSearch(location.search, page) });
+          },
+        }}
+        loading={loading}
+        dataSource={currentStrategyData}
+        rowSelection={{
+          selectedRowKeys: selectedRows.map((item) => item.id),
+          onChange: (selectedRowKeys: React.Key[], selectedRows: strategyItem[]) => {
+            setSelectRowKeys(selectedRowKeys);
+            setSelectedRows(selectedRows);
+          },
+        }}
+        columns={columns}
+        rowActions={(record) => ({
+          inline: [
+            {
+              key: 'clone',
+              icon: 'copy',
+              text: t('common:btn.clone'),
+              onClick: () => {
+                handleClickEdit(record.id, true);
+              },
+            },
+            {
+              key: 'delete',
+              icon: 'delete',
+              text: t('common:btn.delete'),
+              danger: true,
+              disabled: record.disabled === 0,
+              tooltip: record.disabled === 0 ? t('common:delete_disable_first') : undefined,
+              onClick: () => {
+                confirm({
+                  title: t('common:confirm.delete'),
+                  onOk: () => {
+                    deleteRecordingRule([record.id], record.group_id).then(() => {
+                      message.success(t('common:success.delete'));
+                      refreshList();
+                    });
+                  },
+
+                  onCancel() {},
+                });
+              },
+            },
+          ],
+        })}
+        actionColumn={{ title: t('common:table.operations'), width: 64 }}
+      />
+      {isModalVisible && <EditModal isModalVisible={isModalVisible} editModalFinish={editModalFinish} />}
+    </div>
+  );
+};
+
+export default PageTable;

@@ -1,0 +1,196 @@
+import React, { useState } from 'react';
+import _ from 'lodash';
+import { useTranslation } from 'react-i18next';
+import { Popover, Progress, Space, Spin, Tooltip, Form } from 'antd';
+import Icon, { PlusCircleOutlined, CloseCircleOutlined, CalendarOutlined, QuestionOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import type { CustomIconComponentProps } from '@ant-design/icons/lib/components/Icon';
+import { getFieldLabel, dslBuilder, ajustFieldParamValue } from '../../Elasticsearch/utils';
+import { getESVersion, getFieldTopTerms, typeMap } from '../../Elasticsearch/services';
+import { Field as FieldType, Filter } from '../services';
+import { useGlobalState } from '../globalState';
+
+interface Props {
+  item: string;
+  record: FieldType;
+  type: 'selected' | 'available';
+  fieldConfig?: any;
+  params?: any;
+  onSelect?: (field: string) => void;
+  onRemove?: (field: string) => void;
+  filters?: Filter[];
+  onValueFilter?: (Filter) => void;
+}
+
+const operIconMap = {
+  selected: <CloseCircleOutlined />,
+  available: <PlusCircleOutlined />,
+};
+
+const FieldBooleanSvg = () => (
+  <svg width='1em' height='1em' fill='currentColor' viewBox='0 0 76 76'>
+    <path d='M 36,23L 30,23L 30,40L 25,40L 25,23L 19,23L 19,19L 36,19L 36,23 Z M 57,40L 50,40L 50,45L 56,45L 56,49L 50,49L 50,57L 45,57L 45,36L 57,36L 57,40 Z M 44,19L 48.5,19L 32.5,57L 28,57L 44,19 Z ' />
+  </svg>
+);
+
+const FieldBooleanIcon = (props: Partial<CustomIconComponentProps>) => <Icon component={FieldBooleanSvg} {...props} />;
+
+export const typeIconMap = {
+  string: (
+    <span className='n9e-es-discover-fields-item-field' style={{ color: '#4a7194' }}>
+      t
+    </span>
+  ),
+  number: (
+    <span className='n9e-es-discover-fields-item-field' style={{ color: '#387765' }}>
+      #
+    </span>
+  ),
+  date: <CalendarOutlined style={{ color: '#7b705a' }} />,
+  boolean: <FieldBooleanIcon style={{ color: '#996130', fontSize: 18 }} />,
+};
+
+export default function Field(props: Props) {
+  const { t } = useTranslation('explorer');
+  const { item, record, type, fieldConfig, params, onSelect, onRemove, filters, onValueFilter } = props;
+  const { from, timesRef, datasourceValue, limit } = params;
+  const [topn] = useGlobalState('topn');
+  const [topnVisible, setTopnVisible] = useState<boolean>(false);
+  const [topnData, setTopnData] = useState<any[]>([]);
+  const [topnLoading, setTopnLoading] = useState<boolean>(false);
+  const fieldLabel = getFieldLabel(item, fieldConfig);
+  const form = Form.useFormInstance();
+
+  return (
+    <Popover
+      placement='right'
+      trigger={['click']}
+      overlayInnerStyle={{
+        width: 240,
+        minHeight: 240,
+      }}
+      visible={topnVisible}
+      title={fieldLabel}
+      content={
+        <div className='n9e-es-discover-field-values-topn'>
+          <strong>
+            {t('log.field_values_topn.title', {
+              n: topn,
+            })}
+          </strong>
+          <Spin spinning={topnLoading}>
+            <div className='n9e-es-discover-field-values-topn-list'>
+              {_.isEmpty(topnData) && t('log.fieldValues_topnNoData')}
+              {_.map(topnData, (item) => {
+                const percent = _.floor(item.value * 100, 2);
+                return (
+                  <div key={item.label} className='n9e-es-discover-field-values-topn-item'>
+                    <div style={{ width: 'calc(100% - 40px)' }}>
+                      <div className='n9e-es-discover-field-values-topn-item-content'>
+                        <div className='n9e-es-discover-field-values-topn-item-label'>
+                          {_.isEmpty(item.label) && !_.isNumber(item.label) ? '(empty)' : <Tooltip title={item.label}>{item.label}</Tooltip>}
+                        </div>
+                        <div className='n9e-es-discover-field-values-topn-item-percent'>{percent}%</div>
+                      </div>
+                      <Progress percent={percent} size='small' showInfo={false} strokeColor='#6c53b1' />
+                    </div>
+                    <div style={{ width: 32 }}>
+                      <Space>
+                        <PlusCircleOutlined
+                          onClick={() => {
+                            if (onValueFilter) {
+                              onValueFilter({
+                                key: record.name,
+                                value: item.label,
+                                operator: 'is',
+                              });
+                              setTopnVisible(false);
+                            }
+                          }}
+                        />
+                        <MinusCircleOutlined
+                          onClick={() => {
+                            if (onValueFilter) {
+                              onValueFilter({
+                                key: record.name,
+                                value: item.label,
+                                operator: 'is not',
+                              });
+                              setTopnVisible(false);
+                            }
+                          }}
+                        />
+                      </Space>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Spin>
+        </div>
+      }
+      onVisibleChange={(visible) => {
+        setTopnVisible(visible);
+        if (visible) {
+          setTopnLoading(true);
+          const values = form.getFieldsValue();
+          try {
+            getESVersion(datasourceValue).then((version) => {
+              const adjustedField = ajustFieldParamValue(record);
+              const aggName = `top${topn}_${String(adjustedField).replace(/[^A-Za-z0-9_]/g, '_')}`;
+              getFieldTopTerms(
+                datasourceValue,
+                dslBuilder({
+                  version,
+                  index: values.query.index,
+                  date_field: values.query.date_field,
+                  ...timesRef.current,
+                  filters,
+                  syntax: values.query.syntax,
+                  query_string: values.query.filter,
+                  kuery: values.query.filter,
+                  termsAgg: {
+                    field: adjustedField,
+                    size: topn,
+                    name: aggName,
+                  },
+                }),
+                { aggName, field: adjustedField, size: topn },
+              )
+                .then((res) => {
+                  setTopnData(res);
+                })
+                .catch((e) => {
+                  console.error(e);
+                })
+                .finally(() => {
+                  setTopnLoading(false);
+                });
+            });
+          } catch (e) {
+            console.error(e);
+            setTopnLoading(false);
+          }
+        } else {
+          setTopnData([]);
+        }
+      }}
+    >
+      <div className='n9e-es-discover-fields-item' key={item}>
+        <span className='n9e-es-discover-fields-item-icon'>{typeIconMap[typeMap[record.type]] || <QuestionOutlined />}</span>
+        <span className='n9e-es-discover-fields-item-content'>{fieldLabel}</span>
+        <span
+          className='n9e-es-discover-fields-item-oper'
+          onClick={() => {
+            if (type === 'selected' && onRemove) {
+              onRemove(item);
+            } else if (type === 'available' && onSelect) {
+              onSelect(item);
+            }
+          }}
+        >
+          {operIconMap[type]}
+        </span>
+      </div>
+    </Popover>
+  );
+}

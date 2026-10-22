@@ -1,0 +1,228 @@
+/* antd */
+.n9e-antd-drawer.ant-drawer {
+  .ant-drawer-header-title {
+    display: contents;
+  }
+
+  .ant-drawer-title {
+    order: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .ant-drawer-extra {
+    order: 1;
+  }
+
+  .ant-drawer-close {
+    order: 2;
+    flex: 0 0 auto;
+    margin-right: 0;
+    margin-left: 12px;
+  }
+}
+
+.ant-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+  background-color: fade(@primary-color, 10%);
+}
+
+mark {
+  background-color: var(--fc-yellow-9) !important;
+  color: #181c25 !important;
+}
+
+// 当 table 作为 flex item 时，设置高度为 100%，以便在父容器中填满空间
+.n9e-antd-table-height-full {
+  height: 100%;
+  min-height: 0;
+
+  .ant-table-wrapper,
+  .ant-spin-nested-loading,
+  .ant-table,
+  .ant-table-container {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .ant-spin-container {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.n9e-antd-collapse-height-full {
+  height: 100%;
+  min-height: 0;
+
+  .ant-collapse,
+  .ant-collapse-item,
+  .ant-collapse-content,
+  .ant-collapse-content-box {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .ant-collapse-item {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.n9e-antd-table-with-border-collapse {
+  table {
+    border-collapse: collapse !important;
+
+    thead {
+      border-left: 10px solid #f0f0f0 !important;
+    }
+  }
+}
+
+// 2026-03 release-23 版本 强制给表格添加边框和圆角
+.ant-table-container {
+  border: 1px solid var(--fc-border-color) !important;
+  border-radius: 8px !important;
+}
+
+/* antd */
+
+.affix-bottom-shadow {
+  box-shadow: 0px -4px 30px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ant-tooltip-auto-width {
+  max-width: none !important;
+}
+
+.ant-tooltip-max-width-400 {
+  min-width: 40px !important;
+  max-width: 400px !important;
+}
+
+.ant-tooltip-max-width-600 {
+  min-width: 40px !important;
+  max-width: 600px !important;
+}
+
+.ant-tooltip-max-height-400 {
+  max-height: 400px !important;
+}
+
+.ant-tooltip-with-link {
+  a {
+    color: var(--fc-text-link-light);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.n9e-checkbox-padding-right-0 {
+  .ant-checkbox + span {
+    padding-right: 0 !important;
+  }
+}
+
+.n9e-base-shadow {
+  box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+}
+
+.n9e-ant-from-item-tooltip {
+  color: rgba(0, 0, 0, 0.45) !important;
+  cursor: help !important;
+  margin-inline-start: 0 !important;
+}
+
+.n9e-collapse-advanced-settings {
+  .ant-collapse-item {
+    margin-bottom: 16px !important;
+  }
+
+  .ant-collapse-header {
+    padding: 0 !important;
+  }
+
+  .ant-collapse-content-box {
+    padding-bottom: 0 !important;
+  }
+}
+
+.n9e-table-last-row-no-border {
+  .ant-table-tbody > tr:last-child > td {
+    border-bottom: none !important;
+  }
+}
+
+.n9e-modal-with-tabs {
+  .ant-modal-header {
+    padding-bottom: 0 !important;
+  }
+
+  .ant-tabs-top > .ant-tabs-nav::before {
+    border: 0 none !important;
+  }
+
+  .ant-tabs-nav {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* 显示滚动条并设置宽度和颜色 */
+.scroll-container::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scroll-container::-webkit-scrollbar-thumb {
+  background-color: rgb(223, 223, 223);
+  border-radius: 6px;
+}
+
+/* 悬停时更改滚动条的颜色 */
+.scroll-container::-webkit-scrollbar-thumb:hover {
+  background-color: #7d7d7d;
+}
+
+/* 滚动条轨道的背景颜色 */
+.scroll-container::-webkit-scrollbar-track {
+  background-color: transparent;
+  border-radius: 6px;
+}
+
+.best-looking-scroll {
+  overflow: auto; // 隐藏滚动条
+
+  &::-webkit-scrollbar {
+    width: 6px; // 竖向滚动条宽度
+    height: 6px; // 横向滚动条高度
+    visibility: hidden;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.1); // 增加透明度
+    border-radius: 3px;
+    visibility: hidden;
+  }
+
+  &:hover {
+    &::-webkit-scrollbar {
+      visibility: visible;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      visibility: visible;
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+}
+
+.n9e-advanced-settings-collapse {
+  .ant-collapse-header {
+    padding: 0 !important;
+  }
+}

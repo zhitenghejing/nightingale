@@ -1,0 +1,129 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import React from 'react';
+
+export interface Contacts {
+  key: string;
+  value: string;
+}
+export interface User {
+  id: string;
+  username: string;
+  nickname: string;
+  password: string;
+  phone: string;
+  email: string;
+  portrait: string;
+  status: number;
+  role: string;
+  contacts: Contacts[];
+  create_at: number;
+  create_by: number;
+  update_at: number;
+  update_by: number;
+  /** 账号来源，SSO 同步的账号为 ldap/oidc/cas/oauth2 等，本地创建的账号为空字符串 */
+  belong: string;
+  /** 账号状态，0 正常、1 已禁用；已禁用的账号不能登录，也不能用已有凭证访问接口 */
+  disabled: number;
+  busi_groups?: null | { id: number; name: string }[];
+}
+export interface Team {
+  id: string;
+  name: string;
+  note: string;
+  create_at: number;
+  create_by: string;
+  update_at: number;
+  update_by: string;
+  busi_groups: Array<{ id: string; name: string }>;
+}
+export interface UserList {
+  list: Array<User>;
+  total: number;
+}
+export interface TeamList {
+  list: Array<Team>;
+  total: number;
+}
+export enum UserType {
+  User = 'user',
+  Team = 'team',
+}
+export interface TeamInfo {
+  user_groups?: Team;
+  user_group?: Team;
+  users: Array<User>;
+}
+export enum ActionType {
+  CreateUser = 'create_user',
+  CreateTeam = 'create_team',
+  CreateBusiness = 'create_business',
+  AddBusinessMember = 'add_business_member',
+  EditBusiness = 'edit_business',
+  EditUser = 'edit_user',
+  EditTeam = 'edit_team',
+  Reset = 'reset_password',
+  Disable = 'disable',
+  Undisable = 'enable',
+  AddUser = 'add_user',
+}
+export enum RoleType {
+  Admin = 'admin',
+  Standard = 'standard',
+  Guest = 'guest',
+}
+export interface Title {
+  create: string;
+  edit: string;
+  disabled: string;
+  reset: string;
+}
+export type TitleKey = keyof Title;
+
+export interface ModalProps {
+  visible: boolean;
+  userType?: string;
+  onClose?: any;
+  action: ActionType;
+  userId?: string;
+  teamId?: string;
+  memberId?: string;
+  onSearch?: any;
+  width?: number;
+}
+export interface TeamProps {
+  onClose?: any;
+  teamId?: string;
+  businessId?: string;
+  onSelect?: any;
+  action?: ActionType;
+}
+export interface UserAndPasswordFormProps {
+  userId?: string;
+}
+export interface ContactsItem {
+  key: string;
+  label: string;
+}
+export interface PopoverProps {
+  userId?: string;
+  teamId?: string;
+  memberId?: string;
+  onClose: any;
+  userType: string;
+  isIcon?: boolean;
+}

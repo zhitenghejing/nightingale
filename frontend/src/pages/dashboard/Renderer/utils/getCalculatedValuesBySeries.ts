@@ -1,0 +1,350 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import _ from 'lodash';
+import stringToRegex from '../../Variables/utils/stringToRegex';
+import { IStandardOptions, ITarget, IValueMapping, IThresholds, IOverride } from '../../types';
+import valueFormatter from './valueFormatter';
+import getSerieName from './getSerieName';
+
+type SeriesValue = number | string | null;
+type SeriesPoint = [timestamp: number, value: SeriesValue];
+
+export interface CalculatedSeries {
+  id: string;
+  refId: string;
+  name?: string;
+  metric: Record<string, string>;
+  data: SeriesPoint[];
+  target?: ITarget;
+  isExp?: boolean;
+  offset?: number;
+  visible?: boolean;
+}
+
+/**
+ * getCalculatedValuesBySeries 的返回结构：原始序列字段 + getSerieTextObj 格式化字段。
+ * 统一两个分支（origin / 聚合）的返回类型，避免下游消费方拿到联合类型。
+ */
+export interface CalculatedSeriesValue {
+  id: string;
+  name?: string;
+  __time__?: number;
+  target?: ITarget;
+  metric: Record<string, string | undefined>;
+  fields: Record<string, string | number | undefined>;
+  stat: SeriesValue;
+  value: string | number;
+  unit: string;
+  color: string;
+  text: string;
+}
+
+const getValueAndToNumber = (value?: SeriesPoint) => {
+  return _.toNumber(value?.[1] ?? NaN);
+};
+
+export const getSerieTextObj = (
+  value: number | string | null | undefined,
+  standardOptions?: IStandardOptions,
+  valueMappings?: IValueMapping[],
+  thresholds?: IThresholds,
+  valueRange?: [number, number],
+  callValueFormatter = true,
+  rangeMode: 'lcro' | 'lcrc' = 'lcrc', // lcro: 左闭右开； lcrc: 左闭右闭
+) => {
+  const { decimals, dateFormat } = standardOptions || {};
+  const unit = standardOptions?.unit;
+  const matchedValueMapping = _.find(valueMappings, (item) => {
+    const { type, match } = item;
+    if (value === null || value === '' || value === undefined) {
+      if (type === 'specialValue') {
+        if (match?.specialValue === 'empty') {
+          return value === '';
+        } else if (match?.specialValue === 'null') {
+          return value === null || value === undefined;
+        }
+      }
+      return false;
+    } else {
+      if (type === 'textValue') {
+        if (value === match?.textValue) return true;
+        const reg = stringToRegex(match?.textValue);
+        if (reg && reg.test(value as string)) return true;
+        return false;
+      }
+      const toNumberValue = _.toNumber(value) as number;
+      if (type === 'special') {
+        return toNumberValue === match?.special;
+      } else if (type === 'range') {
+        if (_.isNumber(match?.from) && _.isNumber(match?.to)) {
+          if (rangeMode === 'lcro') {
+            return toNumberValue >= match?.from && toNumberValue < match?.to;
+          }
+          return toNumberValue >= match?.from && toNumberValue <= match?.to;
+        } else if (_.isNumber(match?.from)) {
+          return toNumberValue >= match?.from;
+        } else if (_.isNumber(match?.to)) {
+          return toNumberValue <= match?.to;
+        }
+        return false;
+      }
+      return false;
+    }
+  });
+  let matchedThresholdsColor;
+  if (thresholds?.steps) {
+    const baseColor = _.get(_.find(thresholds?.steps, { type: 'base' }), 'color');
+    matchedThresholdsColor = baseColor;
+  }
+  _.forEach(
+    _.sortBy(thresholds?.steps, (item) => {
+      return Number(item.value);
+    }),
+    (item) => {
+      if (_.isNumber(item.value) && value) {
+        const toNumberValue = _.toNumber(value) as number;
+        if (thresholds?.mode === 'percentage' && valueRange) {
+          const minValue = valueRange[0];
+          const maxValue = valueRange[1];
+          const percentageToNumberValue = minValue + (maxValue - minValue) * (item.value / 100);
+          if (toNumberValue >= percentageToNumberValue) {
+            matchedThresholdsColor = item.color;
+          }
+        } else {
+          if (toNumberValue >= item.value) {
+            matchedThresholdsColor = item.color;
+          }
+        }
+      }
+    },
+  );
+
+  // 2024-09-23 不配置单位或是小数位数时，用默认的单位和小数位数处理
+  // TODO: 之前不清楚为什么关闭了默认处理
+  const valueObj = callValueFormatter
+    ? valueFormatter({ unit, decimals, dateFormat }, value)
+    : {
+        value: value,
+        unit: unit || '',
+        text: value,
+        stat: value,
+      };
+  const newValue = matchedValueMapping?.result?.text ? matchedValueMapping?.result?.text : valueObj.value;
+  return {
+    value: newValue,
+    unit: valueObj.unit,
+    color: matchedValueMapping?.result?.color || matchedThresholdsColor,
+    text: newValue + ' ' + (valueObj.unit === 'none' ? '' : valueObj.unit),
+    stat: valueObj.stat,
+  };
+};
+
+export const getMappedTextObj = (textValue: string, valueMappings?: IValueMapping[]) => {
+  if (typeof textValue === 'string') {
+    const matchedValueMapping = _.find(valueMappings, (item) => {
+      const { type, match } = item;
+      if (type === 'textValue') {
+        if (textValue === match?.textValue) return true;
+        const reg = stringToRegex(match?.textValue);
+        if (reg && reg.test(textValue)) return true;
+        return false;
+      }
+      return false;
+    });
+    if (matchedValueMapping) {
+      return {
+        // origin: textValue,
+        text: matchedValueMapping?.result?.text || textValue,
+        color: matchedValueMapping?.result?.color,
+      };
+    }
+  }
+  return {
+    // origin: textValue,
+    text: textValue,
+  };
+};
+
+const getCalculatedValuesBySeries = (
+  series: CalculatedSeries[],
+  calc: string,
+  {
+    unit,
+    decimals,
+    dateFormat,
+    valueField,
+  }: {
+    unit?: string;
+    decimals?: number;
+    dateFormat?: string;
+    valueField?: string;
+  },
+  valueMappings?: IValueMapping[],
+  thresholds?: IThresholds,
+): CalculatedSeriesValue[] => {
+  if (calc === 'origin') {
+    let values: Array<{
+      id: string;
+      name?: string;
+      __time__: number;
+      metric: Record<string, string | undefined>;
+      fields: Record<string, string | number>;
+      stat: SeriesValue;
+    }> = [];
+    _.forEach(series, (serie) => {
+      _.forEach(serie.data, (item) => {
+        values.push({
+          id: `${serie.id}_${item[0]}`,
+          name: getMappedTextObj(serie.name as string, valueMappings)?.text,
+          __time__: item[0],
+          metric: _.reduce(
+            serie.metric,
+            (pre, curVal, curKey) => {
+              pre[curKey] = getMappedTextObj(curVal, valueMappings)?.text;
+              return pre;
+            },
+            {},
+          ),
+          fields: {
+            ...serie.metric,
+            refId: serie.refId,
+            __time__: item[0],
+          },
+          stat: item[1],
+        });
+      });
+    });
+    const minValue = _.minBy(values, (item) => item.stat)?.stat;
+    const maxValue = _.maxBy(values, (item) => item.stat)?.stat;
+    values = _.map(values, (item) => {
+      return {
+        ...item,
+        ...getSerieTextObj(item.stat, { unit, decimals, dateFormat }, valueMappings, thresholds, [minValue as number, maxValue as number]),
+      };
+    }) as typeof values;
+    return values as CalculatedSeriesValue[];
+  }
+  let values = _.map(series, (serie) => {
+    const results = {
+      lastNotNull: () => _.get(_.last(_.filter(serie.data, (item) => item[1] !== null && !_.isNaN(_.toNumber(item[1])))), 1),
+      last: () => _.get(_.last(serie.data), 1),
+      firstNotNull: () => _.get(_.first(_.filter(serie.data, (item) => item[1] !== null && !_.isNaN(_.toNumber(item[1])))), 1),
+      first: () => _.get(_.first(serie.data), 1),
+      min: () => getValueAndToNumber(_.minBy(serie.data, (item) => _.toNumber(item[1]))),
+      max: () => getValueAndToNumber(_.maxBy(serie.data, (item) => _.toNumber(item[1]))),
+      avg: () => _.meanBy(serie.data, (item) => _.toNumber(item[1])),
+      sum: () => _.sumBy(serie.data, (item) => _.toNumber(item[1])),
+      count: () => _.size(serie.data),
+    };
+    let stat = results[calc] ? results[calc]() : NaN;
+    // 2024-07-12 如果 valueField 不是内置的 Value 字段，则取 metric 中的值
+    if (valueField && valueField !== 'Value') {
+      stat = _.get(serie, ['metric', valueField], NaN);
+    }
+    // 2024-06-28 serie.name 放到这里处理，原 datasource 里的 name 都删除掉
+    // 目前只有 mysql 源生效
+    // name 的处理逻辑为
+    // 1. 如果存在 valueField 则把 valueField 作为 __name__ 的值
+    // 2. 如果存在 legend 则通过 replaceExpressionBracket 转换 name
+    // 3. 如果存在 ref name 则为 ref + name
+    // 4. 最后把 name 通过 valueMappings 转换
+    let name = serie.name;
+    if (!name) {
+      name = getSerieName(serie.metric, { valueField, legend: serie.target?.legend, ref: serie.isExp ? serie.refId : undefined }) as string;
+    }
+
+    return {
+      id: serie.id,
+      name: getMappedTextObj(name as string, valueMappings)?.text,
+      target: serie.target,
+      metric: _.reduce(
+        serie.metric,
+        (pre, curVal, curKey) => {
+          pre[curKey] = getMappedTextObj(curVal, valueMappings)?.text;
+          return pre;
+        },
+        {},
+      ),
+      fields: {
+        ...serie.metric,
+        refId: serie.refId,
+      },
+      stat: _.toNumber(stat),
+    };
+  });
+  const minValue = _.minBy(values, (item) => item.stat)?.stat ?? 0;
+  const maxValue = _.maxBy(values, (item) => item.stat)?.stat ?? 0;
+  values = _.map(values, (item) => {
+    return {
+      ...item,
+      ...getSerieTextObj(item.stat, { unit, decimals, dateFormat }, valueMappings, thresholds, [minValue as number, maxValue as number]),
+    };
+  }) as typeof values;
+  return values as unknown as CalculatedSeriesValue[];
+};
+
+export const getLegendValues = (
+  series: CalculatedSeries[],
+  standardOptions: IStandardOptions | undefined,
+  hexPalette: string[],
+  stack = false,
+  valueMappings?: IValueMapping[],
+  overrides?: IOverride[],
+) => {
+  let { decimals, dateFormat } = standardOptions || {};
+  let unit = standardOptions?.unit;
+  const newSeries = stack ? _.reverse(_.clone(series)) : series;
+  const values = _.map(newSeries, (serie, idx) => {
+    const override = _.find(overrides, (item) => item.matcher?.value === serie.refId);
+    if (override) {
+      const overrideStandardOptions = override?.properties?.standardOptions as IStandardOptions | undefined;
+      unit = overrideStandardOptions?.unit;
+      decimals = overrideStandardOptions?.decimals;
+      dateFormat = overrideStandardOptions?.dateFormat;
+    }
+    const results = {
+      max: getValueAndToNumber(_.maxBy(serie.data, (item) => _.toNumber(item[1]))),
+      min: getValueAndToNumber(_.minBy(serie.data, (item) => _.toNumber(item[1]))),
+      avg: _.meanBy(serie.data, (item) => _.toNumber(item[1])),
+      sum: _.sumBy(serie.data, (item) => _.toNumber(item[1])),
+      last: getValueAndToNumber(_.last(serie.data)),
+    };
+    return {
+      id: serie.id,
+      name: getMappedTextObj(serie.name as string, valueMappings)?.text,
+      metric: _.reduce(
+        serie.metric,
+        (pre, curVal, curKey) => {
+          pre[curKey] = getMappedTextObj(curVal, valueMappings)?.text;
+          return pre;
+        },
+        {},
+      ),
+      offset: serie.offset,
+      color: hexPalette[idx % hexPalette.length],
+      disabled: serie.visible === false ? true : undefined,
+      max: valueFormatter({ unit, decimals, dateFormat }, results.max),
+      min: valueFormatter({ unit, decimals, dateFormat }, results.min),
+      avg: valueFormatter({ unit, decimals, dateFormat }, results.avg),
+      sum: valueFormatter({ unit, decimals, dateFormat }, results.sum),
+      last: valueFormatter({ unit, decimals, dateFormat }, results.last),
+    };
+  });
+  return values;
+};
+
+export default getCalculatedValuesBySeries;

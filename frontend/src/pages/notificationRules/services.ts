@@ -1,0 +1,210 @@
+import request from '@/utils/request';
+import { RequestMethod } from '@/store/common';
+import { RuleItem, NotifyStatistics } from './types';
+
+export type { RuleItem, NotifyStatistics };
+
+export function getItems(): Promise<RuleItem[]> {
+  return request('/api/n9e/notify-rules', {
+    method: RequestMethod.Get,
+  }).then((res) => {
+    return res.dat ?? [];
+  });
+}
+
+export function getItem(id: number) {
+  return request(`/api/n9e/notify-rule/${id}`, {
+    method: RequestMethod.Get,
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+export function postItems(data: RuleItem[]) {
+  return request('/api/n9e/notify-rules', {
+    method: RequestMethod.Post,
+    data,
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+export function putItem(data: RuleItem) {
+  return request(`/api/n9e/notify-rule/${data.id}`, {
+    method: RequestMethod.Put,
+    data,
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+export function deleteItems(ids: number[]) {
+  return request('/api/n9e/notify-rules', {
+    method: RequestMethod.Delete,
+    data: { ids },
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+export function getFlashdutyChannelList(id: number) {
+  return request(`/api/n9e/flashduty-channel-list/${id}`, {
+    method: RequestMethod.Get,
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+export function getPagerdutyServiceList(id: number) {
+  return request(`/api/n9e/pagerduty-service-list/${id}`, {
+    method: RequestMethod.Get,
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+export function getPagedutyIntegrationKey(id: number, svc_id: string, integ_id: string) {
+  // throw new Error('Deprecated function: getPagedutyIntegrationKey'); --- IGNORE ---
+  return request(`/api/n9e/pagerduty-integration-key/${id}/${svc_id}/${integ_id}`, {
+    method: RequestMethod.Get,
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+/**
+ * 用真实通知媒介发一条测试消息。后端同步发送并返回 provider 响应，失败时响应体带 err。
+ * options.silence: 由调用方自行渲染失败原因时传 true，避免 request 再弹一个全局红色 toast。
+ */
+export function notifyRuleTest(data: { event_ids?: number[]; use_mock_event?: boolean; notify_config: any; with_recovery?: boolean }, options?: { silence?: boolean }) {
+  return request('/api/n9e/notify-rule/test', {
+    method: RequestMethod.Post,
+    data,
+    silence: options?.silence,
+  });
+}
+
+export interface JiraProject {
+  id: string;
+  key: string;
+  name: string;
+}
+
+export interface JiraIssueType {
+  id: string;
+  name: string;
+  subtask: boolean;
+}
+
+export interface JiraPriority {
+  id: string;
+  name: string;
+}
+
+export interface JiraIssueTypeCheck {
+  missing_permissions: string[];
+  required_fields: { fieldId: string; name: string }[];
+}
+
+// Jira 下拉数据：都用已保存媒介里的凭证实时拉取（:id 是媒介 id）
+export function getJiraProjects(id: number): Promise<JiraProject[]> {
+  return request(`/api/n9e/jira-project-list/${id}`, {
+    method: RequestMethod.Get,
+    silence: true,
+  }).then((res) => res.dat ?? []);
+}
+
+export function getJiraIssueTypes(id: number, project: string): Promise<JiraIssueType[]> {
+  return request(`/api/n9e/jira-issue-type-list/${id}`, {
+    method: RequestMethod.Get,
+    params: { project },
+    silence: true,
+  }).then((res) => res.dat ?? []);
+}
+
+export function getJiraIssueTypeCheck(id: number, project: string, issue_type: string): Promise<JiraIssueTypeCheck> {
+  return request(`/api/n9e/jira-issue-type-check/${id}`, {
+    method: RequestMethod.Get,
+    params: { project, issue_type },
+    silence: true,
+  }).then((res) => res.dat);
+}
+
+export function getJiraPriorities(id: number): Promise<JiraPriority[]> {
+  return request(`/api/n9e/jira-priority-list/${id}`, {
+    method: RequestMethod.Get,
+    silence: true,
+  }).then((res) => res.dat ?? []);
+}
+
+export function getCustomParamsValues(notify_channel_id: number) {
+  return request('/api/n9e/notify-rule/custom-params', {
+    method: RequestMethod.Get,
+    params: { notify_channel_id },
+  }).then((res) => {
+    return res.dat ?? [];
+  });
+}
+
+export function getNotifyStatistics(id: number, days: number): Promise<NotifyStatistics> {
+  return request(`/api/n9e-plus/notify/${id}/statistics`, {
+    method: RequestMethod.Get,
+    params: { days },
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+export function getNotifyEvents(
+  id: number,
+  params: {
+    stime: number;
+    etime: number;
+    limit: number;
+    p: number;
+  },
+) {
+  return request(`/api/n9e-plus/notify/${id}/alert-cur-events`, {
+    method: RequestMethod.Get,
+    params,
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+export function getNotifyAlertRules(id: number) {
+  return request(`/api/n9e-plus/notify/${id}/alert-rules`, {
+    method: RequestMethod.Get,
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+export function getNotifySubAlertRules(id: number) {
+  return request(`/api/n9e-plus/notify/${id}/sub-alert-rules`, {
+    method: RequestMethod.Get,
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+export function getEventTags() {
+  return request('/api/n9e/event-tagkeys', {
+    method: RequestMethod.Get,
+  }).then((res) => {
+    return res.dat;
+  });
+}
+
+export function getFeishuGroups(id: number): Promise<
+  {
+    chat_id: string;
+    name: string;
+  }[]
+> {
+  return request(`/api/n9e/feishu-visible-chats/${id}`, {
+    method: RequestMethod.Get,
+  }).then((res) => {
+    return res?.dat?.items ?? [];
+  });
+}

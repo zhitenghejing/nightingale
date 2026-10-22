@@ -12,11 +12,10 @@
 #               is guaranteed to match the binary being released.
 #   - categraf: $CATEGRAF_LOCAL (a local checkout) if set, else the source
 #               tarball of the latest GitHub release tag ($CATEGRAF_REF pins it).
-#   - fe:       $FE_LOCAL if set, else latest GitHub release tag ($FE_REF pins
-#               it). Note fe.sh downloads the *build artifact* of the same
-#               latest tag, so the corpus matches the embedded front-end UI.
+#   - fe:       always frontend/ in this checkout, including local source edits.
+#               Neither FE_LOCAL nor FE_REF can substitute another source tree.
 #
-# Filters (hard lines: fe src/plus is commercial code, n9e front/ is the 17MB
+# Filters (hard lines: fe src/plus is commercial code, n9e front/ is the generated
 # statik blob — neither may ever enter the corpus):
 #   - n9e:      *.go *.toml *.md minus vendor/ front/ pub/ integrations/ docker/
 #   - categraf: *.go *.toml *.md minus vendor/
@@ -35,7 +34,7 @@ export COPYFILE_DISABLE=1
 
 # Test-file exclusion regexes (see the filter note in the header).
 GO_TEST_FILTER='(_test\.go$|(^|/)testdata/)'
-FE_TEST_FILTER='(\.(test|spec)\.tsx?$|(^|/)(__tests__|__mocks__)/)'
+FE_TEST_FILTER='(\.(test|spec)\.tsx?$|(^|/)(__tests__|__mocks__|test)/)'
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/aiagent/skill/embedded/codeassets"
@@ -116,7 +115,7 @@ N9E_COMMIT="$(git -C "$ROOT" rev-parse HEAD)"
 N9E_REF="$(git -C "$ROOT" describe --tags --abbrev=0 2>/dev/null || git -C "$ROOT" rev-parse --abbrev-ref HEAD)"
 echo ">> staging n9e @ $N9E_REF ($N9E_COMMIT)"
 git -C "$ROOT" -c core.quotePath=false ls-files '*.go' '*.toml' '*.md' \
-  | grep -vE '^(vendor|front|pub|integrations|docker)/' \
+  | grep -vE '^(vendor|front|frontend|pub|integrations|docker)/' \
   | grep -vE "$GO_TEST_FILTER" \
   | stage_files "$ROOT" "$N9E_STAGE"
 
@@ -187,30 +186,20 @@ EOF
 pack "$CAT_STAGE" "$OUT/categraf.tar.gz"
 
 # ---------------------------------------------------------------------------
-# fe — local checkout or latest release source tarball (NEVER src/plus)
+# fe — in-tree community frontend (NEVER src/plus)
 # ---------------------------------------------------------------------------
 FE_STAGE="$WORK/fe"
-if [ -n "${FE_LOCAL:-}" ]; then
-  FE_SRC="$FE_LOCAL"
-  FE_COMMIT="$(git -C "$FE_SRC" rev-parse HEAD 2>/dev/null || echo unknown)"
-  FE_REF_RESOLVED="$(git -C "$FE_SRC" describe --tags --abbrev=0 2>/dev/null || echo local)"
-  echo ">> staging fe from $FE_SRC @ $FE_REF_RESOLVED"
-  # git pathspec 通配对 ** 不可靠（无 :(glob) 魔法时语义漂移），用 grep 过滤
-  git -C "$FE_SRC" -c core.quotePath=false ls-files src \
-    | grep -E '\.(ts|tsx)$' \
-    | grep -v '^src/plus/' \
-    | grep -vE "$FE_TEST_FILTER" \
-    | stage_files "$FE_SRC" "$FE_STAGE"
-else
-  FE_REF_RESOLVED="${FE_REF:-$(latest_tag n9e/fe)}"
-  [ -n "$FE_REF_RESOLVED" ] || { echo "failed to resolve fe latest tag" >&2; exit 1; }
-  FE_SRC="$WORK/fe-src"
-  fetch_source n9e/fe "$FE_REF_RESOLVED" "$FE_SRC"
-  FE_COMMIT="$(tag_commit n9e/fe "$FE_REF_RESOLVED")"
-  (cd "$FE_SRC" && find ./src -type f \( -name '*.ts' -o -name '*.tsx' \) -not -path './src/plus/*' | sed 's|^\./||') \
-    | grep -vE "$FE_TEST_FILTER" \
-    | stage_files "$FE_SRC" "$FE_STAGE"
-fi
+FE_SRC="$ROOT/frontend"
+FE_COMMIT="$N9E_COMMIT"
+FE_FINGERPRINT="$(python3 -B "$ROOT/scripts/frontend.py" source)"
+FE_REF_RESOLVED="in-tree-$FE_FINGERPRINT"
+echo ">> staging fe from this checkout @ $FE_REF_RESOLVED"
+git -C "$FE_SRC" -c core.quotePath=false ls-files --cached --others --exclude-standard src \
+  | LC_ALL=C sort -u \
+  | grep -E '\.(ts|tsx)$' \
+  | grep -v '^src/plus/' \
+  | grep -vE "$FE_TEST_FILTER" \
+  | stage_files "$FE_SRC" "$FE_STAGE"
 
 # Belt and braces: the commercial plus tree must never be packed.
 rm -rf "$FE_STAGE/src/plus"
@@ -242,7 +231,7 @@ cat > "$OUT/manifest.json" <<EOF
 [
   {"repo": "n9e", "ref": "$N9E_REF", "commit": "$N9E_COMMIT", "files": $(count_files "$N9E_STAGE"), "generated_at": "$GENERATED_AT"},
   {"repo": "categraf", "ref": "$CAT_REF", "commit": "$CAT_COMMIT", "files": $(count_files "$CAT_STAGE"), "generated_at": "$GENERATED_AT"},
-  {"repo": "fe", "ref": "$FE_REF_RESOLVED", "commit": "$FE_COMMIT", "files": $(count_files "$FE_STAGE"), "generated_at": "$GENERATED_AT"}
+  {"repo": "fe", "ref": "$FE_REF_RESOLVED", "commit": "$FE_COMMIT", "source_sha256": "$FE_FINGERPRINT", "files": $(count_files "$FE_STAGE"), "generated_at": "$GENERATED_AT"}
 ]
 EOF
 

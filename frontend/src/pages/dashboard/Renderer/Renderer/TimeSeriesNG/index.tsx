@@ -1,0 +1,193 @@
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import _ from 'lodash';
+import { useSize } from 'ahooks';
+
+import { CommonStateContext } from '@/App';
+import { IRawTimeRange } from '@/components/TimeRangePicker';
+import { hexPalette } from '@/pages/dashboard/config';
+
+import { IPanel } from '../../../types';
+
+import getDataFrameAndBaseSeries, { BaseSeriesItem, OldSeriesItem } from './utils/getDataFrameAndBaseSeries';
+import getLegendData from './utils/getLegendData';
+import getChartContainerSize from './utils/getChartContainerSize';
+import { LegendList, LegendTable } from './components/Legend';
+import Main from './Main';
+import useStableValue from '../../../hooks/useStableValue';
+import type { CalculatedSeries } from '../../utils/getCalculatedValuesBySeries';
+import './style.less';
+
+export { getDataFrameAndBaseSeries };
+export type { BaseSeriesItem };
+
+interface Props {
+  id?: string;
+  values: IPanel;
+  series: CalculatedSeries[];
+  annotations: import('@/pages/dashboard/types').DashboardAnnotation[];
+  setAnnotationsRefreshFlag?: (flag: string) => void;
+  colors?: string[];
+  time?: IRawTimeRange;
+  setRange?: (range: IRawTimeRange) => void;
+  timezone?: string;
+  inDashboard?: boolean;
+  isPreview?: boolean;
+  chartHeight?: string;
+  tableHeight?: string;
+  themeMode?: 'dark';
+  hideResetBtn?: boolean;
+  onClick?: (event: Event, datetime: Date, value: number, points: unknown[]) => void;
+  onZoomWithoutDefult?: (times: Date[]) => void;
+  dataRevision?: number;
+}
+
+const PADDING = 8;
+
+const dashboardDataFrameOptions = {
+  getAlignmentPlaceholder: (series: Pick<OldSeriesItem, 'datasourceCate' | 'target'>) =>
+    series.datasourceCate === 'prometheus' || series.target?.datasource?.cate === 'prometheus' ? null : undefined,
+};
+
+export default function index(props: Props) {
+  const { darkMode: appDarkMode } = useContext(CommonStateContext);
+  // TODO 不建议，后面会删除。hoc打开的组件获取不到 App 中 useContext, 这里用localStorage兜底
+  const darkMode = appDarkMode || localStorage.getItem('darkMode') === 'true';
+  const containerRef = useRef<HTMLDivElement>(null);
+  const containerSize = useSize(containerRef);
+  const legendRef = useRef<HTMLDivElement>(null);
+  const legendSize = useSize(legendRef);
+
+  // 整理参数
+  const mainProps = {
+    panel: props.values,
+    series: props.series,
+    annotations: props.annotations,
+    setAnnotationsRefreshFlag: props.setAnnotationsRefreshFlag,
+    colors: props.colors ?? hexPalette,
+    range: props.time,
+    setRange: props.setRange,
+    timezone: props.timezone,
+    inDashboard: props.inDashboard,
+    isPreview: props.isPreview,
+    hideResetBtn: props.hideResetBtn,
+    onClick: props.onClick,
+    onZoomWithoutDefult: props.onZoomWithoutDefult,
+  };
+  const options = mainProps.panel.options;
+  const dataDependency = props.dataRevision ?? mainProps.series;
+  const stablePanel = useStableValue(mainProps.panel);
+  const legend = options?.legend;
+  const legendPlacement = legend?.placement || 'bottom'; // 适配旧版的默认值
+  const legendDisplayMode = options.legend?.displayMode || 'table';
+  const legendColumns = !_.isEmpty(legend?.columns) ? legend?.columns : legendDisplayMode === 'table' ? ['max', 'min', 'avg', 'sum', 'last'] : [];
+  const legendBehaviour = legend?.behaviour || 'showItem';
+  const legendSelectMode = legend?.selectMode || 'single';
+  const legendSortBy = legend?.sortBy;
+  const legendSortDir = legend?.sortDir || 'asc';
+  const chartContainerSize = getChartContainerSize(PADDING, containerSize, legendSize, legendDisplayMode, legendPlacement);
+  const [dataRefresh, setDataRefresh] = useState(_.uniqueId('dataRefresh_'));
+  const [activeLegend, setActiveLegend] = useState<string>(); // legendSelectMode === 'single'
+  const [activeLegends, setActiveLegends] = useState<string[]>([]); // legendSelectMode === 'multiple'
+  const { frames, baseSeries } = useMemo(() => {
+    return getDataFrameAndBaseSeries(mainProps.series as unknown as OldSeriesItem[], dashboardDataFrameOptions);
+  }, [dataDependency]);
+  useEffect(() => {
+    setDataRefresh(_.uniqueId('dataRefresh_'));
+    setActiveLegend(undefined);
+    setActiveLegends([]);
+  }, [dataDependency]);
+  const seriesData = useMemo(() => {
+    if (legendSelectMode === 'multiple') {
+      return _.map(baseSeries, (subItem) => {
+        const id = subItem.n9e_internal.id;
+        return {
+          ...subItem,
+          show: activeLegends.length ? (legendBehaviour === 'hideItem' ? !activeLegends.includes(id) : activeLegends.includes(id)) : true,
+        };
+      });
+    }
+    return _.map(baseSeries, (subItem) => {
+      const id = subItem.n9e_internal.id;
+      return {
+        ...subItem,
+        show: activeLegend ? (legendBehaviour === 'hideItem' ? activeLegend !== id : activeLegend === id) : true,
+      };
+    });
+  }, [dataRefresh, activeLegend, activeLegends, legendBehaviour, legendSelectMode, baseSeries]);
+  const legendData = useMemo(() => {
+    const { options, overrides } = mainProps.panel;
+    if (legend?.displayMode !== 'hidden') {
+      return getLegendData({
+        frames,
+        baseSeries: seriesData,
+        hexPalette: mainProps.colors,
+        standardOptions: options?.standardOptions,
+        valueMappings: options?.valueMappings,
+        thresholds: options?.thresholds,
+        overrides,
+      });
+    }
+    return [];
+  }, [dataRefresh, legend?.displayMode, stablePanel, seriesData]);
+
+  return (
+    <div
+      ref={containerRef}
+      className='renderer-timeseries-ng-container'
+      style={{
+        flexDirection: legendPlacement === 'right' ? 'row' : 'column',
+        padding: PADDING,
+      }}
+    >
+      <div className='renderer-timeseries-ng-graph-container'>
+        {props.id && chartContainerSize.width && chartContainerSize.height && (
+          <Main {...mainProps} id={props.id} darkMode={darkMode} width={chartContainerSize.width} height={chartContainerSize.height} frames={frames} baseSeries={seriesData} />
+        )}
+      </div>
+      {(legendDisplayMode === 'list' || legendDisplayMode === 'table') && (
+        <div
+          ref={legendRef}
+          className='renderer-timeseries-ng-legend-container'
+          style={{
+            maxHeight: legendPlacement === 'bottom' ? (legend?.heightInPercentage || 30) + '%' : 'unset',
+            maxWidth: legendPlacement === 'right' ? (legend?.widthInPercentage || 60) + '%' : 'unset',
+          }}
+        >
+          {legendDisplayMode === 'list' && (
+            <LegendList
+              panel={mainProps.panel}
+              data={legendData}
+              legendColumns={legendColumns}
+              legendSortBy={legendSortBy}
+              legendSortDir={legendSortDir}
+              placement={legendPlacement}
+              onRowClick={(record) => {
+                if (legendSelectMode === 'multiple') {
+                  setActiveLegends(_.xor(activeLegends, [record.id]));
+                } else {
+                  setActiveLegend(activeLegend !== record.id ? record.id : '');
+                }
+              }}
+            />
+          )}
+          {legendDisplayMode === 'table' && (
+            <LegendTable
+              panel={mainProps.panel}
+              data={legendData}
+              legendColumns={legendColumns}
+              legendSortBy={legendSortBy}
+              legendSortDir={legendSortDir}
+              onRowClick={(record) => {
+                if (legendSelectMode === 'multiple') {
+                  setActiveLegends(_.xor(activeLegends, [record.id]));
+                } else {
+                  setActiveLegend(activeLegend !== record.id ? record.id : '');
+                }
+              }}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

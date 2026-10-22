@@ -1,0 +1,357 @@
+jest.mock('lodash', () => {
+  const actual = jest.requireActual('lodash');
+  return {
+    __esModule: true,
+    default: actual,
+    ...actual,
+  };
+});
+
+import _ from 'lodash';
+import { processInitialValues, processFormValues, parseTimeToValueAndUnit } from './utils';
+
+// ---------- dependency mocks ----------
+
+jest.mock('moment', () => {
+  const mockVal = { format: jest.fn().mockReturnValue('00:00') };
+  const mockFn: any = jest.fn(() => mockVal);
+  mockFn.fn = jest.fn();
+  return { __esModule: true, default: mockFn, fn: mockFn.fn };
+});
+
+jest.mock('@/components/TimeRangePicker', () => ({
+  mapOptionToRelativeTimeRange: jest.fn(),
+  mapRelativeTimeRangeToOption: jest.fn().mockReturnValue({ label: 'mocked', value: 'mocked' }),
+}));
+
+jest.mock('@/utils/constant', () => ({
+  DatasourceCateEnum: {},
+  IS_PLUS: false,
+}));
+
+jest.mock('./constants', () => ({
+  getDefaultRuleConfig: jest.fn(),
+  datasourceDefaultValue: {},
+  defaultValues: {
+    effective_time: [
+      {
+        enable_days_of_week: ['0', '1', '2', '3', '4', '5', '6'],
+        enable_stime: { format: jest.fn().mockReturnValue('00:00') },
+        enable_etime: { format: jest.fn().mockReturnValue('00:00') },
+      },
+    ],
+  },
+}));
+
+jest.mock('../constants', () => ({
+  DATASOURCE_ALL: 0,
+}));
+
+jest.mock('plus:/parcels/AlertRule/utils', () => ({}), { virtual: true });
+
+// ---------- parseTimeToValueAndUnit 单元测试 ----------
+
+describe('parseTimeToValueAndUnit', () => {
+  it('600秒应转换为10分钟', () => {
+    const result = parseTimeToValueAndUnit(600);
+    expect(result.value).toBe(10);
+    expect(result.unit).toBe('min');
+  });
+
+  it('30秒应保持30秒', () => {
+    const result = parseTimeToValueAndUnit(30);
+    expect(result.value).toBe(30);
+    expect(result.unit).toBe('second');
+  });
+
+  it('3600秒应转换为1小时', () => {
+    const result = parseTimeToValueAndUnit(3600);
+    expect(result.value).toBe(1);
+    expect(result.unit).toBe('hour');
+  });
+
+  it('falsy值应返回默认min单位', () => {
+    expect(parseTimeToValueAndUnit(0).unit).toBe('min');
+    expect(parseTimeToValueAndUnit(undefined).unit).toBe('min');
+    expect(parseTimeToValueAndUnit(null as any).unit).toBe('min');
+  });
+});
+
+// ---------- processInitialValues 回归测试 ----------
+
+describe('processInitialValues', () => {
+  /**
+   * 核心回归测试：不修改原始输入对象
+   * 这是本 bug 修复的核心验证 — cloneDeep 防止了原始对象被污染
+   */
+  it('不应修改原始输入对象（non-mutation）', () => {
+    const input = {
+      rule_config: {
+        queries: [{ interval: 600 }],
+      },
+    } as const;
+    const inputClone = _.cloneDeep(input);
+
+    processInitialValues(input);
+
+    expect(input).toEqual(inputClone);
+  });
+
+  /**
+   * 核心回归测试：多次调用结果一致（幂等性）
+   * 修复前，第二次调用会读到已被修改的数据，导致 unit 从 'min' 变为 'second'
+   */
+  it('多次调用应返回相同结果（幂等性）', () => {
+    const input = {
+      rule_config: {
+        queries: [{ interval: 600 }],
+      },
+    } as const;
+
+    const result1 = processInitialValues(input);
+    const result2 = processInitialValues(input);
+
+    expect(result1.rule_config.queries[0].interval).toBe(10);
+    expect(result1.rule_config.queries[0].interval_unit).toBe('min');
+    expect(result2.rule_config.queries[0].interval).toBe(10);
+    expect(result2.rule_config.queries[0].interval_unit).toBe('min');
+  });
+
+  // ---------- interval 转换测试 ----------
+
+  it('interval=600 应转换为 10分钟', () => {
+    const result = processInitialValues({
+      rule_config: {
+        queries: [{ interval: 600 }],
+      },
+    });
+    expect(result.rule_config.queries[0].interval).toBe(10);
+    expect(result.rule_config.queries[0].interval_unit).toBe('min');
+  });
+
+  it('interval=30 应转换为 30秒', () => {
+    const result = processInitialValues({
+      rule_config: {
+        queries: [{ interval: 30 }],
+      },
+    });
+    expect(result.rule_config.queries[0].interval).toBe(30);
+    expect(result.rule_config.queries[0].interval_unit).toBe('second');
+  });
+
+  it('interval=3600 应转换为 1小时', () => {
+    const result = processInitialValues({
+      rule_config: {
+        queries: [{ interval: 3600 }],
+      },
+    });
+    expect(result.rule_config.queries[0].interval).toBe(1);
+    expect(result.rule_config.queries[0].interval_unit).toBe('hour');
+  });
+
+  it('interval=0/falsy 时 interval 和 interval_unit 应为 undefined', () => {
+    const result = processInitialValues({
+      rule_config: {
+        queries: [{ interval: 0 }],
+      },
+    });
+    expect(result.rule_config.queries[0].interval).toBeUndefined();
+    expect(result.rule_config.queries[0].interval_unit).toBeUndefined();
+  });
+
+  it('interval 不存在时不应报错', () => {
+    const result = processInitialValues({
+      rule_config: {
+        queries: [{}],
+      },
+    });
+    expect(result.rule_config.queries[0].interval).toBeUndefined();
+    expect(result.rule_config.queries[0].interval_unit).toBeUndefined();
+  });
+
+  it('没有 queries 字段时不应报错', () => {
+    const result = processInitialValues({});
+    expect(result).toBeDefined();
+  });
+
+  it('仅回填具有 exp 的阈值条件，不使用 expressions 回退渲染旧数据', () => {
+    const result = processInitialValues({
+      rule_config: {
+        triggers: [
+          { exp: '$A > 10', expressions: [{ ref: 'A', comparisonOperator: '>', value: 10 }] },
+          { expressions: [{ ref: 'B', comparisonOperator: '<', value: 0 }] },
+          { exp: '   ', expressions: [{ ref: 'C', comparisonOperator: '==', value: 1 }] },
+        ],
+      },
+    });
+
+    expect(result.rule_config.triggers).toEqual([{ exp: '$A > 10', expressions: [{ ref: 'A', comparisonOperator: '>', value: 10 }] }]);
+  });
+
+  // ---------- 多查询测试 ----------
+
+  it('应正确处理多个 queries', () => {
+    const result = processInitialValues({
+      rule_config: {
+        queries: [{ interval: 600 }, { interval: 30 }, { interval: 3600 }],
+      },
+    });
+    expect(result.rule_config.queries[0]).toMatchObject({ interval: 10, interval_unit: 'min' });
+    expect(result.rule_config.queries[1]).toMatchObject({ interval: 30, interval_unit: 'second' });
+    expect(result.rule_config.queries[2]).toMatchObject({ interval: 1, interval_unit: 'hour' });
+  });
+
+  // ---------- keys 字段转换测试 ----------
+
+  it('应将 keys.labelKey 字符串转换为数组', () => {
+    const result = processInitialValues({
+      rule_config: {
+        queries: [{ keys: { labelKey: 'a b c' } }],
+      },
+    });
+    expect(result.rule_config.queries[0].keys.labelKey).toEqual(['a', 'b', 'c']);
+  });
+
+  it('应将 keys.valueKey 字符串转换为数组', () => {
+    const result = processInitialValues({
+      rule_config: {
+        queries: [{ keys: { valueKey: 'x y' } }],
+      },
+    });
+    expect(result.rule_config.queries[0].keys.valueKey).toEqual(['x', 'y']);
+  });
+
+  it('应将 keys.metricKey 字符串转换为数组', () => {
+    const result = processInitialValues({
+      rule_config: {
+        queries: [{ keys: { metricKey: 'm1 m2' } }],
+      },
+    });
+    expect(result.rule_config.queries[0].keys.metricKey).toEqual(['m1', 'm2']);
+  });
+
+  it('keys 为空字符串时应处理为空数组', () => {
+    const result = processInitialValues({
+      rule_config: {
+        queries: [{ keys: { labelKey: '' } }],
+      },
+    });
+    expect(result.rule_config.queries[0].keys.labelKey).toEqual([]);
+  });
+
+  // ---------- 顶层字段转换测试 ----------
+
+  it('应将 enable_in_bg 从 1 转换为 true', () => {
+    const result = processInitialValues({ enable_in_bg: 1 });
+    expect(result.enable_in_bg).toBe(true);
+  });
+
+  it('应将 enable_status 从 disabled=1 转换为 false', () => {
+    const result = processInitialValues({ disabled: 1 });
+    expect(result.enable_status).toBe(false);
+  });
+
+  it('应将 notify_recovered 从 1 转换为 true', () => {
+    const result = processInitialValues({ notify_recovered: 1 });
+    expect(result.notify_recovered).toBe(true);
+  });
+
+  it('应将 callbacks 字符串数组转换为 {url} 对象数组', () => {
+    const result = processInitialValues({ callbacks: ['http://a.com', 'http://b.com'] });
+    expect(result.callbacks).toEqual([{ url: 'http://a.com' }, { url: 'http://b.com' }]);
+  });
+});
+
+// ---------- processFormValues 回归测试 ----------
+
+const baseFormValues = {
+  effective_time: [
+    {
+      enable_days_of_week: ['0', '1', '2', '3', '4', '5', '6'],
+      enable_stime: { format: jest.fn().mockReturnValue('00:00') },
+      enable_etime: { format: jest.fn().mockReturnValue('23:59') },
+    },
+  ],
+};
+
+describe('processFormValues', () => {
+  /**
+   * 核心回归测试：editMode 记录 SQL 的 Builder/Code 视图状态，需随规则配置保存，
+   * 再次编辑时才能还原视图；builderConfig 是 Builder 的草稿配置，SQL 才是编译产物，不落库
+   */
+  it('ES SQL 查询应保留 editMode 并剥离 builderConfig', () => {
+    const result = processFormValues({
+      cate: 'elasticsearch',
+      rule_config: {
+        queries: [
+          {
+            ref: 'A',
+            syntax: 'sql',
+            editMode: 'builder',
+            builderConfig: { index: 'logs', date_field: '@timestamp' },
+            sql: 'SELECT count(*) FROM logs',
+            index: 'logs-*',
+            filter: 'service:web',
+            interval: 5,
+            interval_unit: 'min',
+          },
+        ],
+      },
+      ...baseFormValues,
+    });
+    const query = result.rule_config.queries[0];
+    expect(query.editMode).toBe('builder');
+    expect(query.builderConfig).toBeUndefined();
+    expect(query.sql).toBe('SELECT count(*) FROM logs');
+    expect(query.index).toBeUndefined();
+    expect(query.filter).toBeUndefined();
+    expect(query.interval).toBe(300);
+    expect(query.interval_unit).toBeUndefined();
+  });
+
+  it('ES DSL 查询仍应清除 SQL 模式遗留的 sql/keys', () => {
+    const result = processFormValues({
+      cate: 'elasticsearch',
+      rule_config: {
+        queries: [
+          {
+            ref: 'A',
+            syntax: 'dsl',
+            sql: 'SELECT 1',
+            keys: { valueKey: 'count' },
+            editMode: 'builder',
+            builderConfig: { index: 'logs' },
+          },
+        ],
+      },
+      ...baseFormValues,
+    });
+    const query = result.rule_config.queries[0];
+    expect(query.sql).toBeUndefined();
+    expect(query.keys).toBeUndefined();
+    expect(query.editMode).toBeUndefined();
+    expect(query.builderConfig).toBeUndefined();
+  });
+
+  it('非 ES 查询也应剥离临时 builderConfig', () => {
+    const result = processFormValues({
+      cate: 'doris',
+      rule_config: {
+        queries: [
+          {
+            ref: 'A',
+            sql: 'SELECT count(*) AS value FROM logs',
+            builderConfig: { database: 'observability', table: 'logs' },
+            interval: 5,
+            interval_unit: 'min',
+          },
+        ],
+      },
+      ...baseFormValues,
+    });
+    const query = result.rule_config.queries[0];
+    expect(query.builderConfig).toBeUndefined();
+    expect(query.sql).toBe('SELECT count(*) AS value FROM logs');
+    expect(query.interval).toBe(300);
+  });
+});

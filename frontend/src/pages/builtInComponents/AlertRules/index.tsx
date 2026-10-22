@@ -1,0 +1,337 @@
+import React, { useState, useRef, useContext, useEffect } from 'react';
+import _ from 'lodash';
+import { Space, Button, Input, Select, Modal, Tag, message } from 'antd';
+import { SearchOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import { useDebounceEffect } from 'ahooks';
+import usePagination from '@/components/usePagination';
+import Export from '@/pages/dashboard/List/Export';
+import AuthorizationWrapper, { useIsAuthorized } from '@/components/AuthorizationWrapper';
+import { CommonStateContext } from '@/App';
+import { HelpLink } from '@/components/pageLayout';
+import EnhancedTable from '@/components/EnhancedTable';
+import { tagsColumn, updateByColumn } from '@/components/EnhancedTable/columns';
+import Tags from '@/components/TableTags/Tags';
+import { PERM as notificationRulesPerm } from '@/pages/notificationRules/constants';
+import { RuleType } from './types';
+import Import from './Import';
+import { markPackStep } from '../packProgress';
+import { getPayloads, deletePayloads, getCates } from '../services';
+import { pathname } from '../constants';
+import { TypeEnum } from '../types';
+import { formatBeautifyJson, formatBeautifyJsons } from '../utils';
+import PayloadFormModal from '../components/PayloadFormModal';
+
+interface Props {
+  component_id: number;
+  /** 记录「一条龙」进度用；不传则不记 */
+  componentIdent?: string;
+  onPackStepDone?: () => void;
+}
+
+export default function index(props: Props) {
+  const { component_id, componentIdent, onPackStepDone } = props;
+  const markImported = () => {
+    if (!componentIdent) return;
+    markPackStep(componentIdent, 'alert');
+    onPackStepDone?.();
+  };
+  const { t } = useTranslation('builtInComponents');
+  const commonState = useContext(CommonStateContext);
+  const { busiGroups, groupedDatasourceList, reloadGroupedDatasourceList, datasourceCateOptions, darkMode } = commonState;
+  const canPut = useIsAuthorized(['/components/put']);
+  const canDel = useIsAuthorized(['/components/del']);
+  // 导入弹窗的 ImportForm 把它当必填 prop（显式契约），在这里算好传进去
+  const notificationRulesAuthorized = useIsAuthorized([notificationRulesPerm]);
+  const [filter, setFilter] = useState<{
+    cate?: string;
+    query?: string;
+  }>({ cate: undefined, query: undefined });
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [data, setData] = useState<RuleType[]>();
+  const [cateList, setCateList] = useState<string[]>([]);
+  const pagination = usePagination({ PAGESIZE_KEY: 'dashboard-builtin-pagesize' });
+  const selectedRows = useRef<RuleType[]>([]);
+  const fetchData = () => {
+    setLoading(true);
+    getPayloads<RuleType[]>({ component_id, type: TypeEnum.alert, cate: filter.cate, query: filter.query })
+      .then((res) => {
+        setData(res);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+  const fetchCates = () => {
+    getCates({
+      component_id,
+      type: TypeEnum.alert,
+    }).then((res) => {
+      setCateList(res);
+      setFilter({
+        ...filter,
+        cate: filter.cate || _.head(res),
+      });
+    });
+  };
+
+  useDebounceEffect(
+    () => {
+      fetchData();
+    },
+    [component_id, filter.cate, filter.query],
+    {
+      wait: 500,
+    },
+  );
+
+  useEffect(() => {
+    fetchCates();
+  }, []);
+
+  return (
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Space>
+          <Select
+            style={{ width: 200 }}
+            value={filter.cate}
+            loading={loading}
+            placeholder={t('builtInComponents:cate')}
+            showSearch
+            optionFilterProp='children'
+            onChange={(val) => {
+              setFilter({ ...filter, cate: val });
+            }}
+            dropdownMatchSelectWidth={false}
+          >
+            {_.map(cateList, (item) => {
+              return (
+                <Select.Option key={item} value={item}>
+                  {item}
+                </Select.Option>
+              );
+            })}
+          </Select>
+          <Input
+            prefix={<SearchOutlined />}
+            value={filter.query}
+            onChange={(e) => {
+              setFilter({ ...filter, query: e.target.value });
+            }}
+            placeholder={t('common:search_placeholder')}
+            style={{ width: 300 }}
+            allowClear
+          />
+        </Space>
+        <Space>
+          <HelpLink src='https://flashcat.cloud/docs/content/flashcat-monitor/nightingale-v9/usage/integrations/templates/alert-rule-template/' />
+          <AuthorizationWrapper allowedPerms={['/components/add']}>
+            <Button
+              type='primary'
+              onClick={() => {
+                PayloadFormModal({
+                  darkMode,
+                  action: 'create',
+                  cateList,
+                  contentMode: 'json',
+                  showCate: true,
+                  initialValues: {
+                    type: TypeEnum.alert,
+                    component_id,
+                    cate: filter.cate,
+                  },
+                  onOk: () => {
+                    fetchData();
+                    fetchCates();
+                  },
+                });
+              }}
+            >
+              {t('common:btn.create')}
+            </Button>
+          </AuthorizationWrapper>
+          <Button
+            onClick={() => {
+              if (_.isEmpty(selectedRows.current)) {
+                message.warning(t('formModal.no_select.alert'));
+                return;
+              }
+              Import({
+                data: formatBeautifyJsons(_.map(selectedRows.current, 'content')),
+                busiGroups,
+                onSuccess: markImported,
+                groupedDatasourceList,
+                reloadGroupedDatasourceList,
+                datasourceCateOptions,
+                notificationRulesAuthorized,
+                // 弹窗里的「通知规则」选择器要就地建规则/建媒介，这些都要读 CommonStateContext
+                commonState,
+              });
+            }}
+          >
+            {t('import_to_buisGroup')}
+          </Button>
+          <Button
+            onClick={() => {
+              if (_.isEmpty(selectedRows.current)) {
+                message.warning(t('formModal.no_select.alert'));
+                return;
+              }
+              Export({
+                data: formatBeautifyJsons(_.map(selectedRows.current, 'content')),
+              });
+            }}
+          >
+            {t('common:btn.batch_export')}
+          </Button>
+        </Space>
+      </div>
+      <EnhancedTable
+        className='mt-2'
+        size='small'
+        rowKey='id'
+        loading={loading}
+        dataSource={data}
+        rowSelection={{
+          selectedRowKeys,
+          onChange: (selectedRowKeys: string[], rows: RuleType[]) => {
+            setSelectedRowKeys(selectedRowKeys);
+            selectedRows.current = rows;
+          },
+        }}
+        columns={[
+          {
+            title: t('common:table.name'),
+            dataIndex: 'name',
+            key: 'name',
+            render: (value, record) => {
+              return (
+                <Link
+                  to={{
+                    pathname: `${pathname}/alert/detail`,
+                    search: `?uuid=${record.uuid}`,
+                  }}
+                  target='_blank'
+                >
+                  {value}
+                </Link>
+              );
+            },
+          },
+          tagsColumn({
+            title: t('tags'),
+            dataIndex: 'tags',
+            render: (val) => {
+              const tags = _.compact(_.split(val, ' '));
+              return (
+                <Tags
+                  data={tags}
+                  onTagClick={(tag: string) => {
+                    const queryItem = _.compact(_.split(filter.query, ' '));
+                    if (_.includes(queryItem, tag)) return;
+                    setFilter((filter) => ({
+                      ...filter,
+                      query: filter.query ? filter.query + ' ' + tag : tag,
+                    }));
+                  }}
+                />
+              );
+            },
+          }),
+          updateByColumn({
+            title: t('common:table.update_by'),
+            dataIndex: 'updated_by',
+            key: 'updated_by',
+            render: (value) => {
+              if (!value) return '-';
+              if (value === 'system') {
+                return <Tag>{t('payload_by_system')}</Tag>;
+              }
+              return value;
+            },
+          }),
+        ]}
+        pagination={pagination}
+        rowActions={(record: any) => {
+          return {
+            inline: [
+              {
+                key: 'import',
+                icon: 'import',
+                text: t('import_to_buisGroup'),
+                onClick: () => {
+                  Import({
+                    data: formatBeautifyJson(record.content),
+                    busiGroups,
+                    onSuccess: markImported,
+                    groupedDatasourceList,
+                    reloadGroupedDatasourceList,
+                    datasourceCateOptions,
+                    notificationRulesAuthorized,
+                    commonState,
+                  });
+                },
+              },
+              {
+                key: 'export',
+                icon: 'open',
+                text: t('common:btn.export'),
+                onClick: () => {
+                  Export({
+                    data: formatBeautifyJson(record.content, 'array'),
+                  });
+                },
+              },
+            ],
+            menu: _.compact([
+              record.updated_by !== 'system' && canPut
+                ? {
+                    key: 'edit',
+                    icon: 'edit',
+                    text: t('common:btn.edit'),
+                    onClick: () => {
+                      PayloadFormModal({
+                        darkMode,
+                        action: 'edit',
+                        cateList,
+                        contentMode: 'json',
+                        showCate: true,
+                        initialValues: record,
+                        onOk: () => {
+                          fetchData();
+                          fetchCates();
+                        },
+                      });
+                    },
+                  }
+                : undefined,
+              record.updated_by !== 'system' && canDel
+                ? {
+                    key: 'delete',
+                    icon: 'delete',
+                    text: t('common:btn.delete'),
+                    danger: true,
+                    onClick: () => {
+                      Modal.confirm({
+                        title: t('common:confirm.delete'),
+                        onOk() {
+                          deletePayloads([record.id]).then(() => {
+                            fetchData();
+                            fetchCates();
+                          });
+                        },
+                      });
+                    },
+                  }
+                : undefined,
+            ]),
+          };
+        }}
+        actionColumn={{ title: t('common:table.operations'), width: 90 }}
+      />
+    </>
+  );
+}

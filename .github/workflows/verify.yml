@@ -1,0 +1,89 @@
+name: verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.node-version
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
+      - name: Verify
+        env:
+          N9E_VERIFY_BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'HEAD' }}
+        run: make verify
+
+  external-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4.7
+        env:
+          MYSQL_ROOT_PASSWORD: test-password
+          MYSQL_ROOT_HOST: '%'
+          MYSQL_DATABASE: n9e_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 --silent"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+      postgres:
+        image: postgres:17.7-bookworm
+        env:
+          POSTGRES_PASSWORD: test-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+      clickhouse:
+        # Immutable image corresponding to the tested 23.8-alpine build.
+        image: clickhouse/clickhouse-server@sha256:d62ac5636c9278368181b5c6d5881ad5ad664513a6d72472f07bffdfdf4d8d80
+        ports:
+          - 8123:8123
+        options: >-
+          --health-cmd="clickhouse-client --query 'SELECT 1'"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+      victorialogs:
+        image: victoriametrics/victoria-logs:v1.53.0
+        ports:
+          - 9428:9428
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Wait for VictoriaLogs
+        run: curl --fail --retry 30 --retry-delay 2 --retry-connrefused http://127.0.0.1:9428/health
+      - name: Run required external integration tests
+        env:
+          N9E_REQUIRE_EXTERNAL_TESTS: '1'
+          N9E_TEST_MYSQL_DSN: 'root:test-password@tcp(127.0.0.1:3306)/n9e_test?parseTime=true'
+          N9E_TEST_POSTGRES_DSN: 'host=127.0.0.1 port=5432 user=postgres password=test-password dbname=postgres sslmode=disable'
+          N9E_TEST_CLICKHOUSE_ADDR: '127.0.0.1:8123'
+          N9E_TEST_VICTORIALOGS_URL: 'http://127.0.0.1:9428'
+        run: go test -count=1 -v ./dskit/mysql ./dskit/clickhouse ./dskit/victorialogs ./pkg/ormx

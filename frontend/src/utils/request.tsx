@@ -1,0 +1,375 @@
+/** Request 网络请求工具 更详细的 api 文档: https://github.com/umijs/umi-request */
+import React, { useState } from 'react';
+import Request, { ResponseError, extend } from 'umi-request';
+import { notification } from 'antd';
+import _ from 'lodash';
+import { UpdateAccessToken } from '@/services/login';
+import { N9E_PATHNAME, AccessTokenKey } from '@/utils/constant';
+import i18next from 'i18next';
+import { basePrefix } from '@/App';
+import ErrorWithDetail from '@/components/ErrorWithDetail';
+import { normalizeError } from '@/utils/appError';
+import { reportPageError } from '@/utils/pageError';
+export interface RequestWorkspaceOptions {
+  workspaceId?: number | string;
+}
+const getErrorStatus = (error: any) => {
+  return error?.response?.status ?? error?.status;
+};
+
+const isServiceUnavailableError = (error: any) => {
+  const status = getErrorStatus(error);
+  return status >= 500 && status < 600;
+};
+
+/** 异常处理程序，所有的error都被这里处理，页面无法感知具体error */
+const errorHandler = (error: ResponseError<any>): Response => {
+  // 忽略掉 setting getter-only property "data" 的错误
+  // 这是 umi-request 的一个 bug，当触发 abort 时 catch callback 里面不能 set data
+  if (error.name !== 'AbortError' && error.message !== 'setting getter-only property "data"' && !Request.isCancel(error)) {
+    if (error.request?.options?.sourcePathname && error.request.options.sourcePathname !== location.pathname) {
+      throw error;
+    }
+    // @ts-ignore
+    else if (!error.silence) {
+      notification.error({
+        key: error.message,
+        message: <ErrorWithDetail error={error} />,
+        top: 48,
+      });
+    }
+    // 暂时认定只有开启 silence 的时候才需要传递 error 详情以便更加精确的处理错误
+    // @ts-ignore
+    if (error.silence || isServiceUnavailableError(error)) {
+      throw error;
+    } else {
+      throw new Error(error.message);
+    }
+  }
+  throw error;
+};
+
+/** 处理后端返回的错误信息 */
+const processError = (res: any): string => {
+  if (res?.error?.message) {
+    return _.isString(res?.error?.message) ? res?.error?.message : JSON.stringify(res?.error?.message);
+  }
+  if (res?.error) {
+    return _.isString(res?.error) ? res.error : JSON.stringify(res?.error);
+  }
+  if (res?.err) {
+    return _.isString(res?.err) ? res.err : JSON.stringify(res?.err);
+  }
+  if (res?.errors) {
+    return _.isString(res?.errors) ? res.errors : JSON.stringify(res?.errors);
+  }
+  if (res?.message) {
+    return _.isString(res?.message) ? res.message : JSON.stringify(res?.message);
+  }
+  return JSON.stringify(res);
+};
+
+/**
+ * 把 403 交给页面就地渲染，而不是整页跳到 /403。
+ *
+ * 跳转会把当前 URL 一起丢掉：用户既说不清自己要哪个页面的权限，点后退还会再次触发
+ * 403 被弹回来，形成死循环。就地渲染则保住 URL，后退也能真的退出去。
+ *
+ * 声明了 silence 的请求自己处理错误（比如渲染成局部占位），不进这个通道。
+ */
+const reportForbidden = (data: any, options: any) => {
+  if (options?.silence) return;
+  // 请求发出后用户可能已经翻到别的页面了。这种迟到的 403 属于上一页，不能拿来
+  // 顶掉当前这一屏 —— errorHandler 里对通知也是同一套判断。
+  const sourcePathname = options?.sourcePathname;
+  if (sourcePathname && sourcePathname !== location.pathname) return;
+  reportPageError(
+    normalizeError({
+      status: 403,
+      message: processError(data),
+      data,
+      action: options?.action,
+      // 用发起请求时的路径，而不是响应回来时的 location：后者可能已经变了，
+      // 那样诊断信息里的「访问路径」会指向一个没出错的页面
+      path: sourcePathname,
+    }),
+  );
+};
+
+const combineLoginURL = () => {
+  return `${basePrefix}/login${location.pathname != '/' ? '?redirect=' + encodeURIComponent(location.pathname + location.search) : ''}`;
+};
+
+/**
+ * 会话已经不可用（过期、账号被禁用或删除）时统一走这里：先把失效的 token 从
+ * localStorage 清掉再跳登录页。留着它们的话，后续请求还会带上这份凭证继续 401，
+ * 页面容易在「重试 → 401」之间空转。isRedirectingToLogin 保证只跳一次——
+ * 一个页面上常有多个并发请求同时 401。
+ */
+let isRedirectingToLogin = false;
+
+const redirectToLogin = () => {
+  if (isRedirectingToLogin) return;
+  isRedirectingToLogin = true;
+
+  localStorage.removeItem(AccessTokenKey);
+  localStorage.removeItem('refresh_token');
+  location.href = combineLoginURL();
+};
+
+/** UpdateAccessToken 请求锁，确保同时只有一个刷新token的请求 */
+let updateAccessTokenPromise: Promise<any> | null = null;
+
+const updateAccessTokenWithLock = () => {
+  // 如果已经有一个请求在进行中，直接返回这个 Promise
+  if (updateAccessTokenPromise) {
+    return updateAccessTokenPromise;
+  }
+
+  // 创建新的 Promise 并执行请求
+  updateAccessTokenPromise = UpdateAccessToken()
+    .then((res) => {
+      return res;
+    })
+    .finally(() => {
+      // 请求完成后，清空 Promise 引用
+      updateAccessTokenPromise = null;
+    });
+
+  return updateAccessTokenPromise;
+};
+
+/** 配置request请求时的默认参数 */
+const request = extend({
+  errorHandler,
+  credentials: 'include',
+});
+
+request.interceptors.request.use((url, options) => {
+  let headers = {
+    ...options.headers,
+  };
+  headers['Authorization'] = `Bearer ${localStorage.getItem(AccessTokenKey) || ''}`;
+  headers['X-Language'] = i18next.language;
+  // 仪表盘分享页：把链接上的 __token 透传给所有 API 请求。后端据此匿名放行
+  // board 详情与数据查询接口，并把可查数据源收敛到板内引用集合；仪表盘渲染
+  // 链路（panel 查询、变量、datasource brief）很深，统一在这里追加而不逐层传参
+  let newUrl = url;
+  if (url.startsWith('/api/') && location.pathname.includes('/dashboards/share/')) {
+    const shareToken = new URLSearchParams(location.search).get('__token');
+    if (shareToken && !url.includes('__token=')) {
+      newUrl += `${newUrl.includes('?') ? '&' : '?'}__token=${encodeURIComponent(shareToken)}`;
+    }
+  }
+  return {
+    url: basePrefix + newUrl,
+    options: { ...options, headers, sourcePathname: location.pathname },
+  };
+});
+
+/**
+ * 响应拦截
+ */
+request.interceptors.response.use(
+  async (response, options) => {
+    const { status } = response;
+    if (status === 200) {
+      return response
+        .clone()
+        .json()
+        .catch((err) => {
+          // 200 但响应体不是 JSON，最常见的是接口路由不存在、被 SPA 的 index.html 兜底。
+          // 这里要把调用方的 silence 补上：parse 失败抛的是原生 SyntaxError，本身不带 silence 标记，
+          // 声明了 silence 的请求仍会被全局 errorHandler 弹一条红色通知。
+          throw {
+            name: err?.message,
+            message: err?.message,
+            silence: options.silence,
+            response,
+            status,
+          };
+        })
+        .then((data) => {
+          const { url } = response;
+          // TODO: 糟糕的逻辑，后端返回的数据结构不统一，需要兼容
+          // /n9e/datasource/ 返回的数据结构是 { error: '', data: [] }
+          // proxy/prometheus 返回的数据结构是 { status: 'success', data: {} }
+          // proxy/elasticsearch 返回的数据结构是 { ...data }
+          // proxy/jeager 返回的数据结构是 { data: [], errors: [] }
+          if (
+            _.some([`/api/${N9E_PATHNAME}/proxy`, '/probe/v1', '/api/n9e/dashboard/query'], (item) => {
+              return url.includes(item);
+            })
+          ) {
+            return data;
+          } else if (
+            _.some(['/api/v1', '/api/v2', '/api/fc-model', '/api/n9e/datasource'], (item) => {
+              return url.includes(item);
+            })
+          ) {
+            if (!data.error) {
+              return { ...data, success: true };
+            } else {
+              throw {
+                name: processError(data),
+                message: processError(data),
+                silence: options.silence,
+                data,
+                response,
+                status,
+              };
+            }
+          } else {
+            // n9e 和 n9e-plus 大部分接口返回的数据结构是 { err: '', dat: {} }
+            if (data.err === '' || data.status === 'success' || data.error === '') {
+              return { ...data, success: true };
+            } else {
+              throw {
+                name: processError(data),
+                message: processError(data),
+                silence: options.silence,
+                data,
+                response,
+                status,
+              };
+            }
+          }
+        });
+    } else if (status === 401 && !_.includes(response.url, '/api/n9e-plus/proxy') && !_.includes(response.url, '/api/n9e/proxy')) {
+      if (response.url.indexOf('/api/n9e/auth/refresh') > 0) {
+        redirectToLogin();
+      } else {
+        localStorage.getItem('refresh_token')
+          ? updateAccessTokenWithLock()
+              .then((res) => {
+                console.log('401 err', res);
+                if (res.err) {
+                  redirectToLogin();
+                } else {
+                  const { access_token, refresh_token } = res.dat;
+                  localStorage.setItem(AccessTokenKey, access_token);
+                  localStorage.setItem('refresh_token', refresh_token);
+                  location.href = `${basePrefix}${location.pathname}${location.search}`;
+                }
+              })
+              .catch(() => {
+                redirectToLogin();
+              })
+          : redirectToLogin();
+      }
+    } else if (
+      status === 403 &&
+      // 只有这两组接口的 403 才接管整页。这正是改造前会整页跳 /403 的那一组，
+      // 范围保持不变：其余接口（/api/n9e/* 等）里混着不少可选请求，
+      // 比如仪表盘的标注 getAnnotations 没权限也不该把整个大盘顶掉。
+      // 放宽覆盖面要先逐个 call site 审一遍谁是「页面主请求」，那是另一件事。
+      (response.url.includes('/api/v1') || response.url.includes('/api/v2')) &&
+      // 排除掉 proxy 的接口
+      !_.includes(response.url, '/api/n9e-plus/proxy') &&
+      !_.includes(response.url, '/api/n9e/proxy')
+    ) {
+      return response
+        .clone()
+        .text()
+        .then((text) => {
+          let data: any = {};
+          try {
+            data = JSON.parse(text);
+          } catch (error) {
+            // 403 的响应体不一定是 JSON（网关直接挡下时常是 HTML），走统一文案
+            data = { error: { message: i18next.t('common:auth.403') } };
+          }
+          reportForbidden(data, options);
+          throw {
+            name: processError(data),
+            message: processError(data),
+            // 403 已经由 PageError 就地渲染，再弹一条全局通知是重复打扰
+            silence: true,
+            data,
+            response,
+            status,
+          };
+        });
+    } else if (status === 598) {
+      if (location.pathname !== '/system/license-management') {
+        location.href = `${basePrefix}/system/license-management`;
+      } else {
+        return response
+          .clone()
+          .json()
+          .then((data) => {
+            return data;
+          });
+      }
+    } else if (status >= 500 && status < 600) {
+      return response
+        .clone()
+        .text()
+        .then((data) => {
+          const fallbackMessage = i18next.t('common:request_fail_msg');
+          let errObj: { name: string; message: string; data?: any } = {
+            name: fallbackMessage,
+            message: fallbackMessage,
+          };
+          if (data) {
+            try {
+              const parsed = JSON.parse(data);
+              const errMessage = processError(parsed);
+              errObj = {
+                name: errMessage,
+                message: errMessage,
+                data: parsed,
+              };
+            } catch (error) {
+              // 响应体非 JSON（如网关 502 HTML），回退统一文案
+            }
+          }
+          throw {
+            ...errObj,
+            silence: options.silence,
+            response,
+            status,
+          };
+        });
+    } else {
+      return response
+        .clone()
+        .text()
+        .then((data) => {
+          let errObj = {};
+          try {
+            const parsed = JSON.parse(data);
+            const errMessage = processError(parsed);
+            errObj = {
+              name: errMessage,
+              message: errMessage,
+              data: parsed,
+            };
+          } catch (error) {
+            errObj = {
+              name: data,
+              message: data,
+            };
+          }
+          throw {
+            ...errObj,
+            silence: options.silence,
+            response,
+            status,
+          };
+        });
+    }
+  },
+  {
+    global: false,
+  },
+);
+
+export function buildWorkspaceHeaders(workspaceId?: number | string) {
+  if (workspaceId === undefined || workspaceId === null || workspaceId === '') return undefined;
+  return {
+    'FC-WORKSPACE-ID': `${workspaceId}`,
+  };
+}
+
+export default request;

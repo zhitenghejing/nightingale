@@ -1,0 +1,29 @@
+.dashboards-v2 {
+  padding: 16px;
+  flex: 1;
+  overflow: auto;
+
+  .name-column {
+    max-width: 250px;
+  }
+
+  .tags-column {
+    min-width: 100px;
+  }
+
+  .note-column {
+    max-width: 200px;
+  }
+
+  .published-cell {
+    .anticon-edit {
+      display: none;
+    }
+
+    &:hover {
+      .anticon-edit {
+        display: inline-block;
+      }
+    }
+  }
+}

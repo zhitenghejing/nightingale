@@ -1,0 +1,70 @@
+import _ from 'lodash';
+import { replaceFieldWithVariable, getOptionsList } from '../../VariableConfig/constant';
+import { IRawTimeRange } from '@/components/TimeRangePicker';
+import type { IVariable } from '../../Variables/types';
+
+export interface DetailExpressionData {
+  name?: string;
+  value?: string | number;
+  metric?: Record<string, string | number>;
+}
+
+const replaceLabelsVariables = (url: string, variables: Record<string, string | number>) => {
+  // 匹配 ${} 中的变量名
+  const pattern = /\${__field\.labels\.(.*?)}/g;
+  return url.replace(pattern, (match, variable) => {
+    // 获取变量的值
+    const value = variables[variable.trim()];
+    // 如果变量值存在，则替换；否则保留原字符串
+    return value !== undefined ? String(value) : match;
+  });
+};
+
+const replaceValueVariables = (url: string, dataValue: string | number) => {
+  return replaceData(/\${__field\.(value)}/g, url, dataValue);
+};
+
+const replaceNameVariables = (url: string, dataValue: string | number) => {
+  return replaceData(/\${__field\.(name)}/g, url, dataValue);
+};
+
+const replaceData = (pattern: RegExp, url: string, dataValue: string | number) => {
+  return url.replace(pattern, (match) => {
+    const value = dataValue; // 获取变量的值
+    return value !== undefined ? String(value) : match;
+  });
+};
+
+export const replaceExpressionDetail = (url: string, data: DetailExpressionData) => {
+  let resultUrl = url;
+  resultUrl = data?.name ? replaceNameVariables(resultUrl, data.name) : resultUrl;
+  resultUrl = data?.value ? replaceValueVariables(resultUrl, data.value) : resultUrl;
+  resultUrl = data?.metric ? replaceLabelsVariables(resultUrl, data.metric) : resultUrl;
+  return resultUrl;
+};
+
+/**
+ *  获取下钻的最终URL
+ * @param detailUrl 下钻链接模版
+ * @param data 指标数据
+ * @param dashboardMeta 大盘嘻嘻
+ * @param time  时间范围
+ * @returns 要跳转的下钻链接
+ */
+export const getDetailUrl = (
+  detailUrl: string,
+  data: DetailExpressionData | undefined,
+  dashboardMeta: {
+    dashboardId: string;
+    variableConfigWithOptions: IVariable[];
+  },
+  time: IRawTimeRange,
+) => {
+  if (!detailUrl) {
+    return;
+  }
+  // 指标数据
+  const formatUrl = data ? replaceExpressionDetail(detailUrl, data) : detailUrl;
+  // 渲染下钻链接, 变量
+  return replaceFieldWithVariable(formatUrl, dashboardMeta.dashboardId, getOptionsList({ ...dashboardMeta, time }));
+};

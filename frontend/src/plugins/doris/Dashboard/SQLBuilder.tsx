@@ -1,0 +1,221 @@
+import React, { useContext, useState, useRef } from 'react';
+import { Form, Space, Modal, Button, Alert, Tooltip } from 'antd';
+import { InfoCircleOutlined, CopyOutlined } from '@ant-design/icons';
+import { useTranslation, Trans } from 'react-i18next';
+import _ from 'lodash';
+
+import { CommonStateContext } from '@/App';
+import { copy2ClipBoard } from '@/utils';
+import DocumentDrawer from '@/components/DocumentDrawer';
+
+import { NAME_SPACE, DORIS_SQL_MODE_DOC_URL } from '../constants';
+import SQLInputWrap from './SQLInputWrap';
+
+interface Props {
+  field: any;
+  datasourceValue: number;
+  mode: string;
+}
+
+export default function SQLBuilder(props: Props) {
+  const { t, i18n } = useTranslation(NAME_SPACE);
+  const { darkMode } = useContext(CommonStateContext);
+  const { field, datasourceValue, mode } = props;
+  const restField = _.omit(field, 'key');
+  const [queryWarnModalVisible, setQueryWarnModalVisible] = useState(false);
+  const queryValueRef = useRef<string>();
+  const chartForm = Form.useFormInstance();
+
+  return (
+    <>
+      <Form.Item
+        className='n9e-doris-dashboard-querybuilder-query-item'
+        label={
+          <Space>
+            {t('query.query')}
+            <Tooltip
+              overlayClassName='ant-tooltip-auto-width ant-tooltip-with-link'
+              title={
+                <div>
+                  <Trans ns='dashboard' i18nKey='dashboard:var.help_tip' components={{ 1: <br /> }} />
+                  <div className='mt-2'>
+                    <Trans
+                      ns={NAME_SPACE}
+                      i18nKey='query.click_doc'
+                      components={{
+                        a: (
+                          <a
+                            onClick={() => {
+                              DocumentDrawer({
+                                language: i18n.language === 'zh_CN' ? 'zh_CN' : 'en_US',
+                                darkMode,
+                                title: t('common:document_link'),
+                                type: 'iframe',
+                                documentPath: DORIS_SQL_MODE_DOC_URL,
+                                anchor: '#2-时间宏',
+                              });
+                            }}
+                          />
+                        ),
+                      }}
+                    />
+                  </div>
+                </div>
+              }
+            >
+              <InfoCircleOutlined
+                onClick={() => {
+                  DocumentDrawer({
+                    language: i18n.language === 'zh_CN' ? 'zh_CN' : 'en_US',
+                    darkMode,
+                    title: t('common:document_link'),
+                    type: 'iframe',
+                    documentPath: DORIS_SQL_MODE_DOC_URL,
+                    anchor: '#2-时间宏',
+                  });
+                }}
+              />
+            </Tooltip>
+          </Space>
+        }
+        {...restField}
+        name={[field.name, 'query', 'query']}
+        validateTrigger={['onBlur']}
+        rules={[
+          {
+            required: true,
+            message: t('query.query_required'),
+          },
+        ]}
+        style={{ flex: 1 }}
+      >
+        <SQLInputWrap
+          key={mode}
+          placeholder={
+            mode === 'raw'
+              ? 'SELECT count(*) as count FROM db_name.table_name WHERE $__timeFilter(timestamp)'
+              : 'SELECT count(*) as count, $__timeGroup(timestamp, $__interval) as time FROM db_name.table_name WHERE $__timeFilter(`timestamp`) GROUP BY time ORDER BY time DESC'
+          }
+          validateBeforeChange={(val) => {
+            if (val && !val.includes('$__time') && !val.includes('$__unixEpoch')) {
+              queryValueRef.current = val;
+              setQueryWarnModalVisible(true);
+              return false;
+            }
+            return true;
+          }}
+        />
+      </Form.Item>
+      <Modal
+        width={700}
+        visible={queryWarnModalVisible}
+        footer={[
+          <Button
+            key='ok'
+            onClick={() => {
+              setQueryWarnModalVisible(false);
+              chartForm.setFields([
+                {
+                  name: ['targets', field.name, 'query', 'query'],
+                  value: queryValueRef.current,
+                },
+              ]);
+            }}
+          >
+            {t('query.warn_message_btn_1')}
+          </Button>,
+          <Button
+            key='cancel'
+            type='primary'
+            onClick={() => {
+              setQueryWarnModalVisible(false);
+              queryValueRef.current = undefined;
+            }}
+          >
+            {t('query.warn_message_btn_2')}
+          </Button>,
+        ]}
+        onCancel={() => {
+          setQueryWarnModalVisible(false);
+          queryValueRef.current = undefined;
+        }}
+      >
+        <Alert className='mt-4 mb-4' type='warning' showIcon message={t('query.warn_message')} />
+        <div className='mb-4'>{t('query.warn_message_content_1')}</div>
+        <div className='mb-2'>{t('query.warn_message_content_2')}</div>
+        <div className='mb-2'>
+          <div>
+            <Space>
+              <code>{`$__timeFilter(dateColumn)`}</code>
+              <CopyOutlined
+                onClick={() => {
+                  copy2ClipBoard(`$__timeFilter(dateColumn)`);
+                }}
+              />
+            </Space>
+          </div>
+          <div>
+            <Space>
+              <code>{`$__unixEpochFilter(dateColumn) `}</code>
+              <CopyOutlined
+                onClick={() => {
+                  copy2ClipBoard(`$__unixEpochFilter(dateColumn) `);
+                }}
+              />
+            </Space>
+          </div>
+          <div>
+            <Space>
+              <code>{`$__unixEpochNanoFilter(dateColumn)`}</code>
+              <CopyOutlined
+                onClick={() => {
+                  copy2ClipBoard(`$__unixEpochNanoFilter(dateColumn)`);
+                }}
+              />
+            </Space>
+          </div>
+        </div>
+        <div className='mb-2'>
+          {t('query.warn_message_content_3')}
+          <Space>
+            <code>
+              {`SELECT count(*) as count FROM db_name.table_name `}
+              <span
+                style={{
+                  color: 'var(--fc-orange-5-color)',
+                }}
+              >{`WHERE $__timeFilter(timestamp) `}</span>
+            </code>
+            <CopyOutlined
+              onClick={() => {
+                copy2ClipBoard(`SELECT count(*) as count FROM db_name.table_name WHERE $__timeFilter(timestamp)`);
+              }}
+            />
+          </Space>
+        </div>
+        <div>
+          <Trans
+            ns={NAME_SPACE}
+            i18nKey='query.warn_message_content_4'
+            components={{
+              a: (
+                <a
+                  onClick={() => {
+                    DocumentDrawer({
+                      language: i18n.language === 'zh_CN' ? 'zh_CN' : 'en_US',
+                      darkMode,
+                      title: t('common:document_link'),
+                      type: 'iframe',
+                      documentPath: DORIS_SQL_MODE_DOC_URL,
+                      anchor: '#2-时间宏',
+                    });
+                  }}
+                />
+              ),
+            }}
+          />
+        </div>
+      </Modal>
+    </>
+  );
+}

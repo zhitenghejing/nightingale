@@ -64,6 +64,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.node-version
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: frontend/package.json
       # Stage the pre-built per-arch assets so the -tags=sandbox_embed center
       # build can bake them in. No QEMU compile happens in this job anymore.
       - name: Download amd64 sandbox assets
@@ -77,10 +83,10 @@ jobs:
           name: sandbox-assets-arm64
           path: pkg/sandbox/embedassets/linux_arm64
       # QA code corpus for the -tags=qa_code_embed center build: filtered source
-      # snapshots of this checkout + the latest categraf / n9e-fe release tags.
+      # snapshots of this checkout (including frontend/) and categraf.
       # Arch-independent, so it is built inline here rather than in a matrix job.
       # Retry mirrors the sandbox-assets step: the script hits the GitHub API
-      # and downloads two source tarballs, so a transient 429/timeout must not
+      # and downloads the collector source tarball, so a transient 429/timeout must not
       # sink the whole tag release (curl-level --retry inside the script
       # handles per-request blips; this loop covers everything else).
       - name: Build QA code corpus assets

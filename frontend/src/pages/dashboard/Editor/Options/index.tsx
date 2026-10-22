@@ -1,0 +1,56 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import React from 'react';
+import _ from 'lodash';
+import { useTranslation } from 'react-i18next';
+import Timeseries from './Timeseries';
+import Stat from './Stat';
+import Table from './Table';
+import TableNG from './TableNG';
+import Pie from './Pie';
+import Hexbin from './Hexbin';
+import BarGauge from './BarGauge';
+import Text from './Text';
+import Gauge from './Gauge';
+import Iframe from './Iframe';
+import Heatmap from './Heatmap';
+import BarChart from './BarChart';
+import type { ITarget, IType } from '../../types';
+
+interface OptionsProps {
+  type: IType;
+  targets: ITarget[];
+}
+
+export default function index({ type, targets }: OptionsProps) {
+  const { t } = useTranslation('dashboard');
+  const OptionsCptMap: Partial<Record<IType, React.ReactNode>> = {
+    timeseries: <Timeseries targets={targets} />,
+    stat: <Stat targets={targets} />,
+    table: <Table targets={targets} />,
+    tableNG: <TableNG targets={targets} />,
+    pie: <Pie />,
+    hexbin: <Hexbin />,
+    barGauge: <BarGauge />,
+    text: <Text />,
+    iframe: <Iframe />,
+    gauge: <Gauge />,
+    heatmap: <Heatmap />,
+    barchart: <BarChart />,
+  };
+  return (OptionsCptMap[type] ?? <div>{`${t('detail.invalidPanelType')} ${type}`}</div>) as React.ReactElement;
+}

@@ -1,0 +1,282 @@
+import React, { useContext, useEffect, useState, useRef } from 'react';
+import { Alert, Form } from 'antd';
+import _ from 'lodash';
+import moment from 'moment';
+import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+
+import { CommonStateContext } from '@/App';
+import { setDefaultDatasourceValue } from '@/utils';
+import { DatasourceCateEnum } from '@/utils/constant';
+import { allCates, getGraphProByCate, getPrimaryTypeByCate } from '@/components/AdvancedWrap/utils';
+import ViewSelect, { ModalState } from '@/components/ViewSelect';
+import { DatasourceSelectV3 } from '@/components/DatasourceSelect';
+import omitUndefinedDeep from '@/pages/logExplorer/utils/omitUndefinedDeep';
+import { filterLogExplorerDatasourceList, isLogExplorerDatasourceCateSupported } from '@/pages/logExplorer/utils/datasourceAvailability';
+
+import { DefaultFormValuesControl, RenderCommonSettingsParams } from './types';
+import { NAME_SPACE } from './constants';
+import ExplorerContent from './ExplorerContent';
+
+// @ts-ignore
+import PlusLogExplorer from 'plus:/parcels/LogExplorer';
+
+interface Props {
+  active: boolean;
+  tabKey: string;
+  tabIndex?: number;
+  defaultFormValuesControl?: DefaultFormValuesControl;
+}
+
+function areExplorerPropsEqual(prev: Props, next: Props) {
+  return (
+    prev.active === next.active &&
+    prev.tabKey === next.tabKey &&
+    prev.defaultFormValuesControl?.isInited === next.defaultFormValuesControl?.isInited &&
+    _.isEqual(prev.defaultFormValuesControl?.defaultFormValues, next.defaultFormValuesControl?.defaultFormValues)
+  );
+}
+
+function Explorer(props: Props) {
+  const { t } = useTranslation(NAME_SPACE);
+  const { datasourceList, datasourceCateOptions, groupedDatasourceList, logsDefaultRange } = useContext(CommonStateContext);
+  const location = useLocation();
+  const { active, tabKey, defaultFormValuesControl } = props;
+
+  const [form] = Form.useForm();
+  const datasourceCate = Form.useWatch('datasourceCate', form);
+  const datasourceValue = Form.useWatch('datasourceValue', form);
+
+  const cateGraphPro = getGraphProByCate(datasourceCate);
+  const primaryType = getPrimaryTypeByCate(datasourceCate);
+  const hasDatasourceCate = !!datasourceCate;
+
+  // 统一维护 ViewSelect 的状态，这样 ViewSelect 组件本身就是一个无状态组件
+  const [viewSelectValue, setViewSelectValue] = useState<number>();
+  const [viewSelectFilters, setViewSelectFilters] = useState<{ searchText: string; publicCate?: number }>({ searchText: '', publicCate: undefined });
+  const [viewModalState, setViewModalState] = useState<ModalState>({
+    visible: false,
+  });
+  const executeQueryRef = useRef<() => void>();
+  const getDefaultQueryValuesRef = useRef<RenderCommonSettingsParams['getDefaultQueryValues']>();
+  const [shouldExecuteQuery, setShouldExecuteQuery] = useState(false);
+  const prevDatasourceCateRef = useRef<string>();
+  const prevDatasourceValueRef = useRef<number>();
+
+  useEffect(() => {
+    if (shouldExecuteQuery && executeQueryRef.current) {
+      if (active) {
+        executeQueryRef.current();
+        setShouldExecuteQuery(false);
+      }
+    }
+  }, [shouldExecuteQuery, datasourceCate, active]);
+
+  // 监听数据源类型/数据源值切换，重置 query 字段到默认值
+  useEffect(() => {
+    const cateChanged = prevDatasourceCateRef.current && prevDatasourceCateRef.current !== datasourceCate && datasourceCate;
+    const valueChanged = prevDatasourceValueRef.current && prevDatasourceValueRef.current !== datasourceValue && datasourceValue;
+
+    if (cateChanged || valueChanged) {
+      // 数据源已切换，此时 renderCommonSettings 已经重新渲染，getDefaultQueryValues 是新的
+      const queryValues = form.getFieldValue('query');
+      // 只有在 query 为空或 undefined 时才设置默认值
+      if (!queryValues || _.isEmpty(queryValues)) {
+        const defaultQueryValues = getDefaultQueryValuesRef.current ? getDefaultQueryValuesRef.current({}) || {} : {};
+        const newQueryValues = {
+          range: logsDefaultRange ?? { start: 'now-5m', end: 'now' },
+          ...defaultQueryValues,
+        };
+        form.setFieldsValue({
+          query: newQueryValues,
+        });
+      }
+    }
+    prevDatasourceCateRef.current = datasourceCate;
+    prevDatasourceValueRef.current = datasourceValue;
+  }, [datasourceCate, datasourceValue]);
+
+  useEffect(() => {
+    if (active && defaultFormValuesControl?.defaultFormValues && defaultFormValuesControl?.isInited === false) {
+      defaultFormValuesControl.setIsInited();
+      // 刷新页面 / 切换标签（含 LRU 换出切回）：自动查询。
+      // 仅新增页签（isNewTab）不自动查询，只恢复查询条件，等用户手动点查询；外部分享链接（__execute__）始终自动查询。
+      const searchParams = new URLSearchParams(location.search);
+      const shouldQuery = !defaultFormValuesControl.isNewTab || !!searchParams.get('__execute__');
+      form.setFieldsValue({
+        ...defaultFormValuesControl.defaultFormValues,
+        refreshFlag: shouldQuery ? _.uniqueId('refreshFlag_') : undefined,
+      });
+    }
+  }, [active]);
+
+  // P2 方案A：从激活切到隐藏时快照当前表单值（含未执行但已修改的查询条件），
+  // 供 LRU 换出后基于 formValues 恢复并自动重查。
+  const defaultFormValuesControlRef = useRef(defaultFormValuesControl);
+  defaultFormValuesControlRef.current = defaultFormValuesControl;
+  const prevActiveRef = useRef(active);
+  useEffect(() => {
+    const wasActive = prevActiveRef.current;
+    prevActiveRef.current = active;
+    if (wasActive && !active) {
+      defaultFormValuesControlRef.current?.onSnapshot?.(form.getFieldsValue());
+    }
+  }, [active, form]);
+
+  const renderCommonSettings = ({ getDefaultQueryValues, executeQuery, layout }: RenderCommonSettingsParams) => {
+    executeQueryRef.current = executeQuery;
+    getDefaultQueryValuesRef.current = getDefaultQueryValues;
+    return (
+      <div className={'flex-shrink-0' + (layout === 'horizontal' ? ' flex gap-2' : '')}>
+        <Form.Item>
+          <ViewSelect<{
+            datasourceCate: string;
+            datasourceValue: number;
+            [key: string]: any;
+          }>
+            // 统一的状态
+            value={viewSelectValue}
+            onChange={(value) => {
+              setViewSelectValue(value);
+            }}
+            filters={viewSelectFilters}
+            setFilters={setViewSelectFilters}
+            modalState={viewModalState}
+            setModalState={setViewModalState}
+            // 其他 props
+            page={location.pathname}
+            getFilterValues={() => {
+              const formValues = form.getFieldsValue();
+              let range = formValues.query?.range;
+              if (moment.isMoment(range?.start) && moment.isMoment(range?.end)) {
+                range = {
+                  start: range.start.unix(),
+                  end: range.end.unix(),
+                };
+              }
+              const filterValues = {
+                datasourceCate: formValues.datasourceCate,
+                datasourceValue: formValues.datasourceValue,
+                query: {
+                  ...formValues.query,
+                  range,
+                },
+              };
+              return filterValues;
+            }}
+            renderOptionExtra={(filterValues) => {
+              const { datasourceCate, datasourceValue } = filterValues;
+              return (
+                <div className='flex items-center gap-2'>
+                  <img src={_.get(_.find(allCates, { value: datasourceCate }), 'logo')} alt={datasourceCate} className='w-[12px] h-[12px]' />
+                  <span>{_.find(datasourceList, { id: datasourceValue })?.name ?? datasourceValue}</span>
+                </div>
+              );
+            }}
+            onSelect={(filterValues) => {
+              const datasourceCate = form.getFieldValue('datasourceCate');
+
+              filterValues.datasourceCate = filterValues.datasourceCate || datasourceCate;
+              filterValues.datasourceValue = filterValues.datasourceValue || groupedDatasourceList[datasourceCate]?.[0]?.id!;
+
+              let range = filterValues.query?.range;
+              if (_.isNumber(range?.start) && _.isNumber(range?.end)) {
+                range = {
+                  start: moment.unix(range.start),
+                  end: moment.unix(range.end),
+                };
+              }
+
+              const isCateChanged = datasourceCate !== filterValues.datasourceCate;
+
+              form.resetFields(['refreshFlag', 'query']);
+              form.setFieldsValue({
+                ...filterValues,
+                query: {
+                  ...filterValues.query,
+                  range: range ?? logsDefaultRange ?? { start: 'now-5m', end: 'now' },
+                  ...(getDefaultQueryValues ? getDefaultQueryValues(filterValues.query || {}) || {} : {}),
+                },
+              });
+
+              if (isCateChanged) {
+                setShouldExecuteQuery(true);
+              } else if (executeQueryRef.current) {
+                executeQueryRef.current();
+              }
+            }}
+            adjustOldFilterValues={(values) => {
+              if (values) {
+                // 去掉 query 中值为 undefined 的字段
+                const cleanedQuery = omitUndefinedDeep(values.query) || {};
+                if (moment.isMoment(cleanedQuery.range?.start) && moment.isMoment(cleanedQuery.range?.end)) {
+                  cleanedQuery.range = {
+                    start: cleanedQuery.range.start.unix(),
+                    end: cleanedQuery.range.end.unix(),
+                  };
+                }
+                return {
+                  datasourceCate: values.datasourceCate,
+                  datasourceValue: values.datasourceValue,
+                  query: cleanedQuery,
+                };
+              }
+              return {};
+            }}
+            placeholder={t('view_placeholder')}
+          />
+        </Form.Item>
+        <Form.Item
+          name='datasourceValue'
+          rules={[
+            {
+              required: true,
+              message: t('common:datasource.id_required'),
+            },
+          ]}
+        >
+          <DatasourceSelectV3
+            className='w-full'
+            type={primaryType}
+            datasourceCateList={datasourceCateOptions}
+            ajustDatasourceList={(list) => {
+              return filterLogExplorerDatasourceList(list, datasourceCateOptions);
+            }}
+            onChange={(datasourceValue, datasourceCate) => {
+              setDefaultDatasourceValue(datasourceCate, datasourceValue);
+              form.resetFields(['refreshFlag', 'query']);
+              form.setFieldsValue({
+                datasourceCate,
+                datasourceValue,
+              });
+            }}
+          />
+        </Form.Item>
+      </div>
+    );
+  };
+
+  return (
+    <div className={`h-full explorer-container-${tabKey}`}>
+      <div className='h-full bg-fc-100 border border-fc-300 rounded-lg p-4'>
+        <Form form={form} layout='vertical' className='h-full'>
+          <Form.Item name='datasourceCate' hidden>
+            <div />
+          </Form.Item>
+          <Form.Item name='datasourceValue' hidden>
+            <div />
+          </Form.Item>
+          {!hasDatasourceCate ? null : !isLogExplorerDatasourceCateSupported(datasourceCate) ? (
+            <Alert showIcon className='m-4' type='error' message={t('unsupported_datasource_type', { type: datasourceCate })} />
+          ) : cateGraphPro ? (
+            <PlusLogExplorer tabKey={tabKey} datasourceCate={datasourceCate} defaultFormValuesControl={defaultFormValuesControl} renderCommonSettings={renderCommonSettings} />
+          ) : (
+            <ExplorerContent tabKey={tabKey} datasourceCate={datasourceCate} defaultFormValuesControl={defaultFormValuesControl} renderCommonSettings={renderCommonSettings} />
+          )}
+        </Form>
+      </div>
+    </div>
+  );
+}
+
+export default React.memo(Explorer, areExplorerPropsEqual);

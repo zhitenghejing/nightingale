@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "noImplicitAny": false,
+    "target": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "types": ["vite/client", "node", "jest"],
+    "allowJs": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/store/eventWallInterface": [
+        "src/Packages/EventWall/interface/index.ts"
+      ],
+      "@/*": ["src/*"],
+      "plus:/*": ["src/plus/*"],
+    },
+    "skipLibCheck": true,
+    "esModuleInterop": false,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react",
+    "checkJs": false,
+    "sourceMap": true,
+    "strictFunctionTypes": false,
+    "strictNullChecks": true
+  },
+  "ts-node": {
+    "esm": true
+  },
+  "include": ["./src"],
+  "exclude": ["./src/Packages/", "./node_modules/**/*", "**/*.test.ts"]
+}

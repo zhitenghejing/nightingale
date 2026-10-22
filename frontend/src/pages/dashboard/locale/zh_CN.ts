@@ -1,0 +1,864 @@
+const zh_CN = {
+  title: '监控仪表盘',
+  list: '仪表盘列表',
+  back_icon_tip: '返回上一页，没有上一页则返回仪表盘列表',
+  back_icon_tip_is_built_in: '返回上一页，没有上一页则返回模板中心',
+  name: '仪表盘名称',
+  tags: '分类标签',
+  ident: '英文标识',
+  ident_msg: '请输入英文字母、数字、中划线',
+  search_placeholder: '仪表盘名称、分类标签',
+  empty_guide: {
+    title: '还没有仪表盘',
+    desc: '新建一个仪表盘，或一键导入内置仪表盘模板。',
+    from_template: '从模板导入',
+  },
+  refresh_tip: '刷新间隔小于 step({{num}}s) 将不会更新数据',
+  refresh_btn: '刷新',
+  share_btn: '分享',
+  export_btn: '导出（CSV）',
+  clear_cache_btn: '清除缓存',
+  clear_cache_btn_tip: '清除表格列宽缓存，刷新页面后生效',
+  inspect_btn: '排查',
+  table_upgrade: {
+    switch_title: '升级到 TableNG',
+    switch_content: '是否自动迁移旧版 Table 的配置？',
+    auto_upgrade: '自动升级',
+    switch_only: '仅切换类型',
+  },
+  public: {
+    name: '公开',
+    unpublic: '不公开',
+    public_cate: '类型',
+    cate: {
+      0: '匿名访问',
+      1: '登录访问',
+      2: '授权访问',
+    },
+    bgids: '授权业务组',
+    theme_link: {
+      dark: '暗色主题链接',
+      light: '亮色主题链接',
+    },
+  },
+  sharing_link: {
+    title: '生成分享链接',
+    title_anonymous: '生成分享链接（匿名访问）',
+    allow_anonymous: '允许不登录匿名访问',
+    expire_at: '有效期',
+    theme: '主题',
+    theme_default: '跟随系统',
+    theme_dark: '暗色',
+    theme_light: '亮色',
+    note: '备注',
+    note_placeholder: '备注（必填），如：给客户查看',
+    generate: '生成链接',
+    link: '分享链接',
+    expire_time: '过期时间',
+    expired: '已过期',
+    create_by: '创建人',
+    revoke: '注销',
+    revoke_confirm: '注销后该链接立即失效，确认注销？',
+    revoked: '已注销',
+    anonymous_tip: '匿名链接在有效期内无需登录即可查看该仪表盘，并可查询其引用的数据源数据，请谨慎分享',
+    recommend_tip: '匿名访问通过下方链接实现：链接在有效期内可免登录查看该仪表盘。长期公开可把有效期设为「年」',
+    unit_hour: '小时',
+    unit_day: '天',
+    unit_month: '月',
+    unit_year: '年',
+    fetch_failed: '获取分享链接列表失败',
+    generate_failed: '生成分享链接失败',
+    expire_out_of_range: '有效期超出可显示范围（等同于永不过期），建议注销后重新生成',
+    set_public_confirm_title: '同时把该仪表盘设为「公开-匿名访问」？',
+    set_public_confirm_content:
+      '分享链接一经生成即可免登录打开该仪表盘，其有效性与公开设置无关。若不同步公开设置，列表页的「公开」列不会显示为匿名访问，管理员将无从察觉该仪表盘已有对外链接。确认后会先把公开设置保存为「公开-匿名访问」，再生成链接。',
+    set_public_confirm_ok: '设为匿名访问并生成',
+    set_public_failed: '保存公开设置失败，未生成分享链接',
+    revoke_failed: '注销分享链接失败',
+    config_load_failed: '仪表盘配置读取失败，暂时无法设置匿名访问，请关闭后重试',
+    revoke_all_confirm_title: '注销全部匿名分享链接？',
+    revoke_all_confirm_content:
+      '该仪表盘还有 {{num}} 条在有效期内的匿名分享链接。链接的有效性与公开设置无关，改成当前类型后它们依然可以免登录打开该仪表盘。确认后将注销该仪表盘下的全部分享链接并保存设置，注销不可撤销。',
+    revoke_all_ok: '注销并保存',
+    revoke_all_check_failed: '未能确认该仪表盘是否还有匿名分享链接，公开设置已保存；请打开分享链接弹窗手动确认',
+  },
+  default_filter: {
+    title: '预置筛选',
+    public: '公开仪表盘',
+    all: '所属业务组仪表盘',
+    all_tip: '此选项会展示您所在业务组下关联的所有仪表盘',
+  },
+  create_title: '创建仪表盘',
+  edit_title: '编辑仪表盘',
+  add_panel: '添加图表',
+  cluster: '集群', // TODO: 监控仪表盘暂时使用
+  full_screen: '全屏',
+  exit_full_screen: '退出全屏',
+  copyPanelTip: '图表配置已复制。单击 "添加图表" > "粘贴图表" 粘贴配置 JSON 来创建图表',
+  batch: {
+    import: '导入夜莺仪表盘 JSON',
+    label: '仪表盘 JSON',
+    import_grafana: '导入 Grafana 仪表盘（不推荐）',
+    import_grafana_tip: '只支持导入 Prometheus 类型数据源的仪表盘，以及夜莺支持的图表类型和功能 <a>问题反馈</a>',
+    import_grafana_url: 'Grafana 仪表盘链接（推荐）',
+    import_grafana_url_label: 'Grafana 仪表盘链接',
+    show_time_picker: '展示时间选择器',
+    show_time_picker_tip: '部分 Grafana 版本在开启大屏模式后不会显示时间选择器，可打开此选项，使用本系统的时间选择器。',
+    noSelected: '请选择仪表盘',
+    import_grafana_report: {
+      title: '转换报告',
+      panels: '面板',
+      targets: '查询目标',
+      variables: '变量',
+      dropped: '丢弃',
+      unsupported: '不支持项',
+      unsupported_empty: '未发现不支持配置',
+      ledger: '迁移台账',
+      schema: 'schema 版本',
+      status: '状态',
+      version: '版本',
+      reason: '原因',
+      scope: '范围',
+      path: '路径',
+      action: '处理',
+      confirm: '确认导入',
+      back: '返回修改',
+      copy: '复制 Markdown 报告',
+      copied: '报告已复制',
+      convert_error: '转换失败',
+      save_error: '保存失败',
+    },
+    import_builtin: '导入内置仪表盘',
+    import_builtin_board: '内置仪表盘',
+    clone: {
+      name: '名称',
+      result: '结果',
+      errmsg: '错误信息',
+    },
+  },
+  link: {
+    title: '仪表盘链接',
+    name: '链接名称',
+    url: '链接地址',
+    isNewBlank: '是否新窗口打开',
+    dashboardIds_placeholder: '请选择仪表盘',
+  },
+  var: {
+    vars: '变量',
+    btn: '添加变量',
+    title: {
+      list: '变量列表',
+      add: '添加变量',
+      edit: '编辑变量',
+    },
+    name: '变量名称',
+    name_msg: '仅支持数字和字符下划线',
+    name_repeat_msg: '变量名称已存在',
+    label: '显示名称',
+    type: '变量类型',
+    type_map: {
+      query: '查询 (Query)',
+      custom: '自定义 (Custom)',
+      textbox: '文本框 (Text box)',
+      constant: '常量 (Constant)',
+      datasource: '数据源 (Datasource)',
+      datasourceIdentifier: '数据源标识 (Datasource identifier)',
+      hostIdent: '机器标识 (Host ident)',
+    },
+    hide: '隐藏变量',
+    hide_map: {
+      yes: '是',
+      no: '否',
+    },
+    definition: '变量定义',
+    definition_msg1: '请输入变量定义',
+    definition_msg2: '变量定义必须是合法的JSON',
+    reg: '正则',
+    reg_tip: '可选，可通过正则来过滤可选项。这里是填写的 <a>正则表达式字面量</a>，其由包含在斜杠之间的模式组成',
+    reg_tip2: '如果您想要提取选项中的一部分，<a>命名捕获组可用于分隔显示文本和值</a>',
+    reg_object_tip: '选项有独立显示名称时，正则匹配实际值；普通匹配保留名称和值，命名捕获组 text/value 仅覆盖对应字段。',
+    multi: '多选',
+    allOption: '包含全选',
+    allValue: '自定义全选值',
+    width: '宽度',
+    width_tip: '设置变量选择框的宽度，留空则使用默认宽度 180px',
+    textbox: {
+      defaultValue: '默认值',
+      defaultValue_tip: '可选，仅作为初次加载时的默认值',
+    },
+    custom: {
+      definition: '逗号分割的自定义值',
+    },
+    constant: {
+      definition: '常量值',
+      defaultValue_tip: '定义一个隐藏的常量值',
+    },
+    datasource: {
+      definition: '数据源类型',
+      defaultValue: '默认值',
+      regex: '数据源过滤',
+      regex_tip: '可选，可通过正则来过滤可选项。这里是填写的<a>正则表达式字面量</a>，其由包含在斜杠之间的模式组成。',
+    },
+    hostIdent: {
+      invalid: '机器标识需要授权访问，仪表盘在匿名模式下会导致访问失败',
+      invalid2: '仪表盘已配置机器标识变量，无法匿名访问',
+    },
+    help_tip: `
+      变量使用说明
+      <1 />
+      \${variable_name}: 仪表盘变量值
+      <1 />
+      \${__field.name}: 图例的名称
+      <1 />
+      \${__field.value}: 图例的数值
+      <1 />
+      \${__field.labels.X}: 标签值
+      <1 />
+      \${__field.labels.__name__}: 指标名
+      <1 />
+      \${__interval}: 时间间隔（秒）, 例如 15s, 默认为 step
+      <1 />
+      \${__interval_ms}: 时间间隔（毫秒）, 例如 15000
+      <1 />
+      \${__range}: 时间范围（秒）, 例如 3600s
+      <1 />
+      \${__range_ms}: 时间范围（毫秒）, 例如 3600000
+      <1 />
+      \${__rate_interval}: 时间间隔（秒）, __interval * 4
+      <1 />
+      \${__from}: 起始时间（毫秒）
+      <1 />
+      \${__from_date_seconds}: 起始时间（秒）
+      <1 />
+      \${__from_date_iso}: 起始时间, ISO 8601/RFC 3339
+      <1 />
+      上面语法适用于 \${__to}
+    `,
+    help_tip_table_ng: `
+      变量使用说明
+      <br />
+      \${variable_name}: 仪表盘变量值
+      <br />
+      \${__row.column_name}: 行数据的某一列值
+      <br />
+      \${__interval}: 时间间隔（秒）, 例如 15s, 默认为 step
+      <br />
+      \${__interval_ms}: 时间间隔（毫秒）, 例如 15000
+      <br />
+      \${__range}: 时间范围（秒）, 例如 3600s
+      <br />
+      \${__range_ms}: 时间范围（毫秒）, 例如 3600000
+      <br />
+      \${__rate_interval}: 时间间隔（秒）, __interval * 4
+      <br />
+      \${__from}: 起始时间（毫秒）
+      <br />
+      \${__from_date_seconds}: 起始时间（秒）
+      <br />
+      \${__from_date_iso}: 起始时间, ISO 8601/RFC 3339
+      <br />
+      上面语法适用于 \${__to}
+    `,
+  },
+  row: {
+    edit_title: '编辑分组',
+    delete_title: '删除分组',
+    name: '分组名称',
+    delete_confirm: '确认删除分组吗？',
+    cancel: '取消',
+    ok: '删除分组和图表',
+    ok2: '仅删除分组',
+    panels: '{{count}} 个图表',
+    panels_plural: '{{count}} 个图表',
+  },
+  panel: {
+    title: {
+      add: '添加图表',
+      edit: '编辑图表',
+    },
+    base: {
+      title: '面板配置',
+      name: '标题',
+      name_tip: '表格类型的图表必须设置标题，否则面板编辑会跟表格表头冲突',
+      link: {
+        label: '链接',
+        label_tip: `
+          变量使用说明<br />
+          \${variable_name}: 仪表盘变量值
+        `,
+        btn: '添加',
+        name: '链接名称',
+        name_msg: '请输入链接名称',
+        url: '链接地址',
+        url_msg: '请输入链接地址',
+        isNewBlank: '是否新窗口打开',
+      },
+      description: '备注',
+      repeatOptions: {
+        title: '图表重复',
+        byVariable: '变量',
+        byVariableTip: '根据变量的值来重复图表',
+        maxPerRow: '每行最多显示',
+      },
+    },
+    options: {
+      legend: {
+        displayMode: {
+          label: '显示模式',
+          table: '表格',
+          list: '列表',
+          hidden: '隐藏',
+        },
+        placement: '位置',
+        max: '最大值',
+        min: '最小值',
+        avg: '平均值',
+        sum: '汇总值',
+        last: '当前值',
+        variance: '方差',
+        stdDev: '标准差',
+        series: '序列',
+        seriesFilter: '筛选序列',
+        columns: '显示列',
+        none: '无',
+        behaviour: {
+          label: '单击触发行为',
+          showItem: '显示项目',
+          hideItem: '隐藏项目',
+        },
+        selectMode: {
+          label: '选择模式',
+          single: '单选',
+          multiple: '多选',
+        },
+        heightInPercentage: '高度百分比',
+        sortBy: '排序列',
+        sortBy_tip: '选择按哪个统计列排序，不选则不排序',
+        sortDir: '排序方向',
+        sortDirAsc: '升序',
+        sortDirDesc: '降序',
+        heightInPercentage_tip: 'Legend 高度占据面板的最大高度百分比，最小值为 20%，最大值为 80%',
+        widthInPercentage: '宽度百分比',
+        widthInPercentage_tip: 'Legend 宽度占据面板的最大宽度百分比，最小值为 20%，最大值为 80%',
+      },
+      thresholds: {
+        title: '阈值',
+        btn: '添加阈值',
+        mode: {
+          label: '阈值模式',
+          tip: '百分比模式计算公式 Y轴最小值 + (Y轴最大值 - Y轴最小值) * (百分比值 / 100)',
+          absolute: '绝对值',
+          percentage: '百分比',
+        },
+      },
+      thresholdsStyle: {
+        label: '阈值样式',
+        off: '关闭',
+        line: '线',
+        dashed: '虚线',
+        'line+area': '线+区域',
+        'dashed+area': '虚线+区域',
+      },
+      tooltip: {
+        mode: '模式',
+        sort: '排序',
+      },
+      valueMappings: {
+        title: '值映射',
+        btn: '添加',
+        type: '条件',
+        type_tip: `
+          <0>范围值默认值: from=-Infinity; to=Infinity </0>
+          <1>特殊值Null说明: 匹配值为 null 或 undefined 或 no data</1>
+        `,
+        type_map: {
+          special: '固定值(数值)',
+          textValue: '固定值(文本值)',
+          range: '范围值',
+          specialValue: '特殊值',
+        },
+        value_placeholder: '精准匹配的值',
+        text: '显示文字',
+        text_placeholder: '可选',
+        color: '颜色',
+        operations: '操作',
+      },
+      colors: {
+        name: '颜色设置',
+        scheme: '颜色方案',
+        reverse: '反转颜色',
+      },
+      links: {
+        label: '链接',
+        add_btn: '添加链接',
+        edit_btn: '编辑链接',
+        title: '链接标题',
+        title_required: '链接标题不能为空',
+        url: '链接地址',
+        url_required: '链接地址不能为空',
+        target_blank: '新窗口打开',
+      },
+    },
+    standardOptions: {
+      title: '高级设置',
+      unit: '单位',
+      unit_tip: `
+        <0>默认会做 SI Prefixes 处理，如不想默认的处理可选择 none 关闭</0>
+        <1>Data(SI): 基数为 1000, 单位为 B、kB、MB、GB、TB、PB、EB、ZB、YB</1>
+        <2>Data(IEC): 基数为 1024, 单位为 B、KiB、MiB、GiB、TiB、PiB、EiB、ZiB、YiB</2>
+        <3>bits: b</3>
+        <4>bytes: B</4>
+      `,
+      datetime: '时间格式化',
+      min: '最小值',
+      max: '最大值',
+      decimals: '小数位数',
+      displayName: '显示名称',
+      displayName_tip: '自定义系列名称',
+    },
+    overrides: {
+      columnWidth: '列宽',
+      matcher: {
+        id: '匹配类型',
+        byFrameRefID: {
+          option: '根据查询条件名称',
+          name: '查询条件名称',
+        },
+        byName: {
+          option: '根据字段名',
+          name: '字段名',
+        },
+      },
+    },
+    custom: {
+      title: '图表样式',
+      calc: '取值计算',
+      calc_tip: '时序数据需要对所有时间点数据做取值计算，非时序数据忽略此设置',
+      maxValue: '最大值',
+      baseColor: '基础颜色',
+      serieWidth: '名称宽度',
+      sortOrder: '排序',
+      textMode: '显示内容',
+      valueAndName: '值和名称',
+      value: '值',
+      name: '名称',
+      background: '背景',
+      colorMode: '颜色模式',
+      valueField: '值字段',
+      valueField_tip: 'Value 是保留关键字，作为时序数据取值计算后的字段名',
+      valueField_tip2: '需选择值为数值类型的字段',
+      nameField: '名称字段',
+      nameField_tip: '以名称字段的值作为系列的名称',
+      colSpan: '每行最多显示',
+      colSpanTip: '即将废弃，选择"自动"选项将使用下方的布局方向设置',
+      colSpanAuto: '自动',
+      textSize: {
+        title: '标题字体大小',
+        value: '值字体大小',
+      },
+      colorRange: '颜色', // hexbin
+      reverseColorOrder: '反转颜色', // hexbin
+      colorDomainAuto: '自动 min/max 值', // hexbin
+      colorDomainAuto_tip: '默认自动从 series 里面取 min max 值', // hexbin
+      fontBackground: '文字背景色', // hexbin
+      detailName: '链接名称',
+      detailUrl: '链接地址',
+      stat: {
+        graphMode: '图表模式',
+        none: '不显示',
+        area: '迷你图',
+        orientation: '布局方向',
+        orientationTip: '选择"自动"时，会根据图表的宽高自动选择布局方向',
+        orientationValueMap: {
+          auto: '自动',
+          vertical: '垂直',
+          horizontal: '水平',
+        },
+      },
+      pie: {
+        countOfValueField: '值字段计数',
+        countOfValueField_tip: '开启后，将会根据 "值字段" 的值进行计数，否则将以 "值字段" 的值作为数据展示',
+        legengPosition: '图例位置', // pie
+        max: '最多展示块数',
+        max_tip: '超过的块数则合并展示为其他',
+        donut: '环图模式',
+        labelWithName: 'Label 是否包含名称',
+        labelWithValue: 'Label 显示指标值',
+        detailName: '链接名称',
+        detailUrl: '链接地址',
+      },
+      table: {
+        displayMode: '显示模式',
+        showHeader: '显示表头',
+        seriesToRows: '每行展示 serie 的值',
+        labelsOfSeriesToRows: '每行展示 labels 的值',
+        labelValuesToRows: '每行展示指定聚合维度的值',
+        columns: '显示列',
+        aggrDimension: '显示维度',
+        sortColumn: '默认排序列',
+        sortOrder: '默认排序',
+        link: {
+          mode: '链接模式',
+          cellLink: '单元格链接',
+          appendLinkColumn: '追加链接列',
+        },
+        tableLayout: {
+          label: '表格布局',
+          label_tip: '固定布局下列默认宽度根据列数量等分不会产生横向滚动条。自动布局下列默认最大宽度为 150px 表格内容可能会溢出从而产生横向滚动条。',
+          auto: '自动',
+          fixed: '固定',
+        },
+        nowrap: '单元格不换行',
+        organizeFields: '字段整理',
+        colorMode_tip: '颜色模式是针对 "值字段" 的颜色设置。值模式下颜色作用于值文字；背景模式下颜色作用于字段所在单元格背景色。',
+        pageLimit: '每页显示行数',
+      },
+      tableNG: {
+        enablePagination: '启用分页器',
+        showHeader: '显示表头',
+        filterable: '启用列过滤器',
+        sortColumn: '默认排序列',
+        sortOrder: '默认排序',
+        enableRowDetail: '启用行详情',
+        enableRowDetail_tip: '开启后，表格首列将显示详情图标。点击图标可在右侧抽屉中查看该行的完整字段和值，并支持整行或字段复制。',
+        rowDetail: {
+          triggerTip: '查看行详情',
+          title: '详情',
+          tableTab: '表格',
+          jsonTab: 'JSON',
+          field: '字段',
+          value: '值',
+          copyRow: '复制整行',
+          copyFieldAndValue: '复制字段和值',
+          copyFieldValue: '复制字段值',
+        },
+        cellOptions: {
+          type: {
+            label: '单元格类型',
+            options: {
+              none: '默认',
+              'color-text': '颜色文本',
+              'color-background': '颜色背景',
+              gauge: '量表 (Gauge)',
+            },
+          },
+          wrapText: '文本换行',
+          wrapText_tip: '开启后，单元格文本会自动换行，并且行高会根据文本行数自动调整，如果行数据量较大会影响性能',
+          'color-background': {
+            mode: {
+              label: '颜色模式',
+              options: {
+                basic: '基础',
+                gradient: '渐变',
+              },
+            },
+          },
+          gauge: {
+            mode: {
+              label: '模式',
+              options: {
+                basic: '基础',
+                gradient: '渐变',
+                lcd: 'LCD',
+              },
+            },
+            valueDisplayMode: {
+              label: '数值显示',
+              options: {
+                color: '颜色',
+                text: '文本',
+                hidden: '隐藏',
+              },
+            },
+          },
+        },
+      },
+      text: {
+        textColor: '文字颜色',
+        textDarkColor: '暗黑文字颜色',
+        bgColor: '背景颜色',
+        textSize: '文字大小',
+        justifyContent: {
+          name: '水平对齐',
+          unset: '不设置',
+          flexStart: '左对齐',
+          center: '居中',
+          flexEnd: '右对齐',
+        },
+        alignItems: {
+          name: '垂直对齐',
+          unset: '不设置',
+          flexStart: '顶部对齐',
+          center: '居中',
+          flexEnd: '底部对齐',
+        },
+        content: '内容',
+        content_placeholder: '支持 Markdown 和 HTML',
+        content_tip: `
+          <0>默认简单模式，可通过上方设置简单配置卡片样式</0>
+          <1>支持 Markdown 和 HTML</1>
+          <2>如输入 Markdown 或 HTML 建议关闭上方的对齐设置</2>
+        `,
+      },
+      timeseries: {
+        drawStyle: '绘制模式',
+        lineInterpolation: '线条插值',
+        spanNulls: '连接空值',
+        spanNulls_0: '关闭',
+        spanNulls_1: '开启',
+        lineWidth: '曲线宽度',
+        fillOpacity: '透明度',
+        gradientMode: '渐变',
+        gradientMode_opacity: '开启',
+        gradientMode_none: '关闭',
+        stack: '堆叠',
+        stack_normal: '开启',
+        stack_off: '关闭',
+        yAxis: {
+          title: 'Y轴设置',
+          rightYAxis: {
+            label: '右侧Y轴显示',
+            normal: '开启',
+            off: '关闭',
+          },
+        },
+        showPoints: '显示点',
+        showPoints_always: '显示',
+        showPoints_none: '不显示',
+        pointSize: '点大小',
+        barAlignment: '柱形相对时间点对齐',
+        barAlignment_before: '之前',
+        barAlignment_center: '居中',
+        barAlignment_after: '之后',
+        barWidthFactor: '柱宽因子',
+        barWidthFactor_tip: '控制柱子占用时间桶宽度的比例。1 表示占满整个时间桶；0.6 表示占用 60%，其余作为间隔。',
+      },
+      iframe: {
+        src: 'iframe 地址',
+      },
+      heatmap: {
+        xAxisField: 'X轴',
+        yAxisField: 'Y轴',
+        valueField: '数值列',
+      },
+      barchart: {
+        xAxisField: 'X轴',
+        yAxisField: 'Y轴',
+        colorField: '颜色字段',
+        barMaxWidth: '条形最大宽度',
+        colorField_tip: 'Name 是保留关键字，作为序列名值的字段名',
+      },
+      barGauge: {
+        topn: '最多排名',
+        combine_other: '其他',
+        combine_other_tip: '超过最多排名的数据将会合并为一个其他项',
+        otherPosition: {
+          label: '其他项位置',
+          tip: '其他项的位置，可选项在最前或最后',
+          options: {
+            none: '默认',
+            top: '最前',
+            bottom: '最后',
+          },
+        },
+        displayMode: '显示模式',
+        valueMode: {
+          label: '数值显示',
+          color: '显示',
+          hidden: '隐藏',
+        },
+      },
+    },
+    inspect: {
+      title: '排查',
+      query: '查询',
+      json: '图表配置',
+    },
+  },
+  export: {
+    copy: '复制 JSON 内容到剪贴板',
+  },
+  query: {
+    title: '查询条件',
+    add_query_btn: '添加查询条件',
+    add_expression_btn: '添加表达式',
+    transform: '数据转换',
+    datasource_placeholder: '请选择数据源',
+    datasource_msg: '请选择数据源',
+    time: '时间选择',
+    time_tip: '可指定时间范围，默认为仪表盘全局时间范围',
+    es: {
+      field_key_msg: '必须填写 field key',
+    },
+    prometheus: {
+      query: '查询语句（PromQL）',
+      maxDataPoints: {
+        tip: '每条曲线最多的点数，默认为面板宽度（新增时默认为 240），计算 step = (end - start) / maxDataPoints',
+        tip_2: '每条曲线最多的点数，默认为面板宽度，计算 step = (end - start) / maxDataPoints',
+      },
+      minStep: {
+        label: '最小步长（Min step）',
+        tip: '最小步长，默认为 15，计算 step = max(step, minStep, safeStep)，safeStep = (end - start) / 11000',
+      },
+      step: {
+        tag_tip: '计算 step = max((end - start) / maxDataPoints, minStep, safeStep), safeStep = (end - start) / 11000',
+      },
+      instant: {
+        label: '即时查询（Instant）',
+        tip: '查询 "结束" 时间点的数据，只有一个时间点值',
+      },
+    },
+    expression_placeholder: '对一个或多个查询进行数学运算。您通过 ${refId} 引用查询，即 $A、$B、$C 等。两个标量值的总和：$A + $B > 10',
+    legend: '图例（Legend）',
+    legendTip: '图例名称的覆盖或模板，例如 {{hostname}} 将替换为 hostname 标签的值',
+    legendTip2: '图例名称的覆盖或模板，例如 {{hostname}} 将替换为 hostname 标签的值，目前只在时序数据下生效',
+    options: '查询选项',
+    options_max_data_points: '最大数据点数',
+    options_max_data_points_tip: '每条曲线最多的点数，默认为面板宽度（新增时默认为 240）。用于计算 step = (end - start) / maxDataPoints',
+    options_time: '查询时间范围',
+    options_time_tip: '可指定查询时间范围，默认为仪表盘全局时间范围',
+    copy_query: '复制查询',
+    mixed_datasource: '混用数据源',
+    hide_response: '隐藏查询结果',
+  },
+  migrate: {
+    title: '迁移大盘',
+    close_and_dismiss: '关闭并不再提示',
+    batch_migrate: '前往批量迁移大盘',
+    migrate_current: '迁移当前大盘',
+    desc_1: 'v6 版本将不再支持全局 Prometheus 集群切换，新版本可通过图表关联数据源变量来实现该能力。',
+    desc_2: '迁移工具会创建数据源变量以及关联所有未关联数据源的图表。',
+  },
+  detail: {
+    ai_analysis: 'AI 分析',
+    datasource_empty: '没有数据源信息，请先配置数据源',
+    invalidTimeRange: '无效的 __from 和 __to 值',
+    invalidDatasource: '无效的数据源',
+    invalidPanelConfig: '无效的图表配置',
+    deletePanel_confirm: '是否删除图表：{{name}}',
+    invalidPanelType: '无效的图表类型',
+    fullscreen: {
+      parameters: {
+        tooltip: `内置 URL 参数：
+viewMode=fullscreen：进入全屏展示。
+__show_header=true：全屏时显示标题栏和时间选择器。
+__show_variables=true：全屏时显示变量区域。
+__readonly=true：全屏只读，禁用编辑、拖拽/缩放与迁移提示。
+__disable_fullscreen_exit=true：关闭“按 ESC 退出”提示和 Esc 退出。
+__disable_variables=region,host：禁用指定名称的变量控件。
+__from=...&__to=...：设置全局时间范围。
+__refresh=30：设置自动刷新周期（秒）。
+__timezone=Asia/Shanghai：设置时区。
+themeMode=light|dark：设置主题。
+__variable_value_fixed=true：固定 URL 中的变量值，不使用本地缓存或候选默认值覆盖。`,
+      },
+      notification: {
+        esc: '按 ESC 键退出全屏模式',
+        theme: '主题切换',
+      },
+    },
+    saved: '保存成功',
+    expired: '仪表盘已经被别人修改，为避免相互覆盖，请刷新仪表盘查看最新配置和数据',
+    prompt: {
+      title: '有更改未保存',
+      message: '您想保存更改吗？',
+      cancelText: '取消',
+      discardText: '放弃',
+      okText: '保存',
+    },
+    importPanel: {
+      invalidJSON: '图表配置 JSON 格式不正确',
+      placeholder: '请粘贴图表配置 JSON，可以从图表面板右上角更多操作中点击 "拷贝" 来获取图表配置 JSON',
+    },
+  },
+  settings: {
+    graphTooltip: {
+      label: '提示信息 (Tooltip)',
+      tip: '控制所有图表的提示信息 (Tooltip) 行为',
+      default: '默认',
+      sharedCrosshair: '共享十字线',
+      sharedTooltip: '共享提示信息 (Tooltip)',
+    },
+    graphZoom: {
+      label: '缩放行为',
+      tip: '控制所有图表的缩放行为',
+      default: '默认',
+      updateTimeRange: '更新时间范围',
+    },
+    hideHeader: {
+      label: '隐藏仪表盘标题',
+      tip: '开启后，仅隐藏仪表盘详情页顶部的标题。',
+    },
+    save: '保存仪表盘',
+  },
+  visualizations: {
+    timeseries: '时序图',
+    barchart: '柱状图',
+    stat: '指标值',
+    table: '表格',
+    tableNG: '表格 NG (Beta)',
+    pie: '饼图',
+    hexbin: '蜂窝图',
+    barGauge: '排行榜',
+    text: '文本卡片',
+    gauge: '仪表图',
+    heatmap: '色块图',
+    iframe: '内嵌文档 (iframe)',
+    row: '分组',
+    importPanel: '粘贴图表',
+  },
+  calcs: {
+    lastNotNull: '最后一个非空值',
+    last: '最后一个值',
+    firstNotNull: '第一个非空值',
+    first: '第一个值',
+    min: '最小值',
+    max: '最大值',
+    avg: '平均值',
+    sum: '总和',
+    count: '数量',
+    origin: '原始值',
+    variance: '方差',
+    stdDev: '标准差',
+  },
+  annotation: {
+    add: '添加注释',
+    edit: '编辑注释',
+    description: '描述',
+    tags: '标签',
+    updated: '注释已更新',
+    deleted: '注释已删除',
+  },
+  transformations: {
+    organize: {
+      title: 'Organize fields by name',
+      desc: '重新排序、隐藏或重命名字段',
+    },
+    merge: {
+      title: 'Merge tables',
+      desc: '将多个表合并为一个表',
+    },
+    joinByField: {
+      title: 'Join by field',
+      desc: '根据相关字段合并多个表的行',
+      mode: '模式',
+      byField: '字段',
+    },
+    timeSeriesTable: {
+      title: 'Time series to table',
+      desc: '将时序数据的每个时间点的值合并计算为一个值',
+      fieldName: '字段',
+      functions: '方法',
+    },
+    groupedAggregateTable: {
+      title: 'Grouped aggregate table',
+      desc: '将表按一个或多个字段分组，并对其他字段进行聚合计算',
+      operation_map: {
+        aggregate: '计算',
+        groupby: '分组',
+      },
+    },
+  },
+  add_transformation: '添加数据转换',
+};
+export default zh_CN;

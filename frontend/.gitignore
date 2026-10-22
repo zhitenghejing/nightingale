@@ -1,0 +1,14 @@
+node_modules/
+pub/
+dist/
+coverage/
+test-results/
+playwright-report/
+midscene_run/
+.env
+.env.*
+*.local
+.build-manifest.json
+.build.lock
+.DS_Store
+src/plus/

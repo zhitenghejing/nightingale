@@ -1,0 +1,147 @@
+/**
+ * 日志字段值组件，包含字段值分割和点击添加到搜索框事件
+ */
+import React, { useContext } from 'react';
+import _ from 'lodash';
+
+import { LogsViewerStateContext } from '../../index';
+import { OnValueFilterParams, FieldValueType } from '../../types';
+import { Field } from '../../../../types';
+import { tokenizer } from './util';
+import Token from './Token';
+
+import './style.less';
+
+interface Props {
+  parentKey?: string; // 嵌套json渲染时可以传入，目前仅用在下钻的字段名判断中。目前仅在 sls 中使用
+  name: string;
+  value: FieldValueType;
+  onTokenClick?: (parmas: OnValueFilterParams) => void;
+  rawValue?: object;
+  highlight?: {
+    [index: string]: string[];
+  };
+  enableTooltip?: boolean;
+  fieldValueClassName?: string;
+  adjustFieldValue?: (formatedValue: FieldValueType, highlightValue?: string[]) => React.ReactNode;
+  showExistsAction?: boolean;
+}
+
+// P0-5: memo 化。父层（RawCell/RenderValue）已保证同值字段的 props 引用稳定，
+// 这里浅比较即可在无关重渲时跳过分词与 Token 渲染。
+const LogFieldValue = React.memo(function LogFieldValue(props: Props) {
+  const { indexDataMap, enableLogTextSelectMenu } = useContext(LogsViewerStateContext);
+  const { parentKey, name, value, onTokenClick, rawValue, highlight, enableTooltip, fieldValueClassName, adjustFieldValue, showExistsAction } = props;
+  const highlightKey = parentKey ? `${parentKey}.${name}` : name;
+
+  // P0-5: 用 context 中预构建的 field → Field Map 查找，替代对 indexData 的线性扫描
+  const indexData = indexDataMap?.get(highlightKey);
+
+  const { delimiters } = indexData || ({} as Field);
+
+  if (enableLogTextSelectMenu && typeof value === 'string') {
+    return (
+      <Token
+        interactionMode='textSelect'
+        segmented={false}
+        name={name}
+        parentKey={parentKey}
+        value={value}
+        fieldValue={value}
+        tokenStart={0}
+        tokenEnd={value.length}
+        highlightKey={highlightKey}
+        onTokenClick={onTokenClick}
+        rawValue={rawValue}
+        highlight={highlight}
+        enableTooltip={enableTooltip}
+        fieldValueClassName={fieldValueClassName}
+        adjustFieldValue={adjustFieldValue}
+        showExistsAction={showExistsAction}
+      />
+    );
+  }
+
+  if (typeof value === 'string' && delimiters && delimiters.length > 0) {
+    const result = tokenizer(value, delimiters);
+    if (result.length > 100) {
+      // 分割结果过多时不进行分割展示，避免页面卡顿
+      return (
+        <Token
+          segmented={false}
+          name={name}
+          parentKey={parentKey}
+          value={value}
+          fieldValue={value}
+          tokenStart={0}
+          tokenEnd={value.length}
+          highlightKey={highlightKey}
+          onTokenClick={onTokenClick}
+          rawValue={rawValue}
+          highlight={highlight}
+          enableTooltip={enableTooltip}
+          fieldValueClassName={fieldValueClassName}
+          adjustFieldValue={adjustFieldValue}
+          showExistsAction={showExistsAction}
+        />
+      );
+    }
+    return (
+      <span className={fieldValueClassName}>
+        {_.map(result, (item, idx) => {
+          if (item.type === 'text') {
+            return (
+              <Token
+                key={idx}
+                segmented={result.length > 1}
+                parentKey={parentKey}
+                name={name}
+                value={item.value}
+                fieldValue={value}
+                tokenStart={item.start}
+                tokenEnd={item.end}
+                highlightKey={highlightKey}
+                onTokenClick={onTokenClick}
+                rawValue={rawValue}
+                highlight={highlight}
+                enableTooltip={enableTooltip}
+                fieldValueClassName={fieldValueClassName}
+                adjustFieldValue={adjustFieldValue}
+                showExistsAction={showExistsAction}
+              />
+            );
+          } else if (item.type === 'delimiter') {
+            return (
+              <div key={idx} className='inline text-main m-0 p-0'>
+                {item.value}
+              </div>
+            );
+          }
+          return null;
+        })}
+      </span>
+    );
+  }
+
+  return (
+    <Token
+      segmented={false}
+      name={name}
+      parentKey={parentKey}
+      value={value}
+      fieldValue={value}
+      tokenStart={0}
+      tokenEnd={typeof value === 'string' ? value.length : undefined}
+      highlightKey={highlightKey}
+      onTokenClick={onTokenClick}
+      rawValue={rawValue}
+      highlight={highlight}
+      enableTooltip={enableTooltip}
+      fieldValueClassName={fieldValueClassName}
+      adjustFieldValue={adjustFieldValue}
+      showExistsAction={showExistsAction}
+    />
+  );
+});
+
+export default LogFieldValue;

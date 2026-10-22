@@ -1,0 +1,171 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import React, { useEffect } from 'react';
+import { Modal, Form, Input, Select, Space, Switch, message } from 'antd';
+import _ from 'lodash';
+import { useTranslation } from 'react-i18next';
+import ModalHOC, { ModalWrapProps } from '@/components/ModalHOC';
+import { HelpLink } from '@/components/pageLayout';
+import { updateDashboard, getDashboard, updateDashboardConfigs } from '@/services/dashboardV2';
+import { IDashboard, IDashboardConfig } from '../types';
+import { JSONParse } from '../utils';
+
+interface Props {
+  initialValues?: IDashboard;
+  onOk?: () => void;
+}
+
+function index(props: Props & ModalWrapProps) {
+  const { t } = useTranslation('dashboard');
+  const { visible, destroy, initialValues, onOk } = props;
+  const [form] = Form.useForm();
+  const handleClose = () => {
+    form.resetFields();
+    destroy();
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (initialValues?.id) {
+      getDashboard(initialValues.id).then((res) => {
+        let configs = {} as IDashboardConfig;
+        try {
+          configs = JSONParse(res.configs) as IDashboardConfig;
+        } catch (e) {
+          console.warn(e);
+        }
+        if (cancelled) return;
+        form.resetFields();
+        form.setFieldsValue({
+          iframe_url: configs.iframe_url,
+          showTimePicker: configs.showTimePicker ?? false,
+          hideHeader: configs.hideHeader ?? false,
+          graphTooltip: configs.graphTooltip,
+          graphZoom: configs.graphZoom,
+        });
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [initialValues?.id]);
+
+  return (
+    <Modal
+      destroyOnClose
+      title={t('edit_title')}
+      visible={visible}
+      onCancel={handleClose}
+      onOk={() => {
+        if (initialValues?.id) {
+          form.validateFields().then(async (values) => {
+            const result = await updateDashboard(initialValues.id, {
+              name: values.name,
+              ident: values.ident,
+              tags: _.join(values.tags, ' '),
+              note: values.note,
+            });
+            message.success(t('common:success.edit'));
+            if (result) {
+              const configs = JSONParse(result.configs) as IDashboardConfig;
+              await updateDashboardConfigs(result.id, {
+                configs: JSON.stringify({
+                  ...configs,
+                  iframe_url: values.iframe_url,
+                  hideHeader: values.hideHeader,
+                  showTimePicker: values.showTimePicker,
+                }),
+              });
+            }
+            if (onOk) {
+              onOk();
+            }
+            handleClose();
+          });
+        }
+      }}
+    >
+      <Form
+        form={form}
+        layout='vertical'
+        initialValues={{
+          name: initialValues?.name,
+          ident: initialValues?.ident,
+          tags: initialValues?.tags ? _.split(initialValues.tags, ' ') : undefined,
+          note: initialValues?.note,
+          iframe_url: initialValues?.configs?.iframe_url,
+          hideHeader: initialValues?.configs?.hideHeader ?? false,
+          showTimePicker: initialValues?.configs?.showTimePicker ?? false,
+        }}
+      >
+        <Form.Item
+          label={t('name')}
+          name='name'
+          rules={[
+            {
+              required: true,
+            },
+          ]}
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item
+          label={t('ident')}
+          name='ident'
+          rules={[
+            {
+              pattern: /^[a-zA-Z0-9\-]*$/,
+              message: t('ident_msg'),
+            },
+          ]}
+        >
+          <Input />
+        </Form.Item>
+        <Form.Item label={t('tags')} name='tags'>
+          <Select mode='tags' tokenSeparators={[' ']} open={false} />
+        </Form.Item>
+        <Form.Item label={t('common:table.note')} name='note'>
+          <Input.TextArea autoSize={{ minRows: 1 }} />
+        </Form.Item>
+        <Form.Item
+          label={
+            <Space>
+              {t('batch.import_grafana_url_label')}
+              <HelpLink src='https://flashcat.cloud/docs/content/flashcat-monitor/nightingale-v9/usage/data-query/dashboard/integrated-dashboard/' />
+            </Space>
+          }
+          name='iframe_url'
+          rules={[
+            {
+              required: true,
+            },
+          ]}
+        >
+          <Input.TextArea autoSize={{ minRows: 2 }} />
+        </Form.Item>
+        <Form.Item label={t('settings.hideHeader.label')} name='hideHeader' valuePropName='checked' tooltip={t('settings.hideHeader.tip')}>
+          <Switch />
+        </Form.Item>
+        <Form.Item label={t('batch.show_time_picker')} name='showTimePicker' initialValue={false} valuePropName='checked' tooltip={t('batch.show_time_picker_tip')}>
+          <Switch />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+}
+
+export default ModalHOC<Props>(index);

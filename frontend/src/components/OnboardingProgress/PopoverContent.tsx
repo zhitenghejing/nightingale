@@ -1,0 +1,65 @@
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+
+import OnboardingTracks from './OnboardingTracks';
+import { OnboardingStep } from './tracks';
+import { OnboardingDisplayKey } from './useOnboardingProgress';
+
+interface Props {
+  doneMap: Record<OnboardingDisplayKey, boolean>;
+  doneCount: number;
+  total: number;
+  /** 点击某步时开弹窗或跳转，并由调用方先关闭本 popover */
+  onStepClick: (step: OnboardingStep) => void;
+  /** 「不再显示」：老手显式退出引导，持久化不复现 */
+  onDismiss?: () => void;
+}
+
+/** 侧栏徽标点击后弹出的紧凑版引导清单（窄版竖排，复用同一进度数据） */
+export default function OnboardingPopoverContent({ doneMap, doneCount, total, onStepClick, onDismiss }: Props) {
+  const { t } = useTranslation('n9e-landing');
+  const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+
+  return (
+    <div className='n9e-onboarding-pop'>
+      <div className='n9e-onboarding-pop-head'>
+        <span className='n9e-onboarding-pop-title'>{t('onboarding.title')}</span>
+        <span className='n9e-onboarding-pop-count'>{t('onboarding.progress', { done: doneCount, total })}</span>
+      </div>
+      <div className='n9e-onboarding-pop-progress'>
+        <div className='n9e-onboarding-pop-progress-bar' style={{ width: `${pct}%` }} />
+      </div>
+      <div className='n9e-onboarding-pop-tracks'>
+        <OnboardingTracks
+          doneMap={doneMap}
+          onStepClick={onStepClick}
+          checkStrokeWidth={2.6}
+          arrowProps={{ size: 15, strokeWidth: 1.9 }}
+          classes={{
+            track: 'n9e-onboarding-pop-track',
+            trackTag: 'n9e-onboarding-pop-track-tag',
+            trackIcon: 'n9e-onboarding-pop-track-icon',
+            trackName: 'n9e-onboarding-pop-track-name',
+            steps: 'n9e-onboarding-pop-steps',
+            step: 'n9e-onboarding-pop-step',
+            node: 'n9e-onboarding-pop-node',
+            nodeDone: 'is-done',
+            nodeTodo: 'is-todo',
+            stepText: 'n9e-onboarding-pop-step-text',
+            stepTitle: 'n9e-onboarding-pop-step-title',
+            stepTitleDone: 'is-done',
+            stepDesc: 'n9e-onboarding-pop-step-desc',
+            stepArrow: 'n9e-onboarding-pop-step-arrow',
+          }}
+        />
+      </div>
+      {onDismiss && (
+        <div className='text-right mt-1'>
+          <a className='text-[var(--fc-text-4)] text-xs' onClick={onDismiss}>
+            {t('onboarding.dismiss')}
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}

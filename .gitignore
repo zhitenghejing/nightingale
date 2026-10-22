@@ -90,3 +90,6 @@ n9e.sql
 /aichat-cli
 /a2a-cli
 evallog/
+
+__pycache__/
+*.pyc

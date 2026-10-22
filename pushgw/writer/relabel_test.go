@@ -338,10 +338,9 @@ func TestProcess(t *testing.T) {
 			cfgs: []*pconf.RelabelConfig{
 				{
 					Action:      "replace",
-					If:          `label="x|y"`,
+					If:          `label=~"x|y"`,
 					TargetLabel: "foo",
 					Replacement: "bar",
-					IfRegex:     compileRegex(`label="x|y"`),
 				},
 			},
 			expected: []prompb.Label{
@@ -357,10 +356,9 @@ func TestProcess(t *testing.T) {
 			cfgs: []*pconf.RelabelConfig{
 				{
 					Action:      "replace",
-					If:          `label="x|y"`,
+					If:          `label=~"x|y"`,
 					TargetLabel: "foo",
 					Replacement: "bar",
-					IfRegex:     compileRegex(`label="x|y"`),
 				},
 			},
 			expected: []prompb.Label{
@@ -376,10 +374,9 @@ func TestProcess(t *testing.T) {
 			cfgs: []*pconf.RelabelConfig{
 				{
 					Action:      "replace",
-					If:          `label="x|y"`,
+					If:          `label=~"x|y"`,
 					TargetLabel: "foo",
 					Replacement: "bar",
-					IfRegex:     compileRegex(`label="x|y"`),
 				},
 			},
 			expected: []prompb.Label{

@@ -1,0 +1,326 @@
+import React, { useEffect, useState, useContext, useRef } from 'react';
+import { Select, Space, Tooltip } from 'antd';
+import { WarningOutlined } from '@ant-design/icons';
+import _ from 'lodash';
+
+import { CommonStateContext } from '@/App';
+import InputGroupWithFormItem from '@/components/InputGroupWithFormItem';
+import { useGlobalState } from '@/pages/dashboard/globalState';
+
+import { buildVariableInterpolations } from '../utils/ajustData';
+import { collectVariableDependencies, useVariableManager } from '../VariableManagerContext';
+import { formatString, formatDatasource } from '../utils/formatString';
+import { getBuiltInVariables } from '../utils/replaceTemplateVariables';
+import processQueryOptions from '../utils/processQueryOptions';
+import getValueByOptions from '../utils/getValueByOptions';
+import datasource, { VariableDatasourceQuery } from '../datasource';
+import { Props } from './types';
+import { getErrorMessage } from '@/pages/dashboard/utils/json';
+import type { JsonObject } from '@/pages/dashboard/types';
+import collectSqlMacroNames from '../utils/collectSqlMacroNames';
+import { getDashboardVariablePlugin } from '../plugins';
+
+export default function Query(props: Props) {
+  const { datasourceList } = useContext(CommonStateContext);
+  const [range] = useGlobalState('range');
+  const { disabled, hide, item: variable, variableValueFixed, value, setValue } = props;
+  const { name, label, multi, allOption, options, width } = variable;
+  const selectPresentation = getDashboardVariablePlugin(variable.datasource?.cate)?.selectPresentation?.(variable.query);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  const [errorMsg, setErrorMsg] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+
+  const { getVariables, updateVariable, registerVariable, registeredVariables } = useVariableManager();
+  const variableRef = useRef(variable);
+  const rangeRef = useRef(range);
+  const requestIdRef = useRef(0);
+  const dropdownOpenValueRef = useRef<Props['value']>(undefined);
+
+  useEffect(() => {
+    variableRef.current = variable;
+  });
+
+  useEffect(() => {
+    rangeRef.current = range;
+  }, [range]);
+
+  // 执行查询的核心逻辑
+  const executeQuery = async () => {
+    const currentVariable = variableRef.current;
+    const currentRange = rangeRef.current;
+    const requestId = ++requestIdRef.current;
+    const clearLoadingIfLatestRequest = () => {
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
+    };
+
+    if (!currentVariable.datasource) {
+      const errMsg = 'Variable ' + currentVariable.name + ' datasource not found';
+      setErrorMsg(errMsg);
+      clearLoadingIfLatestRequest();
+      return Promise.reject(errMsg);
+    }
+
+    const availableVariableNames = new Set([...getVariables().map((item) => item.name), ...getBuiltInVariables(currentRange).map((item) => item.name)]);
+    const sqlMacroNames = collectSqlMacroNames({ definition: currentVariable.definition, query: currentVariable.query });
+    const missingDependencies = collectVariableDependencies(currentVariable).filter(
+      (dependencyName) => !availableVariableNames.has(dependencyName) && !sqlMacroNames.has(dependencyName),
+    );
+    if (missingDependencies.length > 0) {
+      const errMsg = `Variable ${currentVariable.name} references missing variable(s): ${missingDependencies.join(', ')}`;
+      setErrorMsg(errMsg);
+      clearLoadingIfLatestRequest();
+      return Promise.reject(errMsg);
+    }
+
+    const variableInterpolations = buildVariableInterpolations({
+      variable: currentVariable,
+      variables: getVariables(),
+      datasourceList,
+      range: currentRange,
+    });
+
+    const formatedReg = currentVariable.reg ? formatString(currentVariable.reg, variableInterpolations) : '';
+    const formatedDefinition = formatString(currentVariable.definition, variableInterpolations);
+    const queryText = currentVariable.query?.query;
+    const formatedQuery = typeof queryText === 'string' ? formatString(queryText, variableInterpolations) : undefined;
+    const datasourceCate = currentVariable.datasource?.cate;
+    const datasourceValue = formatDatasource(currentVariable.datasource?.value, variableInterpolations);
+
+    if (!datasourceValue) {
+      const errMsg = 'Variable ' + currentVariable.name + ' datasource not found';
+      setErrorMsg(errMsg);
+      clearLoadingIfLatestRequest();
+      return Promise.reject(errMsg);
+    }
+
+    setErrorMsg('');
+    setLoading(true);
+    try {
+      // 递归替换 query 树中的变量引用，覆盖 GCM filters、group_bys 等嵌套字段。
+      // currentVariable.query 来源于可序列化的表单配置，不含循环引用，故不设 visited 防护。
+      const interpolateQueryValue = (value: unknown): unknown => {
+        if (typeof value === 'string') return formatString(value, variableInterpolations);
+        if (Array.isArray(value)) return value.map(interpolateQueryValue);
+        if (value && typeof value === 'object') {
+          return Object.entries(value).reduce<Record<string, unknown>>((result, [key, item]) => {
+            result[key] = interpolateQueryValue(item);
+            return result;
+          }, {});
+        }
+        return value;
+      };
+      const interpolatedQuery = (interpolateQueryValue(currentVariable.query) ?? {}) as JsonObject;
+      const query: VariableDatasourceQuery = {
+        ...interpolatedQuery,
+        query: formatedDefinition || formatedQuery, // query 是标准写法
+        range: currentRange,
+        config: currentVariable.config, // config 是 es 特有的写法
+      };
+      const options = await datasource({
+        datasourceCate,
+        datasourceValue,
+        datasourceList,
+        query,
+        variableContext: { variables: getVariables(), query: { ...currentVariable.query, range: currentRange } },
+      });
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      const filteredOptions = processQueryOptions(options, formatedReg);
+      updateVariable(name, {
+        options: filteredOptions,
+        value: getValueByOptions({
+          variableValueFixed,
+          variable: currentVariable,
+          itemOptions: filteredOptions,
+        }),
+      });
+    } catch (error: unknown) {
+      if (requestId !== requestIdRef.current) {
+        return;
+      }
+      setErrorMsg(getErrorMessage(error) || 'Error fetching variable options');
+      updateVariable(name, {
+        options: [],
+        // value: variableValueFixed ? value : undefined, // TODO 如果查询失败暂时不清除变量值
+      });
+    } finally {
+      clearLoadingIfLatestRequest();
+    }
+  };
+
+  // 计算变量的配置签名（排除 label, value, options, hide）
+  const variableConfigSignature = React.useMemo(() => {
+    const { label, value, options, hide, ...rest } = variable;
+    return JSON.stringify(rest);
+  }, [variable]);
+
+  // 注册变量到管理器
+  useEffect(() => {
+    const meta = {
+      name: variable.name,
+      variable,
+      executor: executeQuery,
+    };
+
+    registerVariable(meta);
+
+    // 配置变更时清理订阅
+    return () => {
+      const meta = registeredVariables.current.get(variable.name);
+      if (meta && meta.cleanup) meta.cleanup();
+    };
+  }, [variableConfigSignature]); // 使用 useMemo 计算的配置签名
+
+  return (
+    <div className={hide ? 'hidden' : ''}>
+      <InputGroupWithFormItem
+        label={
+          <Space>
+            {errorMsg ? (
+              <Tooltip title={errorMsg}>
+                <WarningOutlined style={{ color: '#f06' }} />
+              </Tooltip>
+            ) : null}
+            {label || name}
+          </Space>
+        }
+      >
+        <Select
+          allowClear
+          disabled={disabled}
+          mode={multi ? 'multiple' : undefined}
+          style={{
+            width: width || '180px',
+          }}
+          maxTagCount='responsive'
+          onSelect={(v: string) => {
+            // 单选模式直接触发 onChange
+            if (multi) {
+              // 多选模式下如果选中的是 all，清空其他选项
+              if (v === 'all') {
+                setValue(['all']);
+              } else {
+                // 如果选中的是 all 之外的其他选项，清除 all 值
+                setValue(_.without([...((value as string[]) || []), v], 'all'));
+              }
+            } else {
+              // 完成选择后清空搜索框
+              setSearchValue('');
+              setValue(v);
+              updateVariable(name, {
+                value: v,
+              });
+            }
+          }}
+          onDeselect={(v: string) => {
+            // 只有多选生效 onDeselect 事件
+            // 如果取消选中的是 all，清空所有选项
+            // 如果取消选中的是 all 之外的其他选项，则排除该选项
+            if (multi) {
+              let newSelected: string[] = [];
+              if (v === 'all') {
+                newSelected = [];
+              } else {
+                newSelected = _.without(value as string[], v);
+              }
+              setValue(newSelected);
+              // 如果是点击的 Tag 上的关闭按钮，也需要触发 onChange
+              if (!dropdownVisible) {
+                setSearchValue('');
+                updateVariable(name, {
+                  value: newSelected,
+                });
+              }
+            }
+          }}
+          defaultActiveFirstOption={false}
+          showSearch
+          optionFilterProp={selectPresentation?.optionFilterProp}
+          optionLabelProp={selectPresentation?.optionLabelProp}
+          searchValue={searchValue}
+          onSearch={(v) => {
+            setSearchValue(v);
+          }}
+          open={dropdownVisible}
+          onDropdownVisibleChange={(open) => {
+            if (open) {
+              // dropdown 打开时，记录当前的值
+              dropdownOpenValueRef.current = value;
+            } else {
+              // 多选模式下 dropdown 关闭时，触发 onChange
+              if (multi) {
+                // 完成选择后清空搜索框
+                setSearchValue('');
+                // 只有当值发生变化时才调用 updateVariable
+                if (!_.isEqual(dropdownOpenValueRef.current, value)) {
+                  updateVariable(name, {
+                    value,
+                  });
+                }
+              }
+            }
+            setDropdownVisible(open);
+          }}
+          onClear={() => {
+            if (multi) {
+              setValue([]);
+              updateVariable(name, {
+                value: [],
+              });
+            } else {
+              // 2024-10-28 清空变量时将 undefined 转为 '', 使之能缓存清空值状态，以便下次访问时变量值为空
+              setValue('');
+              updateVariable(name, {
+                value: '',
+              });
+            }
+          }}
+          dropdownMatchSelectWidth={_.toNumber(options?.length) > 100}
+          loading={loading}
+          value={value}
+          dropdownStyle={selectPresentation?.dropdownStyle}
+          dropdownClassName={['overflow-586', selectPresentation?.dropdownClassName].filter(Boolean).join(' ')}
+          maxTagPlaceholder={(omittedValues) => {
+            return (
+              <Tooltip
+                title={
+                  <div>
+                    {omittedValues.map((item, index) => {
+                      return <div key={item.key + _.toString(index)}>{item.value}</div>;
+                    })}
+                  </div>
+                }
+              >
+                <div>+{omittedValues.length}...</div>
+              </Tooltip>
+            );
+          }}
+        >
+          {allOption && (
+            <Select.Option key={'all'} value={'all'}>
+              All
+            </Select.Option>
+          )}
+          {_.map(options, (item) => {
+            const renderedOption = selectPresentation?.renderOption?.(item);
+            return (
+              <Select.Option
+                key={item.value}
+                value={item.value}
+                label_original={renderedOption?.labelOriginal}
+                label_search={renderedOption?.labelSearch}
+                style={{ maxWidth: 500 }}
+              >
+                {renderedOption?.content ?? item.label}
+              </Select.Option>
+            );
+          })}
+        </Select>
+      </InputGroupWithFormItem>
+    </div>
+  );
+}

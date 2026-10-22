@@ -1,0 +1,436 @@
+/*
+ * Copyright 2022 Nightingale Team
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+import React, { useEffect, useState, useContext } from 'react';
+import moment from 'moment';
+import _ from 'lodash';
+import { useLocation } from 'react-router-dom';
+import queryString from 'query-string';
+import PageLayout, { HelpLink } from '@/components/pageLayout';
+import { Button, Input, message, List, Row, Col, Modal, Space, Tag } from 'antd';
+import { EditOutlined, DeleteOutlined, SearchOutlined, UserOutlined, InfoCircleOutlined, PlusSquareOutlined } from '@ant-design/icons';
+import UserInfoModal from './component/createModal';
+import { getTeamInfoList, getTeamInfo, deleteTeam, deleteMember } from '@/services/manage';
+import { User, Team, UserType, ActionType, TeamInfo } from '@/store/manageInterface';
+import { ColumnsType } from 'antd/lib/table';
+import { useTranslation } from 'react-i18next';
+import { listToTree } from '@/components/BusinessGroup';
+import { CommonStateContext } from '@/App';
+import Tree from '@/components/BusinessGroup/components/Tree';
+import EnhancedTable from '@/components/EnhancedTable';
+import Tags from '@/components/TableTags/Tags';
+import './index.less';
+import './locale';
+import usePagination from '@/components/usePagination';
+
+const { confirm } = Modal;
+export const PAGE_SIZE = 20;
+
+export function getLocaleExpandedKeys() {
+  const val = localStorage.getItem('team_tree_expanded_keys');
+  try {
+    if (val) {
+      const parsed = JSON.parse(val);
+      if (_.isArray(parsed)) {
+        return parsed;
+      }
+      return [];
+    }
+    return [];
+  } catch (e) {
+    return [];
+  }
+}
+
+export function setLocaleExpandedKeys(nodes: string[]) {
+  localStorage.setItem('team_tree_expanded_keys', JSON.stringify(nodes));
+}
+
+const Resource: React.FC = () => {
+  const { siteInfo } = useContext(CommonStateContext);
+  const teamDisplayMode = siteInfo?.teamDisplayMode || 'list';
+  const pagination = usePagination({ PAGESIZE_KEY: 'userGroups' });
+  const { t } = useTranslation('user');
+  const location = useLocation();
+  const query = queryString.parse(location.search);
+  const [visible, setVisible] = useState<boolean>(false);
+  const [action, setAction] = useState<ActionType>();
+  const [teamId, setTeamId] = useState<string>((query.id as string) ?? '');
+  const [memberId, setMemberId] = useState<string>('');
+  const [memberList, setMemberList] = useState<User[]>([]);
+  const [allMemberList, setAllMemberList] = useState<User[]>([]);
+  const [teamInfo, setTeamInfo] = useState<Team>();
+  const [teamList, setTeamList] = useState<Team[]>([]);
+  const [memberLoading, setMemberLoading] = useState<boolean>(false);
+  const [searchValue, setSearchValue] = useState<string>('');
+  const [searchMemberValue, setSearchMemberValue] = useState<string>('');
+  const userColumn: ColumnsType<User> = [
+    {
+      title: t('account:profile.username'),
+      dataIndex: 'username',
+      ellipsis: true,
+    },
+    {
+      title: t('account:profile.nickname'),
+      dataIndex: 'nickname',
+      ellipsis: true,
+      render: (text: string, record) => record.nickname || '-',
+    },
+    {
+      title: t('account:profile.email'),
+      dataIndex: 'email',
+      render: (text: string, record) => record.email || '-',
+    },
+    {
+      title: t('account:profile.phone'),
+      dataIndex: 'phone',
+      render: (text: string, record) => record.phone || '-',
+    },
+    {
+      title: t('user.busi_groups'),
+      dataIndex: 'busi_groups',
+      render: (text: string, record) => {
+        if (_.isEmpty(record.busi_groups)) return '-';
+        return <Tags data={record.busi_groups || []} maxWidth={180} getKey={(item) => item.id} getLabel={(item) => item.name} />;
+      },
+    },
+  ];
+
+  const teamMemberColumns: ColumnsType<User> = [...userColumn];
+
+  useEffect(() => {
+    getList();
+  }, []);
+
+  useEffect(() => {
+    if (teamId) {
+      getTeamInfoDetail(teamId);
+    }
+  }, [teamId]);
+
+  const getList = (isDeleteOrAdd = false) => {
+    getTeamList('', isDeleteOrAdd);
+  };
+
+  // 获取团队列表
+  const getTeamList = (search?: string, isDelete?: boolean) => {
+    getTeamInfoList({ query: search || '' }).then((data) => {
+      setTeamList(data.dat || []);
+      if ((!teamId || isDelete) && data.dat.length > 0) {
+        setTeamId(data.dat[0].id);
+      }
+    });
+  };
+
+  // 获取团队详情
+  const getTeamInfoDetail = (id: string) => {
+    setMemberLoading(true);
+    getTeamInfo(id).then((data: TeamInfo) => {
+      setTeamInfo(data.user_group);
+      setMemberList(data.users);
+      setAllMemberList(data.users);
+      setMemberLoading(false);
+    });
+  };
+
+  const handleSearch = (type?: string, val?: string) => {
+    if (type === 'team') {
+      getTeamList(val);
+    } else {
+      if (!val) {
+        getTeamInfoDetail(teamId);
+      } else {
+        setMemberLoading(true);
+        let newList = allMemberList.filter(
+          (item) =>
+            item.username.indexOf(val) !== -1 ||
+            item.nickname.indexOf(val) !== -1 ||
+            item.id.toString().indexOf(val) !== -1 ||
+            item.phone.indexOf(val) !== -1 ||
+            item.email.indexOf(val) !== -1,
+        );
+        setMemberList(newList);
+        setMemberLoading(false);
+      }
+    }
+  };
+
+  const handleClick = (type: ActionType, id?: string, memberId?: string) => {
+    if (id) {
+      setTeamId(id);
+    } else {
+      setTeamId('');
+    }
+
+    if (memberId) {
+      setMemberId(memberId);
+    } else {
+      setMemberId('');
+    }
+
+    setAction(type);
+    setVisible(true);
+  };
+
+  // 弹窗关闭回调
+  const handleClose = (isDeleteOrAdd: boolean | string = false) => {
+    setVisible(false);
+    if (searchValue) {
+      handleSearch('team', searchValue);
+    } else {
+      // 添加、删除成员 不用获取列表
+      if (isDeleteOrAdd !== 'updateMember') {
+        getList(isDeleteOrAdd !== 'updateName'); // 修改名字，不用选中第一个
+      }
+    }
+    if (teamId && (isDeleteOrAdd === 'update' || isDeleteOrAdd === 'updateMember' || isDeleteOrAdd === 'updateName')) {
+      getTeamInfoDetail(teamId);
+    }
+  };
+
+  return (
+    <PageLayout
+      title={<Space>{t('team.title')}</Space>}
+      icon={<UserOutlined />}
+      doc='https://flashcat.cloud/docs/content/flashcat-monitor/nightingale-v9/usage/personnel-permissions/team-management/'
+    >
+      <div className='user-manage-content'>
+        <div style={{ display: 'flex', gap: 10, height: '100%', background: 'unset' }}>
+          <div className='left-tree-area'>
+            <div className='sub-title'>
+              {t('team.list')}
+              <Button
+                style={{
+                  height: '30px',
+                }}
+                size='small'
+                type='link'
+                onClick={() => {
+                  handleClick(ActionType.CreateTeam);
+                }}
+                icon={<PlusSquareOutlined />}
+              />
+            </div>
+            <div style={{ display: 'flex', margin: '5px 0px 12px' }}>
+              <Input
+                prefix={<SearchOutlined />}
+                value={searchValue}
+                onChange={(e) => {
+                  setSearchValue(e.target.value);
+                }}
+                onPressEnter={(e) => {
+                  // @ts-ignore
+                  getTeamList(e.target.value);
+                }}
+                onBlur={(e) => {
+                  // @ts-ignore
+                  getTeamList(e.target.value);
+                }}
+              />
+            </div>
+            {teamDisplayMode == 'list' ? (
+              <div className='radio-list' style={{ overflowY: 'auto' }}>
+                <List
+                  style={{
+                    marginBottom: '12px',
+                    flex: 1,
+                    overflow: 'auto',
+                  }}
+                  dataSource={teamList}
+                  size='small'
+                  renderItem={(item) => (
+                    <List.Item key={item.id} className={_.toNumber(teamId) === _.toNumber(item.id) ? 'is-active' : ''} onClick={() => setTeamId(item.id)}>
+                      {item.name}
+                    </List.Item>
+                  )}
+                />
+              </div>
+            ) : (
+              <div className='radio-list' style={{ overflowY: 'auto' }}>
+                {!_.isEmpty(teamList) && (
+                  <Tree
+                    defaultExpandedKeys={getLocaleExpandedKeys()}
+                    selectedKeys={teamId ? [_.toString(teamId)] : []}
+                    onSelect={(_selectedKeys, e: any) => {
+                      const nodeId = e.node.id;
+                      setTeamId(nodeId as any);
+                    }}
+                    onExpand={(expandedKeys: string[]) => {
+                      setLocaleExpandedKeys(expandedKeys);
+                    }}
+                    treeData={listToTree(teamList as any, siteInfo?.teamSeparator)}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+          {teamList.length > 0 ? (
+            <div className='resource-table-content'>
+              <Row className='team-info'>
+                <Col
+                  span='24'
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    display: 'inline',
+                  }}
+                >
+                  {teamInfo && teamInfo.name}
+                  <EditOutlined
+                    style={{
+                      marginLeft: '8px',
+                      fontSize: '14px',
+                    }}
+                    onClick={() => handleClick(ActionType.EditTeam, teamId)}
+                  ></EditOutlined>
+                  <DeleteOutlined
+                    style={{
+                      marginLeft: '8px',
+                      fontSize: '14px',
+                    }}
+                    onClick={() => {
+                      confirm({
+                        title: t('common:confirm.delete'),
+                        onOk: () => {
+                          deleteTeam(teamId).then((_) => {
+                            message.success(t('common:success.delete'));
+                            handleClose(true);
+                          });
+                        },
+                        onCancel: () => {},
+                      });
+                    }}
+                  />
+                </Col>
+                <Col
+                  style={{
+                    marginTop: '8px',
+                    // color: '#666',
+                  }}
+                >
+                  <Space wrap>
+                    <span>ID：{teamInfo?.id ? teamInfo.id : '-'}</span>
+                    <span>
+                      {t('common:table.note')}: {teamInfo?.note ? teamInfo.note : '-'}
+                    </span>
+                    <span>
+                      {t('common:table.update_by')}: {teamInfo?.update_by ? teamInfo.update_by : '-'}
+                    </span>
+                    <span>
+                      {t('common:table.update_at')}: {teamInfo?.update_at ? moment.unix(teamInfo.update_at).format('YYYY-MM-DD HH:mm:ss') : '-'}
+                    </span>
+                    <span>
+                      {t('common:business_groups')}:{' '}
+                      {_.map(teamInfo?.busi_groups, (item) => {
+                        return (
+                          <Tag className='mb-1' key={item.id}>
+                            {item.name}
+                          </Tag>
+                        );
+                      })}
+                    </span>
+                  </Space>
+                </Col>
+              </Row>
+              <Row justify='space-between' align='middle'>
+                <Col span='12'>
+                  <Input
+                    prefix={<SearchOutlined />}
+                    value={searchMemberValue}
+                    className={'searchInput'}
+                    onChange={(e) => setSearchMemberValue(e.target.value)}
+                    placeholder={t('team.search_placeholder')}
+                    onPressEnter={(e) => handleSearch('member', searchMemberValue)}
+                  />
+                </Col>
+                <Button
+                  type='primary'
+                  onClick={() => {
+                    handleClick(ActionType.AddUser, teamId);
+                  }}
+                >
+                  {t('team.add_member')}
+                </Button>
+              </Row>
+
+              <EnhancedTable
+                className='mt-2'
+                size='small'
+                rowKey='id'
+                columns={teamMemberColumns}
+                dataSource={memberList}
+                loading={memberLoading}
+                pagination={pagination}
+                actionColumn={{ title: t('common:table.operations'), width: 64 }}
+                rowActions={(record) => ({
+                  inline: [
+                    {
+                      key: 'delete',
+                      icon: 'delete',
+                      text: t('common:btn.delete'),
+                      danger: true,
+                      onClick: () => {
+                        let params = {
+                          ids: [record.id],
+                        };
+                        confirm({
+                          title: t('common:confirm.delete'),
+                          onOk: () => {
+                            deleteMember(teamId, params).then((_) => {
+                              message.success(t('common:success.delete'));
+                              handleClose('updateMember');
+                            });
+                          },
+                          onCancel: () => {},
+                        });
+                      },
+                    },
+                  ],
+                })}
+              />
+            </div>
+          ) : (
+            <div className='blank-busi-holder'>
+              <p style={{ textAlign: 'left', fontWeight: 'bold' }}>
+                <InfoCircleOutlined style={{ color: '#1473ff' }} /> Tips
+              </p>
+              <p>
+                {t('team.empty')}&nbsp;
+                <a onClick={() => handleClick(ActionType.CreateTeam)}>{t('team.create')}</a>
+              </p>
+            </div>
+          )}
+        </div>
+        <UserInfoModal
+          visible={visible}
+          action={action as ActionType}
+          width={500}
+          userType={UserType.Team}
+          onClose={handleClose}
+          onSearch={(val) => {
+            setSearchValue(val);
+            handleSearch('team', val);
+          }}
+          userId={undefined}
+          teamId={teamId}
+          memberId={memberId}
+        />
+      </div>
+    </PageLayout>
+  );
+};
+
+export default Resource;

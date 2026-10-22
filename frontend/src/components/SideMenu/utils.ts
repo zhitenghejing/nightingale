@@ -1,0 +1,88 @@
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+import { MenuItem } from '@/components/SideMenu/types';
+import { getMenuList } from '@/components/SideMenu/menu';
+import { IS_PLUS } from '@/utils/constant';
+
+// @ts-ignore
+import getPlusMenuList from 'plus:/parcels/SideMenu/menu';
+
+import { IMenuItem, MenuMatchResult } from './types';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export const getCurrentMenuList = (embeddedProductMenu: MenuItem[] = [], hideDeprecatedMenus: boolean = false): MenuItem[] => {
+  return IS_PLUS ? getPlusMenuList(embeddedProductMenu, hideDeprecatedMenus) : getMenuList(embeddedProductMenu, hideDeprecatedMenus);
+};
+
+export const findMenuByPath = (path: string, menuList: MenuItem[]): MenuMatchResult | null => {
+  for (const parent of menuList) {
+    if (!parent.children) continue;
+
+    // Handle top-level items with type: 'tabs' (2-level hierarchy: parent → tab item)
+    if (parent.type === 'tabs') {
+      for (const child of parent.children) {
+        if (child.key === path) {
+          return {
+            currentItem: child,
+            parentItem: parent,
+            showTabs: true,
+            icon: parent.icon,
+          };
+        }
+      }
+    }
+
+    for (const child of parent.children) {
+      if (child.children) {
+        for (const grandChild of child.children) {
+          if (grandChild.key === path) {
+            return {
+              currentItem: grandChild,
+              parentItem: child,
+              showTabs: child.type === 'tabs',
+              icon: parent.icon,
+            };
+          }
+        }
+      }
+    }
+  }
+  return null;
+};
+
+export const getStorageKey = (parentKey: string) => `tab_selection_${parentKey}`;
+
+/*
+ * 根据点击菜单的路径获取当前实际跳转的菜单路径
+ * 一些菜单对应的页面会页面级别的 Tabs，这里之前选择的 Tab 会被保存到 localStorage 中
+ * 当用户再次点击菜单时，会从 localStorage 中获取之前保存的 Tab 路径
+ * 如果存在，则返回该路径，否则返回当前菜单的路径
+ * @param pathname 当前菜单路径
+ * @returns 返回当前菜单项的保存路径
+ */
+export const getSavedPath = (pathname: string) => {
+  const menuList = getCurrentMenuList();
+  const currentMenu = findMenuByPath(pathname, menuList);
+  if (currentMenu?.currentItem && currentMenu?.parentItem) {
+    const storageKey = getStorageKey(currentMenu.parentItem.key);
+    return localStorage.getItem(storageKey);
+  }
+};
+
+/*
+ * Resolve the route a menu item navigates to when clicked.
+ * A menu with page-level tabs lands on its first tab, or on the tab remembered in
+ * localStorage from an earlier visit.
+ * @param item the menu item
+ * @returns the path to navigate to. Absolute-path menus (pathType === 'absolute') do not
+ * go through here; they link to item.path directly.
+ */
+export const getMenuItemPath = (item: IMenuItem): string => {
+  const path = item.type === 'tabs' ? item.children?.[0]?.key || item.key : item.key;
+  const savedPath = item.children ? getSavedPath(path) : item.key;
+  return savedPath || path;
+};

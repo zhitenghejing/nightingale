@@ -1,0 +1,56 @@
+.renderer-table-container {
+  height: 100%;
+  .renderer-table-td-content {
+    line-height: 1.4;
+    a {
+      text-decoration: underline;
+    }
+  }
+  // TODO: 可能是夜莺页面有样式污染，这里再覆盖清空下，后面找时间排查下
+  .ant-table {
+    margin-top: 0 !important;
+    border: 0 none !important;
+  }
+  .ant-table-body {
+    overflow-y: auto !important;
+  }
+  .ant-table-thead {
+    .ant-table-cell {
+      font-weight: 800;
+      border: 0 none;
+    }
+  }
+  .ant-table-body {
+    .renderer-table-td-content-value-container {
+      height: 40px;
+      padding: 1px !important;
+      .renderer-table-td-content {
+        padding: 0 16px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+      }
+    }
+  }
+  .ant-table-body::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+  }
+  .ant-table-body::-webkit-scrollbar-corner {
+    background-color: transparent;
+  }
+  .ant-table-body::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    background: #ccc !important;
+  }
+  .ant-table-body::-webkit-scrollbar-track {
+    border-radius: 10px;
+    background: unset;
+  }
+  .ant-table-filter-trigger {
+    margin: 0 !important;
+  }
+  .ant-table-pagination.ant-pagination {
+    margin: 0 !important;
+  }
+}

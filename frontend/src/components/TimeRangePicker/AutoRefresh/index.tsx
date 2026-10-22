@@ -1,0 +1,167 @@
+// 要保证一下行为可以正常
+// 1. 设置20s时，拿手机算了算差不多20s刷新
+// 2. 20s切换到1m时，间隔会从20s 到1m
+// 3. off时不触发
+// 4. 从off切换到5s时可以正常触发
+// 5. 切换到其他页面时，会关闭（不会出发之前的轮询）
+import React, { useState, useEffect, useRef, useImperativeHandle } from 'react';
+import { Dropdown, Button, Menu, Tooltip } from 'antd';
+import { DownOutlined, UpOutlined, SyncOutlined } from '@ant-design/icons';
+import _ from 'lodash';
+import './style.less';
+
+const refreshMap = {
+  0: 'Off',
+  5: '5s',
+  10: '10s',
+  20: '20s',
+  30: '30s',
+  60: '1m',
+  120: '2m',
+  180: '3m',
+  300: '5m',
+  600: '10m',
+};
+
+export const GRAFANA_REFRESH_OPTIONS = {
+  0: 'Off',
+  5: '5s',
+  10: '10s',
+  30: '30s',
+  60: '1m',
+  300: '5m',
+  900: '15m',
+  1800: '30m',
+  3600: '1h',
+  7200: '2h',
+  86400: '1d',
+};
+
+interface IProps {
+  disabled?: boolean;
+  tooltip?: React.ReactNode;
+  intervalTooltip?: React.ReactNode;
+  onRefresh: () => void;
+  localKey?: string;
+  intervalSeconds?: number;
+  intervalOptions?: Record<number, string>;
+  onIntervalSecondsChange?: (intervalSeconds: number) => void;
+}
+
+function Refresh(props: IProps, ref) {
+  const intervalOptions = props.intervalOptions || refreshMap;
+  const intervalSecondsCache = props.localKey ? _.toNumber(window.localStorage.getItem(props.localKey)) : 0;
+  const [intervalSeconds, setIntervalSeconds] = useState(props.intervalSeconds ?? intervalSecondsCache);
+  const [visible, setVisible] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setTimeout> | undefined>();
+  const removeRef = useRef(false);
+  // 用 ref 保存最新的 onRefresh，避免 effect 因函数引用变化而重置 timer
+  const onRefreshRef = useRef(props.onRefresh);
+
+  // 每次渲染都同步最新的 onRefresh 到 ref
+  useEffect(() => {
+    onRefreshRef.current = props.onRefresh;
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    if (intervalRef.current) {
+      clearTimeout(intervalRef.current);
+      intervalRef.current = undefined;
+    }
+
+    if (intervalSeconds) {
+      const loop = () => {
+        if (removeRef.current || cancelled) return;
+        intervalRef.current = setTimeout(() => {
+          if (removeRef.current || cancelled) return;
+          onRefreshRef.current();
+          loop();
+        }, intervalSeconds * 1000);
+      };
+      loop();
+    }
+
+    return () => {
+      cancelled = true;
+      if (intervalRef.current) {
+        clearTimeout(intervalRef.current);
+        intervalRef.current = undefined;
+      }
+    };
+  }, [intervalSeconds]); // 移除 props.onRefresh 依赖，改用 ref 避免 timer 被意外重置
+
+  useEffect(() => {
+    return () => {
+      removeRef.current = true;
+      if (intervalRef.current) {
+        clearTimeout(intervalRef.current);
+        intervalRef.current = undefined;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    setIntervalSeconds(props.intervalSeconds ?? intervalSecondsCache);
+  }, [props.intervalSeconds]);
+
+  useImperativeHandle(ref, () => ({
+    closeRefresh() {
+      setIntervalSeconds(0);
+      props.localKey && window.localStorage.setItem(props.localKey, '0');
+    },
+  }));
+
+  return (
+    <div className='auto-refresh-container'>
+      <Tooltip title={props.tooltip}>
+        <Button disabled={props.disabled} icon={<SyncOutlined className={intervalSeconds ? 'rotate-icon' : ''} />} onClick={props.onRefresh} />
+      </Tooltip>
+      <Tooltip
+        // 浮层落在展开后的菜单前两项上且层级更高，必须让它不参与命中测试，
+        // 否则会吞掉这两项的点击；同时浮层不可悬浮，移向菜单时才能正常消失
+        overlayStyle={{ maxWidth: 320, pointerEvents: 'none' }}
+        title={props.intervalTooltip}
+      >
+        <span>
+          <Dropdown
+            disabled={props.disabled}
+            trigger={['click']}
+            visible={visible}
+            onVisibleChange={(visible) => {
+              setVisible(visible);
+            }}
+            overlay={
+              <Menu
+                onClick={(e) => {
+                  setIntervalSeconds(_.toNumber(e.key));
+                  props.localKey && window.localStorage.setItem(props.localKey, e.key);
+                  props.onIntervalSecondsChange && props.onIntervalSecondsChange(_.toNumber(e.key));
+                  setVisible(false);
+                }}
+              >
+                {_.map(intervalOptions, (text, value) => {
+                  return <Menu.Item key={value}>{text}</Menu.Item>;
+                })}
+              </Menu>
+            }
+          >
+            <Button
+              onClick={() => {
+                setVisible(!visible);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              {intervalOptions[intervalSeconds]} {visible ? <UpOutlined /> : <DownOutlined style={{ fontSize: 12 }} />}
+            </Button>
+          </Dropdown>
+        </span>
+      </Tooltip>
+    </div>
+  );
+}
+
+export default React.forwardRef(Refresh);
