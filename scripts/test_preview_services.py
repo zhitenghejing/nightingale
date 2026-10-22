@@ -83,6 +83,58 @@ class ServicesTest(unittest.TestCase):
                 services.destroy(self.state, {}, self.binding, self.directory)
             self.assertFalse(any("DROP" in call.args[1] for call in sql.call_args_list))
 
+    def legacy_services(self):
+        directory = self.state / "shared"
+        directory.mkdir()
+        legacy = {**self.cfg, "postgres": f"n9e-preview-pg-{self.cfg['owner']}",
+                  "prometheus": f"n9e-preview-prom-{self.cfg['owner']}"}
+        services.write_private(directory / "services.json", legacy)
+        return directory, legacy
+
+    def test_legacy_rename_keeps_running_containers_and_persistent_volumes(self):
+        directory, legacy = self.legacy_services()
+        owned = {"Config": {"Labels": {"n9e.preview.owner": self.cfg["owner"]}}}
+        containers = {legacy[key]: owned for key in ("postgres", "prometheus")}
+
+        def rename(command, old, new):
+            self.assertEqual(command, "rename")
+            containers[new] = containers.pop(old)
+
+        with patch.object(services, "container", side_effect=containers.get), \
+                patch.object(services, "docker", side_effect=rename) as docker:
+            volumes = services.register_services(directory, self.cfg)
+            self.assertEqual(docker.call_count, 2)
+            # A second run must retain the old volumes and perform no mutations.
+            self.assertEqual(services.register_services(directory, self.cfg), volumes)
+            self.assertEqual(docker.call_count, 2)
+        self.assertEqual(volumes, {key: legacy[key] + "-data" for key in ("postgres", "prometheus")})
+        self.assertIn(self.cfg["postgres"], containers)
+        self.assertIn(self.cfg["prometheus"], containers)
+
+    def test_interrupted_rename_can_resume_without_changing_volume_identity(self):
+        directory, legacy = self.legacy_services()
+        owned = {"Config": {"Labels": {"n9e.preview.owner": self.cfg["owner"]}}}
+        containers = {self.cfg["postgres"]: owned, legacy["prometheus"]: owned}
+        with patch.object(services, "container", side_effect=containers.get), \
+                patch.object(services, "docker") as docker:
+            volumes = services.register_services(directory, self.cfg)
+        docker.assert_called_once_with("rename", legacy["prometheus"], self.cfg["prometheus"])
+        self.assertEqual(volumes["postgres"], legacy["postgres"] + "-data")
+
+    def test_rename_preflights_both_services_before_any_mutation(self):
+        directory, legacy = self.legacy_services()
+        owned = {"Config": {"Labels": {"n9e.preview.owner": self.cfg["owner"]}}}
+        for target in ({"Config": {"Labels": {}}}, owned):
+            with self.subTest(target=target):
+                containers = {legacy[key]: owned for key in ("postgres", "prometheus")}
+                containers[self.cfg["prometheus"]] = target
+                with patch.object(services, "container", side_effect=containers.get), \
+                        patch.object(services, "docker") as docker:
+                    with self.assertRaises(RuntimeError):
+                        services.register_services(directory, self.cfg)
+                    docker.assert_not_called()
+                self.assertEqual(json.loads((directory / "services.json").read_text()), legacy)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -47,8 +47,8 @@ def settings(state, config):
     if ports["postgresPort"] == ports["prometheusPort"]:
         raise ValueError("preview shared-service ports must differ")
     owner = identity(state)
-    return {**ports, "owner": owner, "postgres": f"n9e-preview-pg-{owner}",
-            "prometheus": f"n9e-preview-prom-{owner}"}
+    return {**ports, "owner": owner, "postgres": f"n9e-shared-pg-{owner}",
+            "prometheus": f"n9e-shared-prom-{owner}"}
 
 
 def container(name):
@@ -70,18 +70,47 @@ def ensure_container(name, owner, args):
                "--restart", "unless-stopped", *args)
 
 
+def register_services(directory, cfg):
+    """Rename legacy containers in place; keep their persistent volume identities."""
+    marker = directory / "services.json"
+    previous = json.loads(marker.read_text()) if marker.exists() else cfg.copy()
+    recorded = {key: value for key, value in previous.items() if key != "volumes"}
+    legacy = {**cfg, "postgres": f"n9e-preview-pg-{cfg['owner']}",
+              "prometheus": f"n9e-preview-prom-{cfg['owner']}"}
+    if recorded != cfg and recorded != legacy:
+        raise RuntimeError("shared service settings changed; migrate dependencies explicitly before restarting")
+    volumes = previous.get("volumes", {key: f"{recorded[key]}-data"
+                                      for key in ("postgres", "prometheus")})
+    if (not isinstance(volumes, dict) or set(volumes) != {"postgres", "prometheus"}
+            or any(volumes[key] not in (f"{cfg[key]}-data", f"{legacy[key]}-data")
+                   for key in ("postgres", "prometheus"))):
+        raise RuntimeError("shared service volume ownership mismatch")
+    renames = []
+    # Validate the whole pair before changing anything. A partially completed rename
+    # can be retried: the old marker stays until both containers have been renamed.
+    for key in ("postgres", "prometheus"):
+        old_name, new_name = recorded[key], cfg[key]
+        target = container(new_name)
+        old = container(old_name) if old_name != new_name else None
+        for current in (old, target):
+            if current and (current["Config"].get("Labels") or {}).get("n9e.preview.owner") != cfg["owner"]:
+                raise RuntimeError("refusing to rename a dependency owned by another environment")
+        if old and target:
+            raise RuntimeError("both legacy and shared containers exist; resolve the naming collision")
+        if old:
+            renames.append((old_name, new_name))
+    for old_name, new_name in renames:
+        docker("rename", old_name, new_name)
+    write_private(marker, {**cfg, "volumes": volumes})
+    return volumes
+
+
 def ensure(state, config):
     state = Path(state)
     cfg = settings(state, config)
     directory = state / "shared"
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-    marker = directory / "services.json"
-    if marker.exists():
-        previous = json.loads(marker.read_text())
-        if previous != cfg:
-            raise RuntimeError("shared service settings changed; migrate dependencies explicitly before restarting")
-    else:
-        write_private(marker, cfg)
+    volumes = register_services(directory, cfg)
     password_file = directory / "postgres-password"
     if not password_file.exists():
         if container(cfg["postgres"]):
@@ -92,7 +121,7 @@ def ensure(state, config):
     env_file.write_text("POSTGRES_PASSWORD=" + password_file.read_text().strip() + "\n")
     env_file.chmod(0o600)
     ensure_container(cfg["postgres"], cfg["owner"], ["-p", f"127.0.0.1:{cfg['postgresPort']}:5432",
-                     "--env-file", str(env_file), "-v", f"{cfg['postgres']}-data:/var/lib/postgresql/data",
+                     "--env-file", str(env_file), "-v", f"{volumes['postgres']}:/var/lib/postgresql/data",
                      POSTGRES_IMAGE])
     prom_config = directory / "prometheus.yml"
     # These are test fixtures; previews have no remote-write/admin/lifecycle access.
@@ -102,7 +131,7 @@ def ensure(state, config):
     prom_config.chmod(0o644)
     ensure_container(cfg["prometheus"], cfg["owner"], ["-p", f"127.0.0.1:{cfg['prometheusPort']}:9090",
                      "-v", f"{prom_config}:/etc/prometheus/prometheus.yml:ro",
-                     "-v", f"{cfg['prometheus']}-data:/prometheus", PROMETHEUS_IMAGE,
+                     "-v", f"{volumes['prometheus']}:/prometheus", PROMETHEUS_IMAGE,
                      "--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=3d",
                      "--storage.tsdb.retention.size=1GB"])
     deadline = time.monotonic() + 90

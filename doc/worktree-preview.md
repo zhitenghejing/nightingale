@@ -43,6 +43,12 @@ preview.log、postgres.json、database-bootstrap.log、bin/ 和独立 run/ 工�
 位于 `STATE/shared/`，服务数据位于独立 Docker 数据卷；详见[环境准备](development-environment.md#共享测试服务)。
 Go 模块和编译缓存使用 Go 本身的共享机制。
 
+共享容器命名为 `n9e-shared-pg-<registryID>` 和 `n9e-shared-prom-<registryID>`，
+main 与 preview 接入相同主机登记目录时共用这一组服务。后缀来自登记目录的哈希，用于区分日常服务
+与自动化测试的临时服务，不是 preview 实例 ID。旧 `n9e-preview-*` 容器在下一次
+执行 `services` 或启动/刷新实例时原地改名，端口、凭据和数据卷保持不变；旧数据卷
+名称记录在 `STATE/shared/services.json` 中，不因容器改名而创建空卷。
+
 网关启动 n9e 时只继承 PATH、LANG、LC_ALL、LC_CTYPE、TZ、SSL_CERT_FILE 和
 SSL_CERT_DIR；HOME 指向实例 run/，TMPDIR 指向实例私有临时目录。不继承宿主的
 CONFIGTYPE_*、N9E_CONFIGS、代理变量或模型/云服务凭据。构建脚本仍使用调用者的
