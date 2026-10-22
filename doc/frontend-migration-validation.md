@@ -56,6 +56,9 @@
 
 ## 运行实例与最终检查
 
+本节地址已按当前配置更新；以下 build ID 与检查结果来自域名变更前，
+不代表新域名已通过公网或浏览器验证。
+
 `make all` 通过，同仓 UI 成功嵌入并编译为 Go 二进制；最终前端验证仍为
 197 suites / 1772 tests passed。内嵌资源逐文件比较再次通过。
 
@@ -63,7 +66,7 @@ Agent 执行 `make frontend-e2e`：3 项通过，包含匿名 API 401、错误�
 正确登录、仪表盘与告警规则页进入及刷新后列表加载完成，以及过期令牌返回可用登录页。
 用例检查同源失败响应和页面异常；不录制含登录请求的 trace/video。
 
-- 地址：`https://n9e-dev0.cubbber.dev`，development / basic。
+- 地址：`https://n9e-dev0.zhiteng.win`，development / basic。
 - 浏览器检查 build ID：`20261021T070925Z-249d8340`，迁入工作区构建。
 - 前端源码指纹：`bfc1db71965d8e62ae5d8ad19d7fc40610267cf0e5b819b0750a2d77b8e58958`。
 - 资源 SHA256：`ff53f78f5575ce5bd4a15e8bd37b8b9b170968d8d2415fc3f179f065efe4275a`。

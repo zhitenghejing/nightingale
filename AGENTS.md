@@ -18,8 +18,8 @@ keep shared project architecture in CLAUDE.md rather than duplicating it here.
   failures and skipped tests; never present them as passes.
 - Use preview for running-instance verification, refresh after edits, and check
   source/build identity plus local/public probes before handing off an address.
-- `n9e.cubbber.dev` is the separate stable/main instance. Worktrees only use
-  `n9e-dev0.cubbber.dev` through `n9e-dev9.cubbber.dev`. Never publish a branch
+- `n9e.zhiteng.win` is the separate stable/main instance. Worktrees only use
+  `n9e-dev0.zhiteng.win` through `n9e-dev9.zhiteng.win`. Never publish a branch
   through the stable hostname. Stable commands require the configured clean main checkout.
 - Each preview owns its SQLite, TSDB, runtime Skill files, logs and credentials.
   Never connect a disposable preview to production data. Basic previews disable

@@ -81,15 +81,16 @@ class PreviewTest(unittest.TestCase):
 
     def test_defaults_reserve_ten_development_hosts_and_a_separate_stable_entry(self):
         cfg = preview.DEFAULT_CONFIG
+        self.assertEqual(cfg["stable"]["url"], "https://n9e.zhiteng.win")
         self.assertEqual([s["id"] for s in cfg["slots"]], list(range(10)))
         self.assertEqual([s["url"] for s in cfg["slots"]],
-                         [f"https://n9e-dev{i}.cubbber.dev" for i in range(10)])
+                         [f"https://n9e-dev{i}.zhiteng.win" for i in range(10)])
         self.assertNotIn(cfg["stable"]["port"], [s["port"] for s in cfg["slots"]])
         self.assertNotEqual(preview.key(True), preview.key(False))
 
     def test_development_slots_cannot_use_stable_hostname(self):
         (self.state / "config.json").write_text(json.dumps({"slots": [
-            {"id": 0, "port": 30300, "url": "https://n9e.cubbber.dev/"}]}))
+            {"id": 0, "port": 30300, "url": "https://n9e.zhiteng.win/"}]}))
         with self.assertRaisesRegex(ValueError, "stable hostname is reserved"):
             preview.config()
 
@@ -100,8 +101,8 @@ class PreviewTest(unittest.TestCase):
         ports = [sock.getsockname()[1] for sock in sockets]
         for sock in sockets:
             sock.close()
-        cfg = {"stable": {"port": ports[0], "branch": "main", "url": "https://n9e.cubbber.dev"},
-               "slots": [{"id": 0, "port": ports[1], "url": "https://n9e-dev0.cubbber.dev"}]}
+        cfg = {"stable": {"port": ports[0], "branch": "main", "url": "https://n9e.zhiteng.win"},
+               "slots": [{"id": 0, "port": ports[1], "url": "https://n9e-dev0.zhiteng.win"}]}
         with patch.object(preview, "config", return_value=cfg):
             stable = preview.reserve({}, None, stable=True)
             development = preview.reserve({"stable": stable}, 0)

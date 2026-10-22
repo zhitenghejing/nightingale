@@ -14,11 +14,11 @@
 | `destroy --if-exists` | 停止、删除本实例数据和日志、释放绑定 |
 | `list` | 查看本机登记目录中的所有绑定 |
 
-首次 `--slot 0` 选择 n9e-dev0.cubbber.dev；开发槽位共 0–9，全部具有各自公网入口。
+首次 `--slot 0` 选择 n9e-dev0.zhiteng.win；开发槽位共 0–9，全部具有各自公网入口。
 绑定后不能切换槽位，也不能抢占其他 worktree 的停止/失败绑定；先保留需要的数据
 再 destroy。自动分配选择空闲的 dev 槽位；十个都占用时失败，不会占用稳定地址。
 
-稳定主版本 `n9e.cubbber.dev` 独立使用 30299，不属于开发槽位池。命令显式加
+稳定主版本 `n9e.zhiteng.win` 独立使用 30299，不属于开发槽位池。命令显式加
 `--stable`（如 `up --stable`、`refresh --stable`、`status --stable`），或使用
 `make stable`、`make stable-refresh`、`make stable-status`、`make stable-url`。
 稳定实例应用源码来自主 checkout，只接受配置中的预期分支（默认 main）和干净源码；

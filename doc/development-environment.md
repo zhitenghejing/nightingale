@@ -26,19 +26,19 @@ make verify
     "worktree": "/absolute/path/to/main-checkout",
     "branch": "main",
     "port": 30299,
-    "url": "https://n9e.cubbber.dev"
+    "url": "https://n9e.zhiteng.win"
   },
   "slots": [
-    {"id": 0, "port": 30300, "url": "https://n9e-dev0.cubbber.dev"},
-    {"id": 1, "port": 30301, "url": "https://n9e-dev1.cubbber.dev"},
-    {"id": 2, "port": 30302, "url": "https://n9e-dev2.cubbber.dev"},
-    {"id": 3, "port": 30303, "url": "https://n9e-dev3.cubbber.dev"},
-    {"id": 4, "port": 30304, "url": "https://n9e-dev4.cubbber.dev"},
-    {"id": 5, "port": 30305, "url": "https://n9e-dev5.cubbber.dev"},
-    {"id": 6, "port": 30306, "url": "https://n9e-dev6.cubbber.dev"},
-    {"id": 7, "port": 30307, "url": "https://n9e-dev7.cubbber.dev"},
-    {"id": 8, "port": 30308, "url": "https://n9e-dev8.cubbber.dev"},
-    {"id": 9, "port": 30309, "url": "https://n9e-dev9.cubbber.dev"}
+    {"id": 0, "port": 30300, "url": "https://n9e-dev0.zhiteng.win"},
+    {"id": 1, "port": 30301, "url": "https://n9e-dev1.zhiteng.win"},
+    {"id": 2, "port": 30302, "url": "https://n9e-dev2.zhiteng.win"},
+    {"id": 3, "port": 30303, "url": "https://n9e-dev3.zhiteng.win"},
+    {"id": 4, "port": 30304, "url": "https://n9e-dev4.zhiteng.win"},
+    {"id": 5, "port": 30305, "url": "https://n9e-dev5.zhiteng.win"},
+    {"id": 6, "port": 30306, "url": "https://n9e-dev6.zhiteng.win"},
+    {"id": 7, "port": 30307, "url": "https://n9e-dev7.zhiteng.win"},
+    {"id": 8, "port": 30308, "url": "https://n9e-dev8.zhiteng.win"},
+    {"id": 9, "port": 30309, "url": "https://n9e-dev9.zhiteng.win"}
   ]
 }
 ```
@@ -46,24 +46,26 @@ make verify
 没有文件时使用这些默认值；stable.worktree 未配置时通过 Git common-dir 定位主 checkout。
 ID、端口、公网 URL 不得重复，稳定域名禁止出现在开发槽位中；修改前先清理受影响
 绑定。已有绑定保留原配置，不会自动漂移。目录、配置和凭据仅本机保存。
+域名变更时需同步本机 config.json、Tunnel ingress 和 DNS；仅更新仓库默认值不会
+迁移已有绑定。清理绑定前先保留所需数据，按新配置重建后核对本地与公网 build ID。
 本版不导入生产 DSN、模型密钥或通知配置；按需在预览 UI 配置测试模型和数据源。
 刷新保留它们，销毁会删除实例数据。
 
 ## 公网预览
 
 先用 `python3 -B scripts/preview.py up --slot 0 --local-only` 跑通本地环境。
-安装 cloudflared，用 cubbber.dev 所属账号的证书创建项目专用 named tunnel，
+安装 cloudflared，用 zhiteng.win 所属账号的证书创建项目专用 named tunnel，
 独立保存配置与用户服务，不修改其他项目正在使用的 Tunnel：
 
 ```yaml
 tunnel: <n9e-preview-uuid>
 credentials-file: /absolute/private/path/<uuid>.json
 ingress:
-  - hostname: n9e.cubbber.dev
+  - hostname: n9e.zhiteng.win
     service: http://127.0.0.1:30299
-  - hostname: n9e-dev0.cubbber.dev
+  - hostname: n9e-dev0.zhiteng.win
     service: http://127.0.0.1:30300
-  - hostname: n9e-dev1.cubbber.dev
+  - hostname: n9e-dev1.zhiteng.win
     service: http://127.0.0.1:30301
   # dev2–dev9 同样分别转发到 30302–30309
   - service: http_status:404
@@ -72,8 +74,8 @@ ingress:
 保存为状态目录下 cloudflared.yml，先验证 ingress，再使用**该配置及 UUID**建立 DNS：
 
 ```text
-cloudflared tunnel --config <config> --origincert <account-cert> route dns <uuid> n9e.cubbber.dev
-cloudflared tunnel --config <config> --origincert <account-cert> route dns <uuid> n9e-dev0.cubbber.dev
+cloudflared tunnel --config <config> --origincert <account-cert> route dns <uuid> n9e.zhiteng.win
+cloudflared tunnel --config <config> --origincert <account-cert> route dns <uuid> n9e-dev0.zhiteng.win
 cloudflared tunnel --config <config> --no-autoupdate --protocol http2 run <uuid>
 ```
 

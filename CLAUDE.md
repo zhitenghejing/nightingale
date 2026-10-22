@@ -19,7 +19,7 @@ make verify-all                      # also vet and both integration gates
 make preview                         # isolated SQLite/miniredis/TSDB preview
 make preview-refresh                 # rebuild/restart, retain slot and data
 make preview-status                  # build identity and local/public probes
-make stable-status                   # independent main instance (n9e.cubbber.dev)
+make stable-status                   # independent main instance (n9e.zhiteng.win)
 make build                           # ./n9e  (cmd/center, embeds version via ldflags)
 make build-edge | build-alert | build-pushgw | build-cli
 make frontend-install                # frozen pnpm install with the pinned Node 24 toolchain

@@ -189,9 +189,9 @@ n9e-plus 使用；优先扩展字段或 setter，保持签名兼容。
 
 首次 `make preview`，修改后停止编辑并 `make preview-refresh`。preview 会复用
 已运行实例，不自动重建。完整命令见[运行手册](worktree-preview.md)。
-worktree 使用十个槽位：`https://n9e-dev0.cubbber.dev` 至
-`https://n9e-dev9.cubbber.dev`，端口 30300–30309。地址用 `make preview-url` 获取，
-不同 worktree 不抢占已有绑定。`https://n9e.cubbber.dev` 是独立的稳定主版本入口，
+worktree 使用十个槽位：`https://n9e-dev0.zhiteng.win` 至
+`https://n9e-dev9.zhiteng.win`，端口 30300–30309。地址用 `make preview-url` 获取，
+不同 worktree 不抢占已有绑定。`https://n9e.zhiteng.win` 是独立的稳定主版本入口，
 端口 30299，不参加 worktree 槽位分配；分支预览、刷新和归档不会更新或清理它。
 
 稳定实例用 `make stable` / `make stable-refresh` 显式管理，从配置的主 checkout

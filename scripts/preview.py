@@ -22,8 +22,8 @@ MANAGER_ROOT = Path(__file__).resolve().parents[1]
 ROOT = MANAGER_ROOT
 STATE = Path(os.environ.get("N9E_PREVIEW_STATE", Path.home() / ".local/state/n9e-preview")).resolve()
 DEFAULT_CONFIG = {
-    "stable": {"branch": "main", "port": 30299, "url": "https://n9e.cubbber.dev"},
-    "slots": [{"id": n, "port": 30300 + n, "url": f"https://n9e-dev{n}.cubbber.dev"} for n in range(10)],
+    "stable": {"branch": "main", "port": 30299, "url": "https://n9e.zhiteng.win"},
+    "slots": [{"id": n, "port": 30300 + n, "url": f"https://n9e-dev{n}.zhiteng.win"} for n in range(10)],
 }
 
 
