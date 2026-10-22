@@ -14,6 +14,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.N9E_E2E_BASE_URL,
     viewport: { width: 1440, height: 900 },
+    proxy: process.env.N9E_E2E_PROXY_SERVER ? { server: process.env.N9E_E2E_PROXY_SERVER } : undefined,
     // Login requests contain private preview credentials. Never record traces.
     trace: 'off',
     video: 'off',

@@ -2,13 +2,16 @@
 
 开发预览以 Linux 为目标。准备 Git、make、Go 1.25（或满足 go.mod 的版本）、Python
 3.11+。部分测试用 cgo SQLite，需要 C 编译器，Ubuntu 可安装 build-essential。
-普通预览需要固定的 Node 24 + pnpm 来构建同仓前端，不需要 Docker、外部数据库或下载上游 UI。
+普通预览需要 Docker，以及固定的 Node 24 + pnpm 来构建同仓前端。管理器自动准备
+测试专用的一个 PostgreSQL 实例和一个 Prometheus；不复用其他项目容器或生产数据，
+不下载上游 UI。
 前端工具链与安装见[前端开发](frontend-development.md)。
 
 ```bash
 go mod download
 make frontend-install
 bash scripts/install-git-hooks.sh
+make preview-services
 make verify
 ```
 
@@ -26,19 +29,20 @@ make verify
     "worktree": "/absolute/path/to/main-checkout",
     "branch": "main",
     "port": 30299,
-    "url": "https://n9e.cubbber.dev"
+    "url": "https://n9e.zhiteng.win"
   },
+  "services": {"postgresPort": 35432, "prometheusPort": 39090},
   "slots": [
-    {"id": 0, "port": 30300, "url": "https://n9e-dev0.cubbber.dev"},
-    {"id": 1, "port": 30301, "url": "https://n9e-dev1.cubbber.dev"},
-    {"id": 2, "port": 30302, "url": "https://n9e-dev2.cubbber.dev"},
-    {"id": 3, "port": 30303, "url": "https://n9e-dev3.cubbber.dev"},
-    {"id": 4, "port": 30304, "url": "https://n9e-dev4.cubbber.dev"},
-    {"id": 5, "port": 30305, "url": "https://n9e-dev5.cubbber.dev"},
-    {"id": 6, "port": 30306, "url": "https://n9e-dev6.cubbber.dev"},
-    {"id": 7, "port": 30307, "url": "https://n9e-dev7.cubbber.dev"},
-    {"id": 8, "port": 30308, "url": "https://n9e-dev8.cubbber.dev"},
-    {"id": 9, "port": 30309, "url": "https://n9e-dev9.cubbber.dev"}
+    {"id": 0, "port": 30300, "url": "https://n9e-dev0.zhiteng.win"},
+    {"id": 1, "port": 30301, "url": "https://n9e-dev1.zhiteng.win"},
+    {"id": 2, "port": 30302, "url": "https://n9e-dev2.zhiteng.win"},
+    {"id": 3, "port": 30303, "url": "https://n9e-dev3.zhiteng.win"},
+    {"id": 4, "port": 30304, "url": "https://n9e-dev4.zhiteng.win"},
+    {"id": 5, "port": 30305, "url": "https://n9e-dev5.zhiteng.win"},
+    {"id": 6, "port": 30306, "url": "https://n9e-dev6.zhiteng.win"},
+    {"id": 7, "port": 30307, "url": "https://n9e-dev7.zhiteng.win"},
+    {"id": 8, "port": 30308, "url": "https://n9e-dev8.zhiteng.win"},
+    {"id": 9, "port": 30309, "url": "https://n9e-dev9.zhiteng.win"}
   ]
 }
 ```
@@ -46,24 +50,53 @@ make verify
 没有文件时使用这些默认值；stable.worktree 未配置时通过 Git common-dir 定位主 checkout。
 ID、端口、公网 URL 不得重复，稳定域名禁止出现在开发槽位中；修改前先清理受影响
 绑定。已有绑定保留原配置，不会自动漂移。目录、配置和凭据仅本机保存。
+域名变更时需同步本机 config.json、Tunnel ingress 和 DNS；仅更新仓库默认值不会
+迁移已有绑定。清理绑定前先保留所需数据，按新配置重建后核对本地与公网 build ID。
 本版不导入生产 DSN、模型密钥或通知配置；按需在预览 UI 配置测试模型和数据源。
 刷新保留它们，销毁会删除实例数据。
+
+## 共享测试服务
+
+`make preview-services` 和 preview 的首次启动都可创建共享服务。一个主机登记目录
+管理一套 PG/Prometheus；日常 worktree 必须共用该登记目录，避免重复创建服务。
+默认只发布回环端口 `35432`（PG）和 `39090`（Prometheus），容器名和独立 Docker
+数据卷包含登记目录的摘要，不会接管已有的 `postgres`、`redis` 或其他项目容器。
+脚本固定镜像 digest；当前 PG 17、Prometheus 3.15.1。
+
+PG 为每个 main/preview 实例创建 `n9ep_<instanceID>` database 和同名角色，
+不为每个环境创建一个 PG 服务进程。应用角色无超级用户、建库和建角色权限，
+无权连接其他实例数据库；为兼容现有 ormx 启动检查，允许它连接 `postgres` 维护库
+查询数据库目录。root 密码随机生成；管理账号凭据仅保存在 `STATE/shared/`。
+
+每个应用继续运行自己的 miniredis。共享 Prometheus 每 5 秒采集自身测试指标，
+保留 3 天/1GB，未开放 remote-write、admin 和 lifecycle API。各环境数据库自动登记
+`shared-prometheus` 数据源；这是共同可见的测试指标集，不是标签级租户隔离。
+本流程不自动把各 preview 收到的采集数据写入共享 Prometheus。
+
+服务端口写入本机 config.json 的 `services` 后，必须在首次创建共享服务前确定；
+已有共享服务不能通过改端口配置静默迁移。共享服务独立于 preview 生命周期，
+`destroy` 不停止或删除它们及其数据卷；停机、升级和备份需作为单独的主机维护动作。
+
+现有 SQLite preview 首次 refresh 会先停应用、保存一致的 `sqlite-backup.db`，再严格
+导入其非空业务表和自增序列；不支持的非空表/列会使切换失败，原文件保留。内嵌
+TSDB 文件也保留，但不会自动导入共享 Prometheus。数据库切换后 Redis 仍是独立
+内存实例，旧登录令牌可能失效。具体恢复入口见[预览运行手册](worktree-preview.md)。
 
 ## 公网预览
 
 先用 `python3 -B scripts/preview.py up --slot 0 --local-only` 跑通本地环境。
-安装 cloudflared，用 cubbber.dev 所属账号的证书创建项目专用 named tunnel，
+安装 cloudflared，用 zhiteng.win 所属账号的证书创建项目专用 named tunnel，
 独立保存配置与用户服务，不修改其他项目正在使用的 Tunnel：
 
 ```yaml
 tunnel: <n9e-preview-uuid>
 credentials-file: /absolute/private/path/<uuid>.json
 ingress:
-  - hostname: n9e.cubbber.dev
+  - hostname: n9e.zhiteng.win
     service: http://127.0.0.1:30299
-  - hostname: n9e-dev0.cubbber.dev
+  - hostname: n9e-dev0.zhiteng.win
     service: http://127.0.0.1:30300
-  - hostname: n9e-dev1.cubbber.dev
+  - hostname: n9e-dev1.zhiteng.win
     service: http://127.0.0.1:30301
   # dev2–dev9 同样分别转发到 30302–30309
   - service: http_status:404
@@ -72,8 +105,8 @@ ingress:
 保存为状态目录下 cloudflared.yml，先验证 ingress，再使用**该配置及 UUID**建立 DNS：
 
 ```text
-cloudflared tunnel --config <config> --origincert <account-cert> route dns <uuid> n9e.cubbber.dev
-cloudflared tunnel --config <config> --origincert <account-cert> route dns <uuid> n9e-dev0.cubbber.dev
+cloudflared tunnel --config <config> --origincert <account-cert> route dns <uuid> n9e.zhiteng.win
+cloudflared tunnel --config <config> --origincert <account-cert> route dns <uuid> n9e-dev0.zhiteng.win
 cloudflared tunnel --config <config> --no-autoupdate --protocol http2 run <uuid>
 ```
 
@@ -94,7 +127,8 @@ profile 不暴露 pprof/metrics、不启动 Ibex 和 Skill 脚本。
 
 MySQL/PostgreSQL/外部 Redis 测试另用隔离库和独立命名空间。现有 docker/compose-*
 含固定容器名和端口，不能原样并行运行；需独立 Compose project、容器名、端口和
-volume。普通预览管理器只管理 SQLite，不会自动连接外部服务。
+volume。普通预览使用其专用共享 PG，但专项测试仍必须使用随机测试库和显式配置，
+不得把 main 或 preview 的业务数据库作为可删除的专项测试目标。
 
 外部集成测试只在明确配置下运行；未配置时仅跳过相应测试，包内单元测试照常执行。
 配置后连接、认证、SQL 或断言失败仍会失败，不会自动降级为 skip。

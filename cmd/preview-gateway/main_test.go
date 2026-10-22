@@ -175,6 +175,53 @@ func TestReadinessAfterPasswordChange(t *testing.T) {
 	}
 }
 
+func TestSharedPrometheusReadinessRequiresActualHealthyMetrics(t *testing.T) {
+	for _, payload := range []string{
+		`{"status":"success","data":{"result":[]}}`,
+		`{"status":"success","data":{"result":[{"value":[1,"0"]}]}}`,
+		`{"status":"error"}`,
+		`not-json`,
+	} {
+		t.Run(payload, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, payload)
+			}))
+			defer server.Close()
+			if err := prometheusHealth(server.URL); err == nil {
+				t.Fatal("unhealthy or empty metrics accepted")
+			}
+		})
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("query") != `up{job="prometheus"}` {
+			t.Error("wrong shared fixture probe")
+		}
+		fmt.Fprint(w, `{"status":"success","data":{"result":[{"value":[1,"1"]}]}}`)
+	}))
+	defer server.Close()
+	if err := prometheusHealth(server.URL); err != nil {
+		t.Fatal(err)
+	}
+	server.Close()
+	if err := prometheusHealth(server.URL); err == nil {
+		t.Fatal("unavailable dependency accepted")
+	}
+}
+
+func TestPublicInfoDoesNotExposeDatabaseCredentials(t *testing.T) {
+	var ready atomic.Bool
+	ready.Store(true)
+	w := httptest.NewRecorder()
+	handler(manifest{DatabaseDSN: "private-secret", PrometheusURL: "http://private-address", Storage: json.RawMessage(`{"database":"postgres"}`)}, "http://127.0.0.1:1", &ready).
+		ServeHTTP(w, httptest.NewRequest("GET", "/__preview/info", nil))
+	if w.Code != http.StatusServiceUnavailable {
+		t.Fatal("database failure did not block readiness")
+	}
+	if strings.Contains(w.Body.String(), "private-secret") || strings.Contains(w.Body.String(), "private-address") {
+		t.Fatal("dependency credentials or private endpoints leaked")
+	}
+}
+
 func TestStartingPreviewDoesNotForwardRequests(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Error("request reached backend before readiness")

@@ -98,8 +98,11 @@ runner 输出 `2023-05-08 04:00:00`，测试却固定期望东八区的
 
 ## 稳定入口与开发入口
 
-`n9e.cubbber.dev` 独立绑定主 checkout（main），使用 30299，不属于 worktree 槽位池。
-`n9e-dev0.cubbber.dev` 至 `n9e-dev9.cubbber.dev` 为开发槽位，使用 30300–30309。
+本节域名已按当前配置更新；以下是域名变更前的验证记录，不证明新域名的 DNS、
+Tunnel 或公网访问已验证。
+
+`n9e.zhiteng.win` 独立绑定主 checkout（main），使用 30299，不属于 worktree 槽位池。
+`n9e-dev0.zhiteng.win` 至 `n9e-dev9.zhiteng.win` 为开发槽位，使用 30300–30309。
 当前 elegant-mole 分支迁到 dev0，原实例数据库和账号保留；主版本另建独立实例。
 DNS 与专用 Tunnel 已配置全部 11 个域名，空闲 dev 槽位无实例时不返回应用页面。
 

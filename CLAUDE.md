@@ -16,10 +16,11 @@ Nightingale (n9e) is an open-source alerting/monitoring platform. Go module `git
 go build ./...                       # builds packages, does not compile/run *_test.go
 make verify                          # format, infra tests, Go build/test, applicable integration gates
 make verify-all                      # also vet and both integration gates
-make preview                         # isolated SQLite/miniredis/TSDB preview
+make preview-services                # prepare the host's single PostgreSQL + Prometheus pair
+make preview                         # own PG database/miniredis, shared read-only Prometheus
 make preview-refresh                 # rebuild/restart, retain slot and data
 make preview-status                  # build identity and local/public probes
-make stable-status                   # independent main instance (n9e.cubbber.dev)
+make stable-status                   # independent main instance (n9e.zhiteng.win)
 make build                           # ./n9e  (cmd/center, embeds version via ldflags)
 make build-edge | build-alert | build-pushgw | build-cli
 make frontend-install                # frozen pnpm install with the pinned Node 24 toolchain
@@ -49,6 +50,13 @@ External service tests skip only when their explicit `N9E_TEST_*` configuration 
 configured failures remain failures. The separate CI external-tests job sets
 `N9E_REQUIRE_EXTERNAL_TESTS=1` and provisions disposable services. See the
 [test environment variables](doc/development-environment.md#专项环境).
+
+Preview infrastructure lives in `scripts/preview.py` (instance lifecycle),
+`scripts/preview_services.py` (one Docker PostgreSQL/Prometheus pair per host registry),
+`cmd/preview-db` (private database bootstrap and strict SQLite import), and
+`cmd/preview-gateway` (child ownership, dependency readiness and public proxy).
+Each instance has its own PostgreSQL database/login role and in-process miniredis;
+Prometheus is a common read-only test datasource. See [preview operations](doc/worktree-preview.md).
 
 ## Process topology
 
