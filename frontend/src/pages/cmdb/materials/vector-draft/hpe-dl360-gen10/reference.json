@@ -1,0 +1,21 @@
+{
+  "id": "hpe-dl360-gen10",
+  "model": "ProLiant DL360 Gen10",
+  "units": 1,
+  "status": "review-only",
+  "appearance": "1U 窄面罩保留 HPE 银色轮廓与绿色标识，背面呈现紧凑扩展区和双电源。",
+  "reference": {
+    "front": {
+      "sourcePage": "https://www.itpro.com/server/29565/hpe-proliant-dl360-gen10-review",
+      "imageUrl": "https://cdn.mos.cms.futurecdn.net/GJqpx33N8qMTGBHxPnuH6V.jpg",
+      "sha256": "b100f7917acbc7e8747988b61b187b8631e77a99104264cfdd6900180ea6b9a3",
+      "original": "originals/hpe-dl360-gen10/front.jpg"
+    },
+    "rear": {
+      "sourcePage": "https://www.itpro.com/server/29565/hpe-proliant-dl360-gen10-review",
+      "imageUrl": "https://cdn.mos.cms.futurecdn.net/GJqpx33N8qMTGBHxPnuH6V.jpg",
+      "sha256": "b100f7917acbc7e8747988b61b187b8631e77a99104264cfdd6900180ea6b9a3",
+      "original": "originals/hpe-dl360-gen10/rear.jpg"
+    }
+  }
+}

@@ -56,7 +56,7 @@ Preview infrastructure lives in `scripts/preview.py` (instance lifecycle),
 `cmd/preview-db` (private database bootstrap and strict SQLite import), and
 `cmd/preview-gateway` (child ownership, dependency readiness and public proxy).
 Each instance has its own PostgreSQL database/login role and in-process miniredis;
-Prometheus is a common read-only test datasource. See [preview operations](doc/worktree-preview.md).
+Prometheus is a common test datasource, read-only by default. Explicit host-owned collector opt-in enables remote write on the same service; previews keep embedded TSDB disabled. See [preview operations](doc/worktree-preview.md).
 
 ## Process topology
 
@@ -82,6 +82,7 @@ Alert engines register in `alerting_engine` table with `engine_cluster` (= `Aler
 - **Schema**: `models/migrate/migrate.go` runs gorm `AutoMigrate` on center startup, **and** `docker/initsql/a-n9e.sql`, `docker/sqlite.sql`, `docker/migratesql/migrate.sql` are maintained by hand. A new column/table must land in the gorm struct **and** the SQL files, and MySQL vs PostgreSQL vs SQLite differences (text sizes, unique index limits) are handled explicitly in `MigrateTables`. Long `string` fields need an explicit `gorm:"type:..."` or AutoMigrate will drift/fail.
 - **Builtin integrations** (`integrations/<Component>/{alerts,dashboards,collect,markdown,i18n,icon}`): loaded by `center/integration` into `builtin_*` tables at startup; i18n sidecar files render the same template under multiple languages. Gated by the two `cmd/integrations-*` checks above.
 - **AI agent** (`aiagent/`): native function-calling loop, tools registered in `aiagent/tools` (defs in `tools/defs`), builtin skills under `aiagent/skill/embedded/builtin/<name>/SKILL.md`, sandboxed script execution in `pkg/sandbox` (bubblewrap assets built by `scripts/build-sandbox-assets.sh`). `/mcp` and `/a2a` endpoints are in `aiagent/a2a` and use the external `n9e-mcp-server` toolset in-process.
+- **CMDB**: `pkg/cmdb` owns inventory, placement serialization and per-user inventory ACL. `center/router/router_cmdb.go` mounts `/api/cmdb/*` with native auth/user middleware. Inventory uses the center DB, with dialect-specific large text and schemas under `doc/sql/cmdb.*.sql`; `models/migrate` creates/validates its seven tables. UI lives in `frontend/src/pages/{cmdb,rackViews}`. No edge/alert reads or Target binding are introduced. See [CMDB API](doc/api/cmdb.md) when changing these paths.
 - **Other top-level pkgs**: `pushgw/` (remote-write receiver + writers + ident/host registry), `tsdb/` (embedded Prometheus TSDB, single-instance only), `evallog/`+`pkg/evallog` (per-engine local files of rule evaluation records), `cron/` (retention cleaners), `dumper/` (debug endpoints), `pkg/i18nx` (backend i18n; new user-facing strings go through it).
 
 ## Conventions worth knowing

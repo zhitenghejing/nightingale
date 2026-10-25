@@ -1,0 +1,24 @@
+{
+  "style": "rack-vector-v1",
+  "viewBox": [
+    0,
+    0,
+    1200,
+    120
+  ],
+  "units": 1,
+  "palette": {
+    "chassis": "#303a45",
+    "edge": "#83909c",
+    "metal": "#aab5bf",
+    "socket": "#111820",
+    "contact": "#b8a77d",
+    "text": "#dae1e7",
+    "muted": "#94a3b1",
+    "recess": "#1c252f",
+    "vent": "#161f28"
+  },
+  "brand": "Official H3C mark traced as vector contours; front only",
+  "reference": "https://www.h3c.com/cn/d_202602/2753207_30005_0.htm#2.8",
+  "status": "draft-awaiting-user-style-review"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "dell-r740",
+  "model": "PowerEdge R740",
+  "units": 2,
+  "status": "review-only",
+  "appearance": "按确认的整机图重绘：银灰色大蜂窝面罩、DELL EMC、左侧锁孔与右侧竖向接口区。",
+  "reference": {
+    "front": {
+      "sourcePage": "https://www.gekko-computer.de/en/p/Dell-PowerEdge-R740-Server-2x-Xeon-Platinum-8160-24C-2-1GHz-128GB-BOSS-2x-240GB-en",
+      "imageUrl": "https://media.gekko-computer.de/images/Shop1600px/30005709_1.jpg",
+      "sha256": "d197052e871ea5611d5505d07eb257402d3515ddd8197d21a1ca48c633445210",
+      "original": "vector-draft/dell-r740/reference-front-bezel.jpg"
+    },
+    "rear": {
+      "sourcePage": "https://www.piospartslap.de/Dell-PowerEdge-R740-NO-CPU-NO-PC4-RAM-2x-Performance-Kuehler-6x-Performance-Luefter-16x-SFF-25-H750_1",
+      "imageUrl": "https://www.piospartslap.de/media/image/product/31289/lg/dell-poweredge-r740-no-cpu-no-pc4-ram-2x-performance-kuehler-6x-performance-luefter-16x-sff-25-h750_1.jpg",
+      "sha256": "531559a96d3e8e1a8b528c3c91fe5f8e5ccfb89c19526f61dfa47fb603d91219",
+      "original": "originals/dell-r740/rear.jpg"
+    }
+  }
+}

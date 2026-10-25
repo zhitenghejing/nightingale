@@ -1,0 +1,21 @@
+{
+  "id": "hpe-dl380-gen11",
+  "model": "ProLiant DL380 Gen11",
+  "units": 2,
+  "status": "review-only",
+  "appearance": "保留 Gen11 银色交叉骨架、纵向格栅与绿色 HPE 标识，区别于 Gen10 密孔面罩。",
+  "reference": {
+    "front": {
+      "sourcePage": "https://maychunamviet.vn/hpe-proliant-dl380-gen11-8sff-nc-cto-server-s4516y.html",
+      "imageUrl": "https://maychunamviet.vn/upload/img/products/HPE_DL380_Gen11_2.5in_2.jpg",
+      "sha256": "1a29dcd3ee23a310fb9bebb70f5f969299d1ec97392339faff53015ccfaba52d",
+      "original": "originals/hpe-dl380-gen11/front.jpg"
+    },
+    "rear": {
+      "sourcePage": "https://maychunamviet.vn/hpe-proliant-dl380-gen11-8sff-nc-cto-server-s4516y.html",
+      "imageUrl": "https://maychunamviet.vn/upload/img/products/HPE_DL380_Gen11_2.5in_2.jpg",
+      "sha256": "1a29dcd3ee23a310fb9bebb70f5f969299d1ec97392339faff53015ccfaba52d",
+      "original": "originals/hpe-dl380-gen11/rear.jpg"
+    }
+  }
+}

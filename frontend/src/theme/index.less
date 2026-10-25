@@ -24,8 +24,9 @@
   /* 2024-12-26 v8 版本解决图表 Tooltip 容器会撑开页面导致滚动条出现的问题 */
   body {
     overflow: hidden;
-    font-family: 'Inter', 'PingFangSC-Regular', 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei UI', 'Microsoft YaHei', BlinkMacSystemFont, 'Segoe UI', Roboto,
-      'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    // Prefer installed CJK fonts before downloading the full bundled font.
+    font-family: 'Inter', 'PingFang SC', 'PingFangSC-Regular', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Noto Sans SC',
+      BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

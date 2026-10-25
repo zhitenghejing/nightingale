@@ -10,6 +10,8 @@ const id_ID = {
   "recentUsed": "Baru digunakan",
   "personalCollection": "Favorit",
   "menu": {
+    cmdb: 'CMDB',
+    rack_views: 'Rack views',
     "infrastructure": "Infrastruktur",
     "business_group": "Grup bisnis",
     "devices": "Daftar perangkat",

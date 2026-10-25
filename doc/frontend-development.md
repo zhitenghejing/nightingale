@@ -4,6 +4,15 @@
 [UPSTREAM.md](../frontend/UPSTREAM.md)。前端与后端在同一任务分支修改和审查。
 构建后由现有 Go 服务提供页面；部署时不需要 Node 服务。
 
+生产构建保留路由和 entry 中的 `React.lazy`，按访问页面加载业务代码。
+不要启用 `vite-plugin-lazy-eager`：它会把按需页面恢复为静态导入，导致登录页
+也下载完整业务主包。调整拆包后须在生产构建上验证登录、页面跳转和直接刷新。
+预览网关对带内容指纹的 JS/CSS 启用长期缓存与 gzip；HTML、API、错误和
+设置 Cookie 的响应仍为 `no-store`。评估公网性能要同时记录冷加载与重复访问，
+并区分源站资源大小、实际传输量和网络吞吐。
+中文字体优先使用系统苹方、微软雅黑或 Noto Sans CJK，完整的内置字体仅作回退，
+避免每次打开中文页面都下载约 10 MiB 的字体文件。
+
 ## 工具链和命令
 
 使用 `frontend/.node-version` 固定的 Node 24 补丁版本，以及
@@ -66,6 +75,10 @@ full 模式仍需固定 CATEGRAF_REF 和实际 sandbox 隔离能力。
 make preview-refresh
 make frontend-e2e
 ```
+
+公网主包冷加载受隧道吞吐影响时，可显式运行 `make frontend-e2e-local`：仍先核验
+构建身份、本地及已配置的公网探测，再通过同一个实例的回环网关运行完整生产 UI 用例。
+此结果只代表本地传输的业务 E2E；不得称为公网浏览器验收通过。公网冷加载问题单独记录。
 
 本机公网访问需要代理时，给状态探测设置 `HTTPS_PROXY`，并给浏览器设置
 `N9E_E2E_PROXY_SERVER`（如 `http://127.0.0.1:7897`）；不把这些代理变量传入应用进程。

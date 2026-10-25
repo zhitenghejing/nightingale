@@ -86,5 +86,29 @@ class FrontendTest(unittest.TestCase):
         self.assertEqual(target.read_text(), "previous statik")
 
 
+class FrontendE2ETest(unittest.TestCase):
+    def status(self, public_ok=True):
+        return {"role": "development", "running": True, "sourceChanged": False, "frontendChanged": False,
+                "frontend": {"kind": "in-tree"}, "local": {"ok": True}, "public": {"ok": public_ok},
+                "url": "https://preview.example", "port": 30301, "buildId": "test-build",
+                "credentialsFile": "/private/credentials.json"}
+
+    def test_local_e2e_uses_verified_loopback_and_removes_browser_proxy(self):
+        with patch.object(frontend, "check_toolchain"), patch.object(frontend.subprocess, "check_output", return_value=json.dumps(self.status()).encode()), \
+                patch.object(frontend, "run") as run, patch.dict(os.environ, {"N9E_E2E_PROXY_SERVER": "http://proxy.invalid"}):
+            frontend.e2e(local=True)
+        environment = run.call_args.kwargs["env"]
+        self.assertEqual(environment["N9E_E2E_BASE_URL"], "http://127.0.0.1:30301")
+        self.assertEqual(environment["N9E_E2E_BUILD_ID"], "test-build")
+        self.assertNotIn("N9E_E2E_PROXY_SERVER", environment)
+
+    def test_local_e2e_still_rejects_failed_public_readiness(self):
+        with patch.object(frontend, "check_toolchain"), patch.object(frontend.subprocess, "check_output", return_value=json.dumps(self.status(False)).encode()), \
+                patch.object(frontend, "run") as run:
+            with self.assertRaisesRegex(RuntimeError, "refresh"):
+                frontend.e2e(local=True)
+            run.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

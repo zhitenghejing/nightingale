@@ -1,0 +1,21 @@
+{
+  "id": "dell-r650",
+  "model": "PowerEdge R650",
+  "units": 1,
+  "status": "review-only",
+  "appearance": "保留 1U 低矮几何面罩与 DELL EMC 字样，双电源分布在背面两侧。",
+  "reference": {
+    "front": {
+      "sourcePage": "https://www.servermonkey.com/servers/refurbished-dell/dell-poweredge-15th-generation/rackmount-servers/dell-poweredge-r650.html",
+      "imageUrl": "https://www.servermonkey.com/media/catalog/product/r/6/r65010p_1_1.png",
+      "sha256": "225bd4da8ccdd01bd9b71e74c9a071257194a7dc09f99d3fa7382e2ec92f95b4",
+      "original": "originals/dell-r650/front.webp"
+    },
+    "rear": {
+      "sourcePage": "https://www.allserver.co.kr/products/info?mainCategory=260&menuId=9&prdId=2590",
+      "imageUrl": "https://www.allserver.co.kr/files/uploads/images/20241203063106287.png",
+      "sha256": "a28aaff01d14d795768e4ad100a8fc1cca15b6cdb99c89799248f20ae971aec9",
+      "original": "originals/dell-r650/rear.png"
+    }
+  }
+}

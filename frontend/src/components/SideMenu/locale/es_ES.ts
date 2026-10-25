@@ -10,6 +10,8 @@ const es_ES = {
   "recentUsed": "Usados recientemente",
   "personalCollection": "Favoritos",
   "menu": {
+    cmdb: 'CMDB',
+    rack_views: 'Rack views',
     "infrastructure": "Infraestructura",
     "business_group": "Grupo de negocio",
     "devices": "Lista de dispositivos",
