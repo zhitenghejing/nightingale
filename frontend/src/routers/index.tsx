@@ -154,6 +154,7 @@ export default function Content() {
       !location.pathname.includes('/settings/infrastructure/add') &&
       !location.pathname.includes('/settings/source/') &&
       !location.pathname.startsWith('/nightingale-ai') &&
+      !(location.pathname === '/archives' || location.pathname.startsWith('/archives/')) &&
       !location.pathname.includes('/403')
     ) {
       if (profile?.roles.indexOf('Admin') === -1) {

@@ -1863,3 +1863,174 @@ CREATE TABLE task_host_99
     `stderr` text,
     unique (`id`, `host`)
 );
+
+-- Archive management: isolated records, immutable versions, private files and edit leases.
+
+CREATE TABLE IF NOT EXISTS archive_record (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category varchar(24) NOT NULL,
+  title varchar(255) NOT NULL,
+  state varchar(16) NOT NULL,
+  metadata TEXT,
+  department varchar(255),
+  location varchar(255),
+  person varchar(255),
+  result varchar(24),
+  level varchar(8),
+  start_at varchar(40),
+  primary_document_id INTEGER,
+  revision INTEGER NOT NULL DEFAULT 1,
+  deleted numeric NOT NULL DEFAULT false,
+  create_at INTEGER,
+  create_by INTEGER,
+  create_name varchar(255),
+  update_at INTEGER,
+  update_by INTEGER,
+  update_name varchar(255)
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_record_deleted ON archive_record(deleted);
+
+CREATE INDEX IF NOT EXISTS idx_archive_record_state ON archive_record(state);
+
+CREATE INDEX IF NOT EXISTS idx_archive_category_updated ON archive_record(category,update_at);
+
+CREATE TABLE IF NOT EXISTS archive_document (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  archive_id INTEGER NOT NULL,
+  title varchar(255) NOT NULL,
+  purpose varchar(24) NOT NULL,
+  kind varchar(16) NOT NULL,
+  source_document_id INTEGER,
+  source_version_id INTEGER,
+  current_version_id INTEGER,
+  deleted numeric NOT NULL DEFAULT false,
+  create_at INTEGER,
+  create_by INTEGER,
+  update_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_document_archive_id ON archive_document(archive_id);
+
+CREATE TABLE IF NOT EXISTS archive_document_version (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  document_id INTEGER NOT NULL,
+  sequence INTEGER NOT NULL,
+  blob_id INTEGER,
+  body TEXT,
+  asset_ids TEXT,
+  has_content numeric NOT NULL DEFAULT false,
+  size INTEGER,
+  description varchar(1000),
+  create_at INTEGER,
+  create_by INTEGER,
+  create_name varchar(255)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_archive_document_seq ON archive_document_version(document_id,sequence);
+
+CREATE TABLE IF NOT EXISTS archive_version (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  archive_id INTEGER NOT NULL,
+  sequence INTEGER NOT NULL,
+  snapshot TEXT,
+  action varchar(32) NOT NULL,
+  create_at INTEGER,
+  create_by INTEGER,
+  create_name varchar(255)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_archive_version_seq ON archive_version(archive_id,sequence);
+
+CREATE TABLE IF NOT EXISTS archive_blob (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  archive_id INTEGER NOT NULL,
+  document_id INTEGER,
+  storage_key varchar(64) NOT NULL,
+  name varchar(255) NOT NULL,
+  content_type varchar(100) NOT NULL,
+  kind varchar(16) NOT NULL,
+  size INTEGER,
+  sha256 varchar(64) NOT NULL,
+  create_at INTEGER,
+  create_by INTEGER,
+  asset numeric NOT NULL DEFAULT false,
+  staged numeric NOT NULL DEFAULT false
+ ,
+  CONSTRAINT uni_archive_blob_storage_key UNIQUE (storage_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_blob_staged ON archive_blob(staged);
+
+
+CREATE INDEX IF NOT EXISTS idx_archive_blob_document_id ON archive_blob(document_id);
+
+CREATE INDEX IF NOT EXISTS idx_archive_blob_archive_id ON archive_blob(archive_id);
+
+CREATE TABLE IF NOT EXISTS archive_edit_lease (
+  document_id INTEGER PRIMARY KEY,
+  session_id varchar(64) NOT NULL,
+  epoch INTEGER NOT NULL DEFAULT 0,
+  owner_id INTEGER,
+  owner_name varchar(255),
+  expires_at INTEGER,
+  base_version_id INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS archive_draft (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  document_id INTEGER NOT NULL,
+  owner_id INTEGER NOT NULL,
+  base_version_id INTEGER,
+  body TEXT,
+  mode varchar(16),
+  markdown TEXT,
+  update_at INTEGER
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_archive_draft_owner ON archive_draft(document_id,owner_id);
+
+CREATE TABLE IF NOT EXISTS archive_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  archive_id INTEGER NOT NULL,
+  document_id INTEGER,
+  action varchar(32) NOT NULL,
+  detail TEXT,
+  actor_id INTEGER,
+  actor_username varchar(64),
+  actor_name varchar(255),
+  create_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_log_created ON archive_log(archive_id,create_at);
+
+CREATE TABLE IF NOT EXISTS archive_bookmark (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  document_id INTEGER NOT NULL,
+  owner_id INTEGER NOT NULL,
+  version_id INTEGER,
+  position TEXT,
+  update_at INTEGER
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_archive_bookmark_owner ON archive_bookmark(document_id,owner_id);
+
+CREATE TABLE IF NOT EXISTS archive_export (
+  id varchar(64) PRIMARY KEY,
+  archive_id INTEGER NOT NULL,
+  archive_version_id INTEGER,
+  document_id INTEGER,
+  document_version_id INTEGER,
+  format varchar(16),
+  state varchar(16) NOT NULL,
+  error TEXT,
+  storage_key varchar(100),
+  file_name varchar(255),
+  create_at INTEGER,
+  create_by INTEGER,
+  update_at INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_export_state ON archive_export(state);
+
+CREATE INDEX IF NOT EXISTS idx_archive_export_archive_id ON archive_export(archive_id);

@@ -10,6 +10,7 @@ const en_US = {
   recentUsed: 'Recently used',
   personalCollection: 'Personal collection',
   menu: {
+    archives: 'Archives',
     infrastructure: 'Infrastructure',
     business_group: 'Business group',
     devices: 'Hosts',

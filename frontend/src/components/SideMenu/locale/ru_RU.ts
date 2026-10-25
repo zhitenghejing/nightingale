@@ -10,6 +10,7 @@ const ru_RU = {
   recentUsed: 'Недавно использованные',
   personalCollection: 'Личные коллекции',
   menu: {
+    archives: 'Archives',
     infrastructure: 'Инфраструктура',
     business_group: 'Бизнес-группа',
     devices: 'Список устройств',

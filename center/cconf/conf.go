@@ -30,6 +30,7 @@ type Center struct {
 	MigrateBusiGroupLabel bool
 	RSA                   httpx.RSAConfig
 	AIAgent               AIAgent
+	Archives              ArchiveConfig
 
 	// Sandbox isolates execution of user-uploaded Skill Python/Bash scripts
 	// (pkg/sandbox). Fail-open: non-Linux / insufficient kernel capabilities
@@ -117,4 +118,12 @@ func (c *Center) PreCheck() {
 		c.AIAgent.MaxFilesPerSkill = 1000
 	}
 	c.Sandbox.PreCheck()
+}
+
+// ArchiveConfig contains deployment paths only; no account credentials belong here.
+type ArchiveConfig struct {
+	DataDir              string
+	NodePath             string
+	LibreOfficePath      string
+	ExportTimeoutSeconds int
 }

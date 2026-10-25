@@ -1046,3 +1046,174 @@ CREATE TABLE embedded_product (
     update_by varchar(64) NOT NULL DEFAULT '',
     weight int NOT NULL DEFAULT 0
 );
+
+-- Archive management: isolated records, immutable versions, private files and edit leases.
+
+CREATE TABLE IF NOT EXISTS archive_record (
+  id BIGSERIAL PRIMARY KEY,
+  category varchar(24) NOT NULL,
+  title varchar(255) NOT NULL,
+  state varchar(16) NOT NULL,
+  metadata TEXT,
+  department varchar(255),
+  location varchar(255),
+  person varchar(255),
+  result varchar(24),
+  level varchar(8),
+  start_at varchar(40),
+  primary_document_id BIGINT,
+  revision BIGINT NOT NULL DEFAULT 1,
+  deleted BOOLEAN NOT NULL DEFAULT false,
+  create_at BIGINT,
+  create_by BIGINT,
+  create_name varchar(255),
+  update_at BIGINT,
+  update_by BIGINT,
+  update_name varchar(255)
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_record_deleted ON archive_record(deleted);
+
+CREATE INDEX IF NOT EXISTS idx_archive_record_state ON archive_record(state);
+
+CREATE INDEX IF NOT EXISTS idx_archive_category_updated ON archive_record(category,update_at);
+
+CREATE TABLE IF NOT EXISTS archive_document (
+  id BIGSERIAL PRIMARY KEY,
+  archive_id BIGINT NOT NULL,
+  title varchar(255) NOT NULL,
+  purpose varchar(24) NOT NULL,
+  kind varchar(16) NOT NULL,
+  source_document_id BIGINT,
+  source_version_id BIGINT,
+  current_version_id BIGINT,
+  deleted BOOLEAN NOT NULL DEFAULT false,
+  create_at BIGINT,
+  create_by BIGINT,
+  update_at BIGINT
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_document_archive_id ON archive_document(archive_id);
+
+CREATE TABLE IF NOT EXISTS archive_document_version (
+  id BIGSERIAL PRIMARY KEY,
+  document_id BIGINT NOT NULL,
+  sequence BIGINT NOT NULL,
+  blob_id BIGINT,
+  body TEXT,
+  asset_ids TEXT,
+  has_content BOOLEAN NOT NULL DEFAULT false,
+  size BIGINT,
+  description varchar(1000),
+  create_at BIGINT,
+  create_by BIGINT,
+  create_name varchar(255)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_archive_document_seq ON archive_document_version(document_id,sequence);
+
+CREATE TABLE IF NOT EXISTS archive_version (
+  id BIGSERIAL PRIMARY KEY,
+  archive_id BIGINT NOT NULL,
+  sequence BIGINT NOT NULL,
+  snapshot TEXT,
+  action varchar(32) NOT NULL,
+  create_at BIGINT,
+  create_by BIGINT,
+  create_name varchar(255)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_archive_version_seq ON archive_version(archive_id,sequence);
+
+CREATE TABLE IF NOT EXISTS archive_blob (
+  id BIGSERIAL PRIMARY KEY,
+  archive_id BIGINT NOT NULL,
+  document_id BIGINT,
+  storage_key varchar(64) NOT NULL,
+  name varchar(255) NOT NULL,
+  content_type varchar(100) NOT NULL,
+  kind varchar(16) NOT NULL,
+  size BIGINT,
+  sha256 varchar(64) NOT NULL,
+  create_at BIGINT,
+  create_by BIGINT,
+  asset BOOLEAN NOT NULL DEFAULT false,
+  staged BOOLEAN NOT NULL DEFAULT false
+ ,
+  CONSTRAINT uni_archive_blob_storage_key UNIQUE (storage_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_blob_staged ON archive_blob(staged);
+
+
+CREATE INDEX IF NOT EXISTS idx_archive_blob_document_id ON archive_blob(document_id);
+
+CREATE INDEX IF NOT EXISTS idx_archive_blob_archive_id ON archive_blob(archive_id);
+
+CREATE TABLE IF NOT EXISTS archive_edit_lease (
+  document_id BIGINT PRIMARY KEY,
+  session_id varchar(64) NOT NULL,
+  epoch BIGINT NOT NULL DEFAULT 0,
+  owner_id BIGINT,
+  owner_name varchar(255),
+  expires_at BIGINT,
+  base_version_id BIGINT
+);
+
+CREATE TABLE IF NOT EXISTS archive_draft (
+  id BIGSERIAL PRIMARY KEY,
+  document_id BIGINT NOT NULL,
+  owner_id BIGINT NOT NULL,
+  base_version_id BIGINT,
+  body TEXT,
+  mode varchar(16),
+  markdown TEXT,
+  update_at BIGINT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_archive_draft_owner ON archive_draft(document_id,owner_id);
+
+CREATE TABLE IF NOT EXISTS archive_log (
+  id BIGSERIAL PRIMARY KEY,
+  archive_id BIGINT NOT NULL,
+  document_id BIGINT,
+  action varchar(32) NOT NULL,
+  detail TEXT,
+  actor_id BIGINT,
+  actor_username varchar(64),
+  actor_name varchar(255),
+  create_at BIGINT
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_log_created ON archive_log(archive_id,create_at);
+
+CREATE TABLE IF NOT EXISTS archive_bookmark (
+  id BIGSERIAL PRIMARY KEY,
+  document_id BIGINT NOT NULL,
+  owner_id BIGINT NOT NULL,
+  version_id BIGINT,
+  position TEXT,
+  update_at BIGINT
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_archive_bookmark_owner ON archive_bookmark(document_id,owner_id);
+
+CREATE TABLE IF NOT EXISTS archive_export (
+  id varchar(64) PRIMARY KEY,
+  archive_id BIGINT NOT NULL,
+  archive_version_id BIGINT,
+  document_id BIGINT,
+  document_version_id BIGINT,
+  format varchar(16),
+  state varchar(16) NOT NULL,
+  error TEXT,
+  storage_key varchar(100),
+  file_name varchar(255),
+  create_at BIGINT,
+  create_by BIGINT,
+  update_at BIGINT
+);
+
+CREATE INDEX IF NOT EXISTS idx_archive_export_state ON archive_export(state);
+
+CREATE INDEX IF NOT EXISTS idx_archive_export_archive_id ON archive_export(archive_id);

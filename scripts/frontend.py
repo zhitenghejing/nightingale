@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -95,6 +96,18 @@ def build(force=False):
         return manifest
 
 
+def pack_assets(directory, destination):
+    """Store content in a deterministic ZIP without Go string escaping."""
+    with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        for path in sorted(directory.rglob("*")):
+            if not path.is_file():
+                continue
+            entry = zipfile.ZipInfo(path.relative_to(directory).as_posix(), (2000, 1, 1, 0, 0, 0))
+            entry.create_system = 3
+            entry.external_attr = 0o100644 << 16
+            archive.writestr(entry, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+
+
 def embed():
     manifest = build()
     with (ROOT / "frontend/.build.lock").open("w") as lock:
@@ -106,18 +119,19 @@ def embed():
             shutil.copytree(ROOT / "frontend/pub", directory / "pub")
             if tree_sha(directory / "pub") != manifest["sha256"]:
                 raise RuntimeError("frontend changed while staging statik")
-            # statik is pinned in go.mod. -m normalizes resource timestamps.
-            subprocess.run(["go", "run", "github.com/rakyll/statik", "-m", "-f", "-include=*",
-                            "-src=" + str(directory / "pub"), "-dest=" + str(directory)], cwd=ROOT, check=True)
+            archive = directory / "assets.zip"
+            pack_assets(directory / "pub", archive)
+            if archive.stat().st_size > 100 * 1024 * 1024:
+                raise RuntimeError("embedded frontend ZIP exceeds GitHub's 100 MiB file limit")
             if current() != manifest:
                 raise RuntimeError("frontend changed while embedding; rebuild")
-            destination = ROOT / "front/statik/statik.go"
+            destination = ROOT / "front/statik/assets.zip"
             destination.parent.mkdir(parents=True, exist_ok=True)
-            with tempfile.NamedTemporaryFile(dir=destination.parent, prefix=".statik-", suffix=".tmp", delete=False) as stream:
-                stream.write((directory / "statik/statik.go").read_bytes())
-            staged = Path(stream.name)
-            staged.chmod(0o644)
-            staged.replace(destination)
+            with tempfile.TemporaryDirectory(dir=destination.parent, prefix=".assets-") as staging:
+                staged = Path(staging) / "assets.zip"
+                shutil.copyfile(archive, staged)
+                staged.chmod(0o644)
+                staged.replace(destination)
     return manifest
 
 

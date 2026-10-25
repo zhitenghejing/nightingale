@@ -202,7 +202,7 @@ const SideMenu = (props: SideMenuProps) => {
         // Top-level leaf (no children): keep by its own key so MenuItem is clickable
         // (e.g. FlashAI). Do not treat it as an empty group to drop.
         if (!menu.children || menu.children.length === 0) {
-          if (menu.key === '/nightingale-ai') return menu;
+          if (menu.key === '/nightingale-ai' || menu.key === '/archives') return menu;
           return perms?.includes(calcUrlPath(menu.key)) ? menu : null;
         }
         const filteredChildren = menu.children

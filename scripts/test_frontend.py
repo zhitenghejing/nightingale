@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
+import zipfile
 
 import frontend
 from git_test_support import git_fixture_environment
@@ -64,26 +65,84 @@ class FrontendTest(unittest.TestCase):
         self.assertIsNone(frontend.current())
         self.assertFalse((self.fe / ".build-manifest.json").exists())
 
-    def test_embedding_rejects_source_changes_without_replacing_statik(self):
-        manifest = self.manifest()
-        target = self.root / "front/statik/statik.go"
+    def previous_archive(self):
+        target = self.root / "front/statik/assets.zip"
         target.parent.mkdir(parents=True)
-        target.write_text("previous statik")
-        real_run = subprocess.run
+        target.write_bytes(b"previous archive")
+        return target
 
-        def run(command, **kwargs):
-            if command[0] != "go":
-                return real_run(command, **kwargs)
-            destination = Path(next(c.removeprefix("-dest=") for c in command if c.startswith("-dest=")))
-            (destination / "statik").mkdir()
-            (destination / "statik/statik.go").write_text("generated statik")
+    def test_embedding_preserves_all_assets_and_is_reproducible(self):
+        self.manifest()
+        nested = self.fe / "pub/subdir"
+        nested.mkdir()
+        (nested / "说明").write_bytes(b"\x00\xffextensionless asset")
+        (nested / ".hidden").write_text("hidden asset")
+        manifest = self.manifest()
+        target = self.root / "front/statik/assets.zip"
+        with patch.object(frontend, "build", return_value=manifest):
+            frontend.embed()
+            before = target.read_bytes()
+            with zipfile.ZipFile(target) as archive:
+                expected = {p.relative_to(self.fe / "pub").as_posix(): p.read_bytes()
+                            for p in (self.fe / "pub").rglob("*") if p.is_file()}
+                self.assertEqual({name: archive.read(name) for name in archive.namelist()}, expected)
+                self.assertIsNone(archive.testzip())
+            for path in (self.fe / "pub").rglob("*"):
+                os.utime(path, (1700000000, 1700000000))
+                path.chmod(0o700)
+            frontend.embed()
+        self.assertEqual(before, target.read_bytes())
+
+    def test_embedding_rejects_source_changes_without_replacing_archive(self):
+        manifest = self.manifest()
+        target = self.previous_archive()
+        real_pack = frontend.pack_assets
+
+        def pack(directory, destination):
+            real_pack(directory, destination)
             (self.fe / "source.ts").write_text("source edited while embedding")
-            return subprocess.CompletedProcess(command, 0)
 
-        with patch.object(frontend, "build", return_value=manifest), patch.object(frontend.subprocess, "run", side_effect=run):
+        with patch.object(frontend, "build", return_value=manifest), patch.object(frontend, "pack_assets", side_effect=pack):
             with self.assertRaisesRegex(RuntimeError, "changed while embedding"):
                 frontend.embed()
-        self.assertEqual(target.read_text(), "previous statik")
+        self.assertEqual(target.read_bytes(), b"previous archive")
+
+    def test_embedding_rejects_asset_changes_without_replacing_archive(self):
+        manifest = self.manifest()
+        target = self.previous_archive()
+        real_pack = frontend.pack_assets
+
+        def pack(directory, destination):
+            real_pack(directory, destination)
+            (self.fe / "pub/index.html").write_text("assets changed while embedding")
+
+        with patch.object(frontend, "build", return_value=manifest), patch.object(frontend, "pack_assets", side_effect=pack):
+            with self.assertRaisesRegex(RuntimeError, "changed while embedding"):
+                frontend.embed()
+        self.assertEqual(target.read_bytes(), b"previous archive")
+
+    def test_failed_packing_keeps_the_committed_archive(self):
+        manifest = self.manifest()
+        target = self.previous_archive()
+        with patch.object(frontend, "build", return_value=manifest), \
+                patch.object(frontend, "pack_assets", side_effect=OSError("packing failed")):
+            with self.assertRaisesRegex(OSError, "packing failed"):
+                frontend.embed()
+        self.assertEqual(target.read_bytes(), b"previous archive")
+        self.assertEqual(list(target.parent.iterdir()), [target])
+
+    def test_oversized_archive_keeps_the_committed_archive(self):
+        manifest = self.manifest()
+        target = self.previous_archive()
+
+        def pack(directory, destination):
+            with destination.open("wb") as stream:
+                stream.truncate(100 * 1024 * 1024 + 1)
+
+        with patch.object(frontend, "build", return_value=manifest), patch.object(frontend, "pack_assets", side_effect=pack):
+            with self.assertRaisesRegex(RuntimeError, "100 MiB"):
+                frontend.embed()
+        self.assertEqual(target.read_bytes(), b"previous archive")
 
 
 if __name__ == "__main__":

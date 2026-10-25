@@ -10,6 +10,7 @@ const zh_CN = {
   recentUsed: '近期使用',
   personalCollection: '个人收藏',
   menu: {
+    archives: '档案管理',
     infrastructure: '基础设施',
     business_group: '业务组',
     devices: '设备列表',

@@ -3,3 +3,4 @@
 *.js   linguist-language=go
 *.tsx  linguist-language=go
 *.html linguist-language=go
+front/statik/assets.zip binary

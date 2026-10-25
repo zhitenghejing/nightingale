@@ -1,0 +1,24 @@
+{
+  "family": "Liberation Sans",
+  "version": "2.1.5",
+  "license": "SIL-OFL-1.1",
+  "source": "https://github.com/liberationfonts/liberation-fonts/releases/tag/2.1.5",
+  "files": [
+    {
+      "file": "LiberationSans-Regular.ttf",
+      "sha256": "075e71be4c58beda172ecb574a799308f04c3d054c6a5b7434954d3b0f1b28d8"
+    },
+    {
+      "file": "LiberationSans-Bold.ttf",
+      "sha256": "b72c65e551d653b54217ffad0d1454ce0657e4e8d4a28bcc79e0acd2598f4bf3"
+    },
+    {
+      "file": "LiberationSans-Italic.ttf",
+      "sha256": "4ccb79043bd3a6d131b5a53901abb21261b1417f6052b38a9fa9716a4e5a3d81"
+    },
+    {
+      "file": "LiberationSans-BoldItalic.ttf",
+      "sha256": "64263238517af60213cdb469165fc7e9acd0c09c35f4155f924a379f97125a57"
+    }
+  ]
+}

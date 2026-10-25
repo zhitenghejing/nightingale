@@ -59,7 +59,8 @@ def main():
         if result.returncode or result.stdout:
             print("gofmt failed:\n" + result.stdout + result.stderr, flush=True)
             failures.append("format")
-    checks = [("preview tests", ["python3", "-B", "-m", "unittest", "discover", "-s", "scripts", "-p", "test_*.py"]),
+    checks = [("Git blob sizes", ["python3", "-B", "scripts/check_git_objects.py", "--base", base]),
+              ("preview tests", ["python3", "-B", "-m", "unittest", "discover", "-s", "scripts", "-p", "test_*.py"]),
               ("build", ["go", "build", "./..."]), ("tests", ["go", "test", "-json", "./..."])]
     frontend_paths = ("frontend/", "scripts/frontend.py", "scripts/preview.py", "fe.sh", "Makefile",
                       ".goreleaser.yaml", ".github/workflows/", "center/router/", "models/")
