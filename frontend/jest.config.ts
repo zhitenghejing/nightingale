@@ -119,7 +119,7 @@ const config: Config = {
     // ai-kit ships ESM only; it is the one dependency compiled for jest.
     '^.+\\.js$': ['ts-jest', { tsconfig: 'tsconfig.jest-deps.json' }],
   },
-  transformIgnorePatterns: ['/node_modules/(?!(@flashcatcloud/ai-kit/|\\.pnpm/@flashcatcloud\\+ai-kit@))'],
+  transformIgnorePatterns: ['/node_modules/(?!(@flashcatcloud/ai-kit/|marked/|\\.pnpm/@flashcatcloud\\+ai-kit@|\\.pnpm/marked@))'],
 
   // Run tests from one or more projects
   // projects: undefined,
@@ -179,7 +179,7 @@ const config: Config = {
   // ],
 
   // An array of regexp pattern strings that are matched against all test paths, matched tests are skipped
-  testPathIgnorePatterns: ['/node_modules/', '/e2e/', '/migration-e2e/'],
+  testPathIgnorePatterns: ['/node_modules/', '/e2e/', '/migration-e2e/', '/archive-e2e/'],
 
   // The regexp pattern or array of patterns that Jest uses to detect test files
   // testRegex: [],

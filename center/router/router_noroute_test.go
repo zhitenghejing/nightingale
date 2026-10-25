@@ -1,6 +1,8 @@
 package router
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -10,8 +12,50 @@ import (
 
 	"github.com/ccfos/nightingale/v6/center/cconf"
 	"github.com/gin-gonic/gin"
+	statikfs "github.com/rakyll/statik/fs"
 	"github.com/toolkits/pkg/runner"
 )
+
+func TestConfigNoRoute_CommittedFrontend(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	embedded, err := statikfs.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rt := &Router{Center: cconf.Center{UseFileAssets: false}}
+	r := gin.New()
+	rt.configNoRoute(r, &embedded)
+	for _, path := range []string{
+		"/archives?tab=incident", "/archives/34",
+		"/font/NotoSansSC-Regular.ttf",
+		"/archive-fonts/LiberationSans-Regular.ttf",
+		"/archive-renderer/wasm/openjpeg.wasm",
+		"/archive-renderer/cmaps/Adobe-GB1-UCS2.bcmap",
+		"/archive-renderer/standard_fonts/FoxitSerif.pfb",
+		"/archive-renderer/iccs/CGATS001Compat-v2-micro.icc",
+	} {
+		t.Run(path, func(t *testing.T) {
+			name := path
+			if strings.HasPrefix(path, "/archives") {
+				name = "/index.html"
+			}
+			file, err := embedded.Open(name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer file.Close()
+			want, err := io.ReadAll(file)
+			if err != nil {
+				t.Fatal(err)
+			}
+			response := httptest.NewRecorder()
+			r.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+			if response.Code != http.StatusOK || !bytes.Equal(response.Body.Bytes(), want) {
+				t.Fatalf("embedded route %s: HTTP %d, content does not match bundle", path, response.Code)
+			}
+		})
+	}
+}
 
 // newFixturePub 在临时目录里造一个最小的前端发布包，返回它的父目录（即 pub 的上一级）
 func newFixturePub(t *testing.T) string {

@@ -128,6 +128,7 @@ export default defineConfig(({ mode }) => {
         ignoreTryCatch: false, // https://github.com/wbkd/react-flow/issues/1840
       },
       outDir: 'pub',
+      target: 'es2022',
       chunkSizeWarningLimit: 650,
       sourcemap: false,
       rollupOptions: {

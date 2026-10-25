@@ -31,6 +31,21 @@ class PreviewTest(unittest.TestCase):
         patcher.start()
         self.addCleanup(patcher.stop)
 
+    def test_committed_frontend_identity_tracks_zip_and_legacy_bundles(self):
+        root = self.state / "repo"
+        directory = root / "front/statik"
+        directory.mkdir(parents=True)
+        legacy = directory / "statik.go"
+        legacy.write_text("legacy embedded data")
+        with patch.object(preview, "ROOT", root):
+            self.assertEqual(preview.committed_frontend()["sha256"], preview.digest(legacy))
+            bundle = directory / "assets.zip"
+            bundle.write_bytes(b"new ZIP payload")
+            self.assertEqual(preview.committed_frontend()["sha256"], preview.digest(bundle))
+            before = preview.committed_frontend()
+            bundle.write_bytes(b"changed ZIP payload")
+            self.assertNotEqual(before, preview.committed_frontend())
+
     def test_generated_config_disables_service_agent_and_proxy_auth(self):
         for profile in ("basic", "full"):
             with self.subTest(profile=profile):

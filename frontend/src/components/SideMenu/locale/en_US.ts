@@ -10,6 +10,7 @@ const en_US = {
   recentUsed: 'Recently used',
   personalCollection: 'Personal collection',
   menu: {
+    archives: 'Archives',
     cmdb: 'CMDB',
     rack_views: 'Rack views',
     infrastructure: 'Infrastructure',

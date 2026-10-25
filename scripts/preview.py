@@ -415,6 +415,12 @@ Enable = false
 '''
 
 
+def committed_frontend():
+    bundle = ROOT / "front/statik/assets.zip"
+    return {"kind": "committed-statik", "sha256": digest(
+        bundle if bundle.is_file() else ROOT / "front/statik/statik.go")}
+
+
 def build(binding, profile):
     directory = instance(binding)
     for name in ("bin", "run", "run/etc"):
@@ -437,7 +443,7 @@ def build(binding, profile):
     source = source_identity()
     build_id = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime()) + "-" + secrets.token_hex(4)
     app_version = git("describe", "--tags", "--always") if binding.get("role") == "stable" else "preview-" + build_id
-    frontend = {"kind": "committed-statik", "sha256": digest(ROOT / "front/statik/statik.go")}
+    frontend = committed_frontend()
     if binding.get("frontendDir") or binding["inTreeFrontend"]:
         origin = Path(binding["frontendDir"]) if binding.get("frontendDir") else ROOT / "frontend/pub"
         if not (origin / "index.html").is_file():

@@ -259,6 +259,8 @@ func MigrateTables(db *gorm.DB) error {
 		&models.AILLMConfig{}, &models.AIAgent{}, &models.AISkill{},
 		&models.AssistantChatRow{}}
 
+	dts = append(dts, models.ArchiveTables()...)
+
 	if isPostgres(db) {
 		dts = append(dts, &models.AssistantMessageRow{}) // PostgreSQL: text is unlimited
 		dts = append(dts, &models.PostgresBuiltinComponent{})

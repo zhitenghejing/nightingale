@@ -2,7 +2,7 @@
 
 前端源码在 `frontend/`，上游来源及导入范围见
 [UPSTREAM.md](../frontend/UPSTREAM.md)。前端与后端在同一任务分支修改和审查。
-构建后由现有 Go 服务提供页面；部署时不需要 Node 服务。
+构建后由现有 Go 服务提供页面；部署时不需要 Node HTTP 服务。档案文档处理额外使用本机 Node 24 离线 CLI、LibreOffice 和中文字体，配置及交付声明见[档案运行说明](api/archives.md)。
 
 生产构建保留路由和 entry 中的 `React.lazy`，按访问页面加载业务代码。
 不要启用 `vite-plugin-lazy-eager`：它会把按需页面恢复为静态导入，导致登录页
@@ -30,6 +30,21 @@ make all                 # 构建当前 UI，嵌入 statik，再构建 Go 二进
 不代表当前前端源码已编译。交付 UI 时必须使用 preview 或重新生成 statik；
 `sh fe.sh` 只构建本仓库前端，不下载上游发布包。
 
+内嵌页面由小型 `front/statik/statik.go` 使用 `go:embed` 读取已提交的
+`front/statik/assets.zip`，再注册到原有 statik 文件系统。ZIP 在编译时进入二进制，
+运行时无需旁置资源包。采用独立 ZIP 是为了避免将二进制转为 Go 转义字符串造成
+体积膨胀，并保留不安装 Node 即可进行普通 Go 构建的入口。
+
+`sh fe.sh` 构建后按固定路径顺序、时间戳和权限生成 ZIP；同一压缩工具链下重复
+打包结果一致。发布前复核源码及资源摘要，成功后原子替换 ZIP，失败保留旧包。
+可执行 `N9E_TEST_FRONTEND_DIR="$PWD/frontend/pub" go test ./front/statik -count=1`
+逐文件比对内嵌资源与前端构建产物。
+
+`make verify` 检查相对验证基线新增历史中的 Git blob 及暂存区，pre-push 还根据
+实际推送的引用检查新增对象，超过 100 MiB 时拒绝。删除文件后再追加提交仍保留
+旧 blob；未推送分支需备份后修订引入它的提交。备份分支仅在本地保留，推送时
+明确指定功能分支。
+
 仅维护 `frontend/pnpm-lock.yaml`，不混用 npm/yarn 锁文件。
 修改依赖后审查锁文件，再验证冻结安装、构建和相关测试。
 只允许配置中明确批准的依赖安装脚本；新增需求须查明用途再配置。
@@ -56,7 +71,8 @@ make preview-url
 
 `frontend/.build-manifest.json` 记录前端源码指纹、pnpm 锁文件摘要、工具链版本和
 资源摘要；preview manifest 同时记录后端源码指纹及 build ID。
-源码、配置或资源变化使旧构建失效。生成文件、node_modules 和测试报告不进入 Git。
+源码、配置或资源变化使旧构建失效。`frontend/pub`、node_modules 和测试报告不进入 Git；
+Go-only 构建所需的 `front/statik/assets.zip` 随 UI 改动提交。
 状态必须满足源码和资源未漂移、本地及公网探测通过，才可交给人验收。
 
 外部 `--frontend-dir` / `--frontend-ref` 仍保留为显式联调入口，不能假称为同仓构建。

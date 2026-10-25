@@ -173,6 +173,9 @@ request.interceptors.request.use((url, options) => {
 request.interceptors.response.use(
   async (response, options) => {
     const { status } = response;
+    if ((status === 200 || status === 206) && options.responseType === 'blob') {
+      return response.blob();
+    }
     if (status === 200) {
       return response
         .clone()

@@ -2246,6 +2246,160 @@ CREATE TABLE `source_token` (
     KEY `idx_source_token_token` (`token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Archive management: isolated records, immutable versions, private files and edit leases.
+
+CREATE TABLE IF NOT EXISTS archive_record (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  category varchar(24) NOT NULL,
+  title varchar(255) NOT NULL,
+  state varchar(16) NOT NULL,
+  metadata LONGTEXT,
+  department varchar(255),
+  location varchar(255),
+  person varchar(255),
+  result varchar(24),
+  level varchar(8),
+  start_at varchar(40),
+  primary_document_id BIGINT,
+  revision BIGINT NOT NULL DEFAULT 1,
+  deleted BOOLEAN NOT NULL DEFAULT false,
+  create_at BIGINT,
+  create_by BIGINT,
+  create_name varchar(255),
+  update_at BIGINT,
+  update_by BIGINT,
+  update_name varchar(255),
+  KEY idx_archive_record_deleted (deleted),
+  KEY idx_archive_record_state (state),
+  KEY idx_archive_category_updated (category,update_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS archive_document (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  archive_id BIGINT NOT NULL,
+  title varchar(255) NOT NULL,
+  purpose varchar(24) NOT NULL,
+  kind varchar(16) NOT NULL,
+  source_document_id BIGINT,
+  source_version_id BIGINT,
+  current_version_id BIGINT,
+  deleted BOOLEAN NOT NULL DEFAULT false,
+  create_at BIGINT,
+  create_by BIGINT,
+  update_at BIGINT,
+  KEY idx_archive_document_archive_id (archive_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS archive_document_version (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  document_id BIGINT NOT NULL,
+  sequence BIGINT NOT NULL,
+  blob_id BIGINT,
+  body LONGTEXT,
+  asset_ids LONGTEXT,
+  has_content BOOLEAN NOT NULL DEFAULT false,
+  size BIGINT,
+  description varchar(1000),
+  create_at BIGINT,
+  create_by BIGINT,
+  create_name varchar(255),
+  UNIQUE KEY idx_archive_document_seq (document_id,sequence)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS archive_version (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  archive_id BIGINT NOT NULL,
+  sequence BIGINT NOT NULL,
+  snapshot LONGTEXT,
+  action varchar(32) NOT NULL,
+  create_at BIGINT,
+  create_by BIGINT,
+  create_name varchar(255),
+  UNIQUE KEY idx_archive_version_seq (archive_id,sequence)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS archive_blob (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  archive_id BIGINT NOT NULL,
+  document_id BIGINT,
+  storage_key varchar(64) NOT NULL,
+  name varchar(255) NOT NULL,
+  content_type varchar(100) NOT NULL,
+  kind varchar(16) NOT NULL,
+  size BIGINT,
+  sha256 varchar(64) NOT NULL,
+  create_at BIGINT,
+  create_by BIGINT,
+  asset BOOLEAN NOT NULL DEFAULT false,
+  staged BOOLEAN NOT NULL DEFAULT false,
+  KEY idx_archive_blob_staged (staged),
+  CONSTRAINT uni_archive_blob_storage_key UNIQUE (storage_key),
+  KEY idx_archive_blob_document_id (document_id),
+  KEY idx_archive_blob_archive_id (archive_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS archive_edit_lease (
+  document_id BIGINT PRIMARY KEY,
+  session_id varchar(64) NOT NULL,
+  epoch BIGINT NOT NULL DEFAULT 0,
+  owner_id BIGINT,
+  owner_name varchar(255),
+  expires_at BIGINT,
+  base_version_id BIGINT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS archive_draft (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  document_id BIGINT NOT NULL,
+  owner_id BIGINT NOT NULL,
+  base_version_id BIGINT,
+  body LONGTEXT,
+  mode varchar(16),
+  markdown LONGTEXT,
+  update_at BIGINT,
+  UNIQUE KEY idx_archive_draft_owner (document_id,owner_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS archive_log (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  archive_id BIGINT NOT NULL,
+  document_id BIGINT,
+  action varchar(32) NOT NULL,
+  detail LONGTEXT,
+  actor_id BIGINT,
+  actor_username varchar(64),
+  actor_name varchar(255),
+  create_at BIGINT,
+  KEY idx_archive_log_created (archive_id,create_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS archive_bookmark (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  document_id BIGINT NOT NULL,
+  owner_id BIGINT NOT NULL,
+  version_id BIGINT,
+  position LONGTEXT,
+  update_at BIGINT,
+  UNIQUE KEY idx_archive_bookmark_owner (document_id,owner_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS archive_export (
+  id varchar(64) PRIMARY KEY,
+  archive_id BIGINT NOT NULL,
+  archive_version_id BIGINT,
+  document_id BIGINT,
+  document_version_id BIGINT,
+  format varchar(16),
+  state varchar(16) NOT NULL,
+  error TEXT,
+  storage_key varchar(100),
+  file_name varchar(255),
+  create_at BIGINT,
+  create_by BIGINT,
+  update_at BIGINT,
+  KEY idx_archive_export_state (state),
+  KEY idx_archive_export_archive_id (archive_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- CMDB inventory schema. Uses the configured center database; contains no asset data.
 
 CREATE TABLE IF NOT EXISTS `cmdb_room` (

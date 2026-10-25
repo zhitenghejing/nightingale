@@ -12,3 +12,8 @@ midscene_run/
 .build.lock
 .DS_Store
 src/plus/
+public/prototype/archive-management/
+
+/public/archive-renderer/
+
+/archive-e2e-report/

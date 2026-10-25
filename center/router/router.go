@@ -16,6 +16,7 @@ import (
 	"github.com/ccfos/nightingale/v6/aiagent/skill"
 	aitools "github.com/ccfos/nightingale/v6/aiagent/tools"
 	"github.com/ccfos/nightingale/v6/alert/aconf"
+	"github.com/ccfos/nightingale/v6/archives"
 	"github.com/ccfos/nightingale/v6/center/cconf"
 	"github.com/ccfos/nightingale/v6/center/cstats"
 	"github.com/ccfos/nightingale/v6/center/metas"
@@ -62,6 +63,8 @@ type Router struct {
 	UserTokenCache    *memsto.UserTokenCacheType
 	Ctx               *ctx.Context
 	LogDir            string
+	archivesOnce      sync.Once
+	archivesService   *archives.Service
 	// CMDB is initialized by center before Config; nil disables the optional routes for embedders.
 	CMDB *cmdb.API
 
@@ -235,7 +238,7 @@ func (rt *Router) configNoRoute(r *gin.Engine, fs *http.FileSystem) {
 		switch suffix {
 		// 前端发布包里出现的静态资源后缀都要列在这里，否则会被当成前端路由返回 index.html。
 		// 新增前端资源类型（如 n9e-collect-templates/*.toml、字体 woff2）时记得同步补充
-		case "png", "jpeg", "jpg", "svg", "ico", "gif", "webp", "css", "js", "html", "htm", "gz", "zip", "map", "ttf", "woff2", "md", "toml":
+		case "mjs", "wasm", "bcmap", "pfb", "icc", "txt", "png", "jpeg", "jpg", "svg", "ico", "gif", "webp", "css", "js", "html", "htm", "gz", "zip", "map", "ttf", "woff2", "md", "toml":
 			if !rt.Center.UseFileAssets {
 				c.FileFromFS(c.Request.URL.Path, *fs)
 			} else {
@@ -282,6 +285,7 @@ func (rt *Router) Config(r *gin.Engine) {
 
 	pagesPrefix := "/api/n9e"
 	pages := r.Group(pagesPrefix)
+	rt.configArchiveRoutes(pages)
 	{
 
 		pages.DELETE("/datasource/series", rt.auth(), rt.admin(), rt.deleteDatasourceSeries)

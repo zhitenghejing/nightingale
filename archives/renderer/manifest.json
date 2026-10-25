@@ -1,0 +1,189 @@
+{
+  "inputs": {
+    "pnpm-lock.yaml": "95480436c17b6890c217a1677c8106eb3599d364957afabed038db7ebdf773ba",
+    "scripts/build-archive-worker.mjs": "36fa346d6060e75685b53604b6e150316ee0beceadeac64033d5ef069bb11a60",
+    "src/pages/archiveManagement/exportWorker.ts": "869f1babbe211fbb505ecad8a1506466cb7b240a6066637fa890d083fa1e340e",
+    "public/archive-fonts/manifest.json": "f04d4353afa87ede25d0f7347295f793f7f8423f37d208dfe336bb5a0ae70c76",
+    "public/archive-fonts/LICENSE.txt": "e0f20018e350e0b1ba1b4d91999a635a5214d329630ef9f9c6af396f6d2788fa",
+    "public/font/OFL-NotoSansSC.txt": "1b42e1663f5bcddd26388645ad436497ec27544a16497a77bcadb1e8adb6d248"
+  },
+  "sha256": "cadc03cf44aedab69e8baa172241af706a35f0fd36f4dc1746df452ce04b6329",
+  "noticeSha256": "2ab8103a667d8bc8f66de01085d24492d754c9ee59f926eea383706301c84337",
+  "packages": [
+    {
+      "name": "@hufe921/canvas-editor",
+      "version": "1.0.5",
+      "license": "MIT"
+    },
+    {
+      "name": "@hufe921/canvas-editor-plugin-docx",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "@pdf-lib/standard-fonts",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "@pdf-lib/upng",
+      "version": "1.0.1",
+      "license": "MIT"
+    },
+    {
+      "name": "@types/node",
+      "version": "20.19.43",
+      "license": "MIT"
+    },
+    {
+      "name": "color",
+      "version": "4.2.3",
+      "license": "MIT"
+    },
+    {
+      "name": "color-convert",
+      "version": "2.0.1",
+      "license": "MIT"
+    },
+    {
+      "name": "color-name",
+      "version": "1.1.4",
+      "license": "MIT"
+    },
+    {
+      "name": "color-string",
+      "version": "1.9.1",
+      "license": "MIT"
+    },
+    {
+      "name": "core-util-is",
+      "version": "1.0.3",
+      "license": "MIT"
+    },
+    {
+      "name": "diff",
+      "version": "4.0.2",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "docx",
+      "version": "8.5.0",
+      "license": "MIT"
+    },
+    {
+      "name": "immediate",
+      "version": "3.0.6",
+      "license": "MIT"
+    },
+    {
+      "name": "inherits",
+      "version": "2.0.4",
+      "license": "ISC"
+    },
+    {
+      "name": "is-arrayish",
+      "version": "0.3.2",
+      "license": "MIT"
+    },
+    {
+      "name": "isarray",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "jszip",
+      "version": "3.10.1",
+      "license": "(MIT OR GPL-3.0-or-later)"
+    },
+    {
+      "name": "lie",
+      "version": "3.3.0",
+      "license": "MIT"
+    },
+    {
+      "name": "marked",
+      "version": "18.1.1",
+      "license": "MIT"
+    },
+    {
+      "name": "nanoid",
+      "version": "5.1.16",
+      "license": "MIT"
+    },
+    {
+      "name": "pako",
+      "version": "1.0.11",
+      "license": "(MIT AND Zlib)"
+    },
+    {
+      "name": "pdf-lib",
+      "version": "1.17.1",
+      "license": "MIT"
+    },
+    {
+      "name": "pdfjs-dist",
+      "version": "6.4.299",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "process-nextick-args",
+      "version": "2.0.1",
+      "license": "MIT"
+    },
+    {
+      "name": "readable-stream",
+      "version": "2.3.8",
+      "license": "MIT"
+    },
+    {
+      "name": "safe-buffer",
+      "version": "5.1.2",
+      "license": "MIT"
+    },
+    {
+      "name": "sax",
+      "version": "1.3.0",
+      "license": "ISC"
+    },
+    {
+      "name": "setimmediate",
+      "version": "1.0.5",
+      "license": "MIT"
+    },
+    {
+      "name": "simple-swizzle",
+      "version": "0.2.2",
+      "license": "MIT"
+    },
+    {
+      "name": "string_decoder",
+      "version": "1.1.1",
+      "license": "MIT"
+    },
+    {
+      "name": "tslib",
+      "version": "1.14.1",
+      "license": "0BSD"
+    },
+    {
+      "name": "undici-types",
+      "version": "6.21.0",
+      "license": "MIT"
+    },
+    {
+      "name": "util-deprecate",
+      "version": "1.0.2",
+      "license": "MIT"
+    },
+    {
+      "name": "xml",
+      "version": "1.0.1",
+      "license": "MIT"
+    },
+    {
+      "name": "xml-js",
+      "version": "1.6.11",
+      "license": "MIT"
+    }
+  ]
+}

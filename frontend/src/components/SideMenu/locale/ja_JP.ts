@@ -10,6 +10,7 @@ const ja_JP = {
   recentUsed: '最近使用',
   personalCollection: '個人コレクション',
   menu: {
+    archives: 'Archives',
     cmdb: 'CMDB',
     rack_views: 'Rack views',
     infrastructure: 'インフラストラクチャ',

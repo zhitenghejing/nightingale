@@ -10,6 +10,7 @@ const zh_HK = {
   recentUsed: '近期使用',
   personalCollection: '個人收藏',
   menu: {
+    archives: '檔案管理',
     cmdb: 'CMDB',
     rack_views: '机柜图',
     infrastructure: '基礎設施',
