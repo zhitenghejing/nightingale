@@ -1,0 +1,21 @@
+{
+  "id": "hpe-dl380-gen10",
+  "model": "ProLiant DL380 Gen10",
+  "units": 2,
+  "status": "review-only",
+  "appearance": "黑色密孔面罩、银色肩线、HPE 绿色标识；背面保留紫色电源卡扣。",
+  "reference": {
+    "front": {
+      "sourcePage": "https://tanphat.com.vn/danh-gia-hieu-nang-hpe-dl380-gen10.html",
+      "imageUrl": "https://tanphat.com.vn/media/news/712_hpe_dl380_gen10_6_x_4_copy_0.jpg",
+      "sha256": "1795a876504c6defb6b659d72f4add694ea72b361eed2279ab5c8e96e021c1be",
+      "original": "originals/hpe-dl380-gen10/front.jpg"
+    },
+    "rear": {
+      "sourcePage": "https://tanphat.com.vn/danh-gia-hieu-nang-hpe-dl380-gen10.html",
+      "imageUrl": "https://tanphat.com.vn/media/news/712_hpe_dl380_gen10_6_x_4_copy_0.jpg",
+      "sha256": "1795a876504c6defb6b659d72f4add694ea72b361eed2279ab5c8e96e021c1be",
+      "original": "originals/hpe-dl380-gen10/rear.jpg"
+    }
+  }
+}

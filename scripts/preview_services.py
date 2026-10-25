@@ -105,6 +105,11 @@ def register_services(directory, cfg):
     return volumes
 
 
+def prometheus_write_flags(directory):
+    # Host-owned opt-in; default disposable test registries remain read-only.
+    return ["--web.enable-remote-write-receiver"] if (Path(directory) / "prometheus-remote-write.enabled").is_file() else []
+
+
 def ensure(state, config):
     state = Path(state)
     cfg = settings(state, config)
@@ -124,7 +129,7 @@ def ensure(state, config):
                      "--env-file", str(env_file), "-v", f"{volumes['postgres']}:/var/lib/postgresql/data",
                      POSTGRES_IMAGE])
     prom_config = directory / "prometheus.yml"
-    # These are test fixtures; previews have no remote-write/admin/lifecycle access.
+    # Default fixtures are read-only; collector ingestion requires a host-owned opt-in.
     prom_config.write_text("global:\n  scrape_interval: 5s\nscrape_configs:\n"
                            "  - job_name: prometheus\n    static_configs:\n"
                            "      - targets: ['localhost:9090']\n")
@@ -133,7 +138,7 @@ def ensure(state, config):
                      "-v", f"{prom_config}:/etc/prometheus/prometheus.yml:ro",
                      "-v", f"{volumes['prometheus']}:/prometheus", PROMETHEUS_IMAGE,
                      "--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=3d",
-                     "--storage.tsdb.retention.size=1GB"])
+                     "--storage.tsdb.retention.size=1GB", *prometheus_write_flags(directory)])
     deadline = time.monotonic() + 90
     while time.monotonic() < deadline:
         result = subprocess.run(["docker", "exec", cfg["postgres"], "pg_isready", "-U", "postgres"],

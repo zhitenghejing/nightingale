@@ -98,6 +98,18 @@ func TestDataBaseInit(t *testing.T) {
 			var operations int64
 			require.NoError(t, db.Table("role_operation").Count(&operations).Error)
 			require.Greater(t, operations, int64(0))
+			if dialect == "postgres" {
+				// Explicit seed IDs must not collide with the first real user/group.
+				for _, statement := range []string{
+					"INSERT INTO users(username,nickname,roles) VALUES('next-user','Next user','Standard') RETURNING id",
+					"INSERT INTO user_group(name) VALUES('next-team') RETURNING id",
+					"INSERT INTO busi_group(name) VALUES('next-business') RETURNING id",
+				} {
+					var id int64
+					require.NoError(t, db.Raw(statement).Scan(&id).Error)
+					require.Greater(t, id, int64(1))
+				}
+			}
 		})
 	}
 }

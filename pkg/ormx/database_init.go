@@ -2020,5 +2020,14 @@ func postgresDataBaseInit(db *gorm.DB) error {
 		}
 	}
 
+	// PostgreSQL does not advance identity sequences for explicit seed IDs.
+	// Initialization runs before serving traffic; later writes must allocate IDs above the seeds.
+	for _, table := range []string{"users", "user_group", "busi_group"} {
+		statement := fmt.Sprintf("SELECT setval(pg_get_serial_sequence('%s', 'id'), COALESCE((SELECT MAX(id) FROM %s), 1), EXISTS(SELECT 1 FROM %s))", table, table, table)
+		if err := db.Exec(statement).Error; err != nil {
+			return fmt.Errorf("initialize %s identity sequence: %w", table, err)
+		}
+	}
+
 	return nil
 }

@@ -1,0 +1,21 @@
+{
+  "id": "huawei-2288h-v5",
+  "model": "FusionServer Pro 2288H V5",
+  "units": 2,
+  "status": "review-only",
+  "appearance": "保留深色盘架、左侧华为花瓣标识、蓝色接口与右侧蜂窝面板；背面电源卡扣保留黄绿色。",
+  "reference": {
+    "front": {
+      "sourcePage": "https://www.xhwy.com.cn/Product/Detail/936205",
+      "imageUrl": "https://www.xhwy.com.cn/Storage/Shop/2013/Products/936205/1.png",
+      "sha256": "457d9d447bf396b9dbf796b5d50f99587b6ea4bfc1014bba6e5d48f24678dd92",
+      "original": "originals/huawei-2288h-v5/front.png"
+    },
+    "rear": {
+      "sourcePage": "https://www.xhwy.com.cn/Product/Detail/936205",
+      "imageUrl": "https://www.xhwy.com.cn/Storage/Shop/2013/Products/936205/4.png",
+      "sha256": "f744940c74abcc11e86fa29da1c784189a59db253cc8abdef85682ff5dc2f0c2",
+      "original": "originals/huawei-2288h-v5/rear.png"
+    }
+  }
+}

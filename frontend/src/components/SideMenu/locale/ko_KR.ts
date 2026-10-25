@@ -10,6 +10,10 @@ const ko_KR = {
   "recentUsed": "최근 사용",
   "personalCollection": "즐겨찾기",
   "menu": {
+    cmdb: 'CMDB',
+    rack_views: 'Rack views',
+    inspection_reports: 'Inspection reports',
+    incident_reports: 'Incident reports',
     "infrastructure": "인프라",
     "business_group": "비즈니스 그룹",
     "devices": "장비 목록",

@@ -10,6 +10,10 @@ const ru_RU = {
   recentUsed: 'Недавно использованные',
   personalCollection: 'Личные коллекции',
   menu: {
+    cmdb: 'CMDB',
+    rack_views: 'Rack views',
+    inspection_reports: 'Inspection reports',
+    incident_reports: 'Incident reports',
     infrastructure: 'Инфраструктура',
     business_group: 'Бизнес-группа',
     devices: 'Список устройств',

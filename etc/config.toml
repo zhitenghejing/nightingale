@@ -284,3 +284,8 @@ ForceUseServerTS = true
 [Ibex]
 Enable = true
 RPCListen = "0.0.0.0:20090"
+
+[Center.CMDB]
+# Persistent report originals and metadata; one center writer per directory.
+# Relative paths resolve against the application working directory.
+ReportsDir = "data/reports"

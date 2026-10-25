@@ -4,6 +4,7 @@ package main
 
 import (
 	"bufio"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,6 +20,139 @@ import (
 	"github.com/ccfos/nightingale/v6/conf"
 	"github.com/ccfos/nightingale/v6/pkg/cfg"
 )
+
+func TestFingerprintAssetsAreCompressedAndCacheable(t *testing.T) {
+	asset := strings.Repeat("window.example = 'static frontend';\n", 10000)
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+		io.WriteString(w, asset)
+	}))
+	defer backend.Close()
+	var ready atomic.Bool
+	ready.Store(true)
+	gateway := httptest.NewServer(handler(manifest{BuildID: "assets"}, backend.URL, &ready))
+	defer gateway.Close()
+	for _, test := range []struct{ path, cachePolicy string }{
+		{"/assets/index-431594d8.js", "public, max-age=31536000, immutable"},
+		{"/js/placement.min.js", "no-store"},
+		{"/font/iconfont.js", "no-store"},
+	} {
+		t.Run(test.path, func(t *testing.T) {
+			request, _ := http.NewRequest("GET", gateway.URL+test.path, nil)
+			request.Header.Set("Accept-Encoding", "gzip")
+			response, err := http.DefaultClient.Do(request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer response.Body.Close()
+			if response.Header.Get("Content-Encoding") != "gzip" {
+				t.Fatalf("static asset not compressed: %v", response.Header)
+			}
+			if values := response.Header.Values("Cache-Control"); len(values) != 1 || values[0] != test.cachePolicy {
+				t.Fatalf("fingerprinted asset cannot be reused: %v", values)
+			}
+			if !strings.Contains(response.Header.Get("Vary"), "Accept-Encoding") {
+				t.Fatal("compressed and identity responses share a cache key")
+			}
+			data, err := io.ReadAll(response.Body)
+			if err != nil || len(data) >= len(asset)/4 {
+				t.Fatalf("asset transfer was not reduced: %d bytes, %v", len(data), err)
+			}
+			reader, err := gzip.NewReader(strings.NewReader(string(data)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer reader.Close()
+			decoded, err := io.ReadAll(reader)
+			if err != nil || string(decoded) != asset {
+				t.Fatalf("compressed asset changed: %v", err)
+			}
+		})
+	}
+}
+
+func TestOnlySuccessfulStaticFingerprintsCanBeCached(t *testing.T) {
+	for _, test := range []struct {
+		path, contentType, encoding string
+		status                      int
+	}{
+		{"/login", "text/html", "gzip", 200},
+		{"/api/n9e/self/profile", "application/json", "gzip", 200},
+		{"/api/chat", "text/event-stream", "gzip", 200},
+		{"/assets/settings.js", "text/javascript", "gzip", 200},
+		{"/assets/missing-1234abcd.js", "text/html", "gzip", 200},
+		{"/assets/private-1234abcd.js", "text/javascript", "gzip", 401},
+		{"/assets/error-1234abcd.js", "text/javascript", "gzip", 500},
+		{"/assets/index-1234abcd.js", "application/json", "gzip", 200},
+	} {
+		t.Run(test.path, func(t *testing.T) {
+			backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", test.contentType)
+				w.WriteHeader(test.status)
+				io.WriteString(w, "response")
+			}))
+			defer backend.Close()
+			var ready atomic.Bool
+			ready.Store(true)
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest("GET", test.path, nil)
+			r.Header.Set("Accept-Encoding", test.encoding)
+			handler(manifest{}, backend.URL, &ready).ServeHTTP(w, r)
+			if values := w.Header().Values("Cache-Control"); len(values) != 1 || values[0] != "no-store" {
+				t.Fatalf("dynamic/error response cache policy: %v", values)
+			}
+			if w.Header().Get("Content-Encoding") != "" || w.Body.String() != "response" {
+				t.Fatal("dynamic/error response was transformed")
+			}
+		})
+	}
+}
+
+func TestStaticAssetsWithCookiesStayPrivate(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/javascript")
+		w.Header().Set("Set-Cookie", "session=private")
+		io.WriteString(w, "private")
+	}))
+	defer backend.Close()
+	var ready atomic.Bool
+	ready.Store(true)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("GET", "/assets/index-1234abcd.js", nil)
+	r.Header.Set("Accept-Encoding", "gzip")
+	handler(manifest{}, backend.URL, &ready).ServeHTTP(w, r)
+	if w.Header().Get("Cache-Control") != "no-store" || w.Header().Get("Content-Encoding") != "" {
+		t.Fatal("response setting a session cookie became public")
+	}
+}
+
+func TestAssetCompressionRespectsNegotiationAndRanges(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/css")
+		http.ServeContent(w, r, "style.css", time.Time{}, strings.NewReader(strings.Repeat("body {}\n", 100)))
+	}))
+	defer backend.Close()
+	var ready atomic.Bool
+	ready.Store(true)
+	for _, test := range []struct{ method, encoding, byteRange string }{
+		{"GET", "", ""}, {"GET", "gzip;q=0", ""}, {"GET", "br", ""},
+		{"GET", "gzip", "bytes=0-19"}, {"HEAD", "gzip", ""},
+	} {
+		t.Run(test.method+test.encoding+test.byteRange, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			r := httptest.NewRequest(test.method, "/assets/index-1234abcd.css", nil)
+			r.Header.Set("Accept-Encoding", test.encoding)
+			r.Header.Set("Range", test.byteRange)
+			handler(manifest{}, backend.URL, &ready).ServeHTTP(w, r)
+			if w.Header().Get("Content-Encoding") != "" {
+				t.Fatal("compressed a range, HEAD or unaccepted encoding")
+			}
+			if test.byteRange != "" && (w.Code != 206 || w.Body.Len() != 20) {
+				t.Fatalf("range changed: status %d, bytes %d", w.Code, w.Body.Len())
+			}
+		})
+	}
+}
 
 func TestPreviewChildEnvironment(t *testing.T) {
 	directory := t.TempDir()
@@ -235,6 +369,19 @@ func TestStartingPreviewDoesNotForwardRequests(t *testing.T) {
 	}
 }
 
+func TestUnavailableBackendResponseCannotBeCached(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	backend.Close()
+	var ready atomic.Bool
+	ready.Store(true)
+	w := httptest.NewRecorder()
+	handler(manifest{BuildID: "unavailable"}, backend.URL, &ready).
+		ServeHTTP(w, httptest.NewRequest("GET", "/assets/index-1234abcd.js", nil))
+	if w.Code != http.StatusBadGateway || w.Header().Get("Cache-Control") != "no-store" || w.Header().Get("X-N9E-Preview-Build") != "unavailable" {
+		t.Fatalf("backend failure lost cache/build policy: status %d, headers %v", w.Code, w.Header())
+	}
+}
+
 func TestInfoChecksBackendBuildAndHealth(t *testing.T) {
 	for _, test := range []struct {
 		version         string
@@ -334,6 +481,8 @@ func TestLocalOnlyEndpointsNeverForwarded(t *testing.T) {
 	ready.Store(true)
 	for _, route := range []string{
 		"/prometheus/api/v1/write", "/dumper/sync", "/debug/pprof/", "/metrics",
+		"/datadog/api/v1/series", "/datadog/api/v1/check_run", "/opentsdb/put",
+		"/openfalcon/push", "/proxy/v1/write", "/x/../datadog/api/v1/series",
 		"/%70rometheus/api/v1/query", "/x/../prometheus/api/v1/query",
 		"/v1/n9e", "/v1/n9e/", "/v1/n9e/users", "/v1/n9e/user-token",
 		"/v1/%6e9e/users", "/v1%2fn9e/users", "//v1//n9e/users", "/x/../v1/n9e/users",

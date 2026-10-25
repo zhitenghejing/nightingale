@@ -2,7 +2,7 @@
  * 这是开源版的菜单配置，专业版和企业版的配置在其他对应的仓库文件里
  */
 import React from 'react';
-import { RobotOutlined } from '@ant-design/icons';
+import { RobotOutlined, AuditOutlined, ToolOutlined } from '@ant-design/icons';
 import { Sparkles } from 'lucide-react';
 
 import IconFont from '@/components/IconFont';
@@ -121,12 +121,9 @@ export const getMenuList = (embeddedProductMenu: MenuItem[] = [], hideDeprecated
       label: 'menu.infrastructure',
       icon: <IconFont type='icon-nav_devicelist_light' />,
       children: [
-        {
-          key: 'devices',
-          label: 'menu.devices',
-          type: 'tabs',
-          children: [{ key: '/targets', label: 'menu.targets' }],
-        },
+        { key: '/targets', label: 'menu.devices' },
+        { key: '/targets/cmdb', label: 'menu.cmdb' },
+        { key: '/targets/racks', label: 'menu.rack_views' },
       ],
     },
     {
@@ -148,6 +145,18 @@ export const getMenuList = (embeddedProductMenu: MenuItem[] = [], hideDeprecated
         },
         ...embeddedProductMenu,
       ],
+    },
+    {
+      key: '/reports/inspection',
+      label: 'menu.inspection_reports',
+      icon: <AuditOutlined />,
+      children: [],
+    },
+    {
+      key: '/reports/incident',
+      label: 'menu.incident_reports',
+      icon: <ToolOutlined />,
+      children: [],
     },
     {
       key: 'organization',

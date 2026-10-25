@@ -10,6 +10,10 @@ const zh_CN = {
   recentUsed: '近期使用',
   personalCollection: '个人收藏',
   menu: {
+    cmdb: 'CMDB',
+    rack_views: '机柜图',
+    inspection_reports: '巡检报告',
+    incident_reports: '故障报告',
     infrastructure: '基础设施',
     business_group: '业务组',
     devices: '设备列表',

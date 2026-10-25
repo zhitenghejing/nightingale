@@ -60,6 +60,20 @@ CONFIGTYPE_*、N9E_CONFIGS、代理变量或模型/云服务凭据。构建脚�
 basic 只禁用 Skill 脚本，脚本通知等其他命令执行能力不属于该沙箱保护范围；
 预览管理员仍需可信，不能将实例目录独立等同于宿主机安全隔离。
 
+需要接入现有采集器的开发实例，可在私有实例目录创建权限为 `0600` 的
+`collector.json`，内容为 `username`、`password` 两个字符串（各至少 8 字符）。
+主机管理员明确允许共享指标写入后，创建 `STATE/shared/prometheus-remote-write.enabled`，
+并在保留原数据卷的前提下，为已有共享 Prometheus 重建容器、添加
+`--web.enable-remote-write-receiver`。后续 services/refresh 会保留该启动选项；
+默认无标记的独立测试登记目录仍保持只读，admin/lifecycle API 继续关闭。
+刷新后，该开发实例启用带 BasicAuth 的 APIForAgent，并将 Pushgw 指标转发至共享
+Prometheus 的 `/api/v1/write`；内置 TSDB 保持关闭，UI 直接使用已有 shared-prometheus。
+公共预览网关继续阻断全部采集接口。采集入口通过限定路径、校验上述凭据的本地
+Docker 网桥代理提供；代理读取 manifest 中的 backendPort，刷新后地址保持不变。
+APIForService、ProxyAuth 和 Ibex 保持关闭。代理和现有采集器属于外部接入配置，
+stop/destroy 前应停止代理并切换或停止采集器；销毁预览不删除共享指标。
+删除 collector.json 并刷新可关闭本实例采集入口；stable 实例拒绝该设置。
+
 应用二进制放在 run/n9e，网关放在 bin/。toolkits 的 runner.Cwd 使用二进制所在
 目录，文件前端从该目录的 pub/ 读取，因此应用位置必须与实例工作目录一致。
 

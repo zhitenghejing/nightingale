@@ -1,4 +1,4 @@
-.PHONY: prebuild build verify verify-all frontend-install frontend-build frontend-verify frontend-e2e preview preview-refresh preview-status preview-url preview-stop preview-destroy
+.PHONY: prebuild build verify verify-all frontend-install frontend-build frontend-verify frontend-e2e frontend-e2e-local preview preview-refresh preview-status preview-url preview-stop preview-destroy
 .PHONY: stable stable-refresh stable-status stable-url stable-stop preview-services
 
 ROOT:=$(shell pwd -P)
@@ -23,6 +23,9 @@ frontend-verify:
 
 frontend-e2e:
 	python3 -B scripts/frontend.py e2e
+
+frontend-e2e-local:
+	python3 -B scripts/frontend.py e2e --local
 
 build:
 	go build -ldflags "-w -s -X github.com/ccfos/nightingale/v6/pkg/version.Version=$(RELEASE_VERSION)" -o n9e ./cmd/center/main.go

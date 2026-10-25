@@ -196,7 +196,13 @@ func handler(m manifest, base string, ready *atomic.Bool) http.Handler {
 	proxy.ModifyResponse = func(response *http.Response) error {
 		response.Header.Set("Cache-Control", "no-store")
 		response.Header.Set("X-N9E-Preview-Build", m.BuildID)
+		optimizeAssetResponse(response)
 		return nil
+	}
+	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-N9E-Preview-Build", m.BuildID)
+		http.Error(w, "Preview backend is unavailable.", http.StatusBadGateway)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-store")
@@ -220,7 +226,7 @@ func handler(m manifest, base string, ready *atomic.Bool) http.Handler {
 		// Internal service/agent APIs are never published by this gateway, even if
 		// enabled in the backend. Loopback-only TSDB/debug endpoints stay private too.
 		normalized := strings.ToLower(path.Clean("/" + r.URL.Path))
-		for _, prefix := range []string{"/v1/n9e", "/prometheus", "/dumper", "/debug", "/metrics"} {
+		for _, prefix := range []string{"/v1/n9e", "/prometheus", "/opentsdb", "/openfalcon", "/datadog", "/proxy/v1/write", "/dumper", "/debug", "/metrics"} {
 			if normalized == prefix || strings.HasPrefix(normalized, prefix+"/") {
 				http.Error(w, "Use authenticated Nightingale APIs for preview data.", http.StatusForbidden)
 				return
@@ -240,6 +246,10 @@ func handler(m manifest, base string, ready *atomic.Bool) http.Handler {
 		if r.Header.Get("X-Forwarded-Proto") == "" {
 			r.Header.Set("X-Forwarded-Proto", "http")
 		}
+		// ReverseProxy appends backend headers; avoid retaining a second no-store
+		// value that would override the fingerprinted asset cache policy.
+		w.Header().Del("Cache-Control")
+		w.Header().Del("X-N9E-Preview-Build")
 		proxy.ServeHTTP(w, r)
 	})
 }

@@ -1,0 +1,21 @@
+{
+  "id": "dell-r750",
+  "model": "PowerEdge R750",
+  "units": 2,
+  "status": "review-only",
+  "appearance": "保留 Dell 15G 标志性双排银色几何面罩与 DELL EMC 字样，背面保留橙色电源卡扣。",
+  "reference": {
+    "front": {
+      "sourcePage": "https://www.tritondatacom.com/products/dell-poweredge-r750-10-drive-bay-customizable-server-per750-16-8sff-frnt-nvme-r2-1-refurbished",
+      "imageUrl": "https://www.tritondatacom.com/cdn/shop/products/dell-poweredge-r750-10-drive-bay-customizable-server-per750-16-8sff-frnt-nvme-r2-1-refurbished-29891936059462.webp?v=1673375606",
+      "sha256": "c1b635f51398e58f2948c36fbe70fa30ce3a204c4c1ec8aeb3648560a7eb1864",
+      "original": "originals/dell-r750/front.jpg"
+    },
+    "rear": {
+      "sourcePage": "https://www.tritondatacom.com/products/dell-poweredge-r750-10-drive-bay-customizable-server-per750-16-8sff-frnt-nvme-r2-1-refurbished",
+      "imageUrl": "https://www.tritondatacom.com/cdn/shop/products/dell-poweredge-r750-10-drive-bay-customizable-server-per750-16-8sff-frnt-nvme-r2-1-refurbished-29891936059462.webp?v=1673375606",
+      "sha256": "c1b635f51398e58f2948c36fbe70fa30ce3a204c4c1ec8aeb3648560a7eb1864",
+      "original": "originals/dell-r750/rear.jpg"
+    }
+  }
+}
