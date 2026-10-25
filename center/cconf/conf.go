@@ -30,18 +30,12 @@ type Center struct {
 	MigrateBusiGroupLabel bool
 	RSA                   httpx.RSAConfig
 	AIAgent               AIAgent
-	CMDB                  CMDB
 
 	// Sandbox isolates execution of user-uploaded Skill Python/Bash scripts
 	// (pkg/sandbox). Fail-open: non-Linux / insufficient kernel capabilities
 	// degrade to the unsafe-exec floor so scripts still run; set
 	// Sandbox.RequireIsolation=true to refuse execution without real isolation.
 	Sandbox sandbox.Config
-}
-
-// CMDB uses the center database; report originals require a persistent private directory.
-type CMDB struct {
-	ReportsDir string
 }
 
 type AIAgent struct {

@@ -12,8 +12,6 @@ const pt_BR = {
   "menu": {
     cmdb: 'CMDB',
     rack_views: 'Rack views',
-    inspection_reports: 'Inspection reports',
-    incident_reports: 'Incident reports',
     "infrastructure": "Infraestrutura",
     "business_group": "Grupo de negócio",
     "devices": "Lista de dispositivos",

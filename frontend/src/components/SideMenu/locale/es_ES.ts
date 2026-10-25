@@ -12,8 +12,6 @@ const es_ES = {
   "menu": {
     cmdb: 'CMDB',
     rack_views: 'Rack views',
-    inspection_reports: 'Inspection reports',
-    incident_reports: 'Incident reports',
     "infrastructure": "Infraestructura",
     "business_group": "Grupo de negocio",
     "devices": "Lista de dispositivos",

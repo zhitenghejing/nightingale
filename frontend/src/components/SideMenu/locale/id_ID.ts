@@ -12,8 +12,6 @@ const id_ID = {
   "menu": {
     cmdb: 'CMDB',
     rack_views: 'Rack views',
-    inspection_reports: 'Inspection reports',
-    incident_reports: 'Incident reports',
     "infrastructure": "Infrastruktur",
     "business_group": "Grup bisnis",
     "devices": "Daftar perangkat",

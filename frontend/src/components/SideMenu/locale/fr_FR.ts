@@ -12,8 +12,6 @@ const fr_FR = {
   "menu": {
     cmdb: 'CMDB',
     rack_views: 'Rack views',
-    inspection_reports: 'Inspection reports',
-    incident_reports: 'Incident reports',
     "infrastructure": "Infrastructure",
     "business_group": "Groupe métier",
     "devices": "Liste des équipements",

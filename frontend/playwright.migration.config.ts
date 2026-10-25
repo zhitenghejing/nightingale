@@ -12,7 +12,6 @@ export default defineConfig({
   timeout: 120000,
   expect: { timeout: 15000 },
   use: {
-    // Full Chromium's PDF viewer is needed for report preview and reload scenarios.
     channel: 'chromium',
     baseURL: process.env.N9E_E2E_BASE_URL,
     viewport: { width: 1440, height: 900 },

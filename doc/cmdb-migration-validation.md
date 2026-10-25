@@ -1,5 +1,11 @@
 # CMDB and report migration
 
+> Historical validation of the 2026-10-22 migration. Inspection and incident report
+> features have since been removed, including their pages, APIs, conversion worker
+> and `Center.CMDB.ReportsDir` configuration. Existing archive files are retained
+> on disk; they are no longer served. Report checks below describe the migration
+> checkpoint only. Current browser coverage retains CMDB and rack scenarios.
+
 ## Scope and source
 
 Target baseline: `jealous-bumblebee`, `a20cd71f`. Source: `violent-dragonfly`

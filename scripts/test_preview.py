@@ -43,7 +43,6 @@ class PreviewTest(unittest.TestCase):
                 self.assertEqual(config["DB"]["DBType"], "postgres")
                 self.assertEqual(config["Redis"]["RedisType"], "miniredis")
                 self.assertFalse(config["EmbeddedTSDB"]["Enable"])
-                self.assertEqual(config["Center"]["CMDB"]["ReportsDir"], str(directory / "run/reports"))
 
     def test_private_collector_uses_authenticated_agent_and_opted_in_shared_prometheus(self):
         binding = {"instance": "collector-instance", "role": "development", "profile": "basic"}

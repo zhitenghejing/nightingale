@@ -93,7 +93,6 @@ const VariableConfigs = React.lazy(() => import('@/pages/variableConfigs'));
 const SiteSettings = React.lazy(() => import('@/pages/siteSettings'));
 const CMDB = React.lazy(() => import('@/pages/cmdb'));
 const RackViews = React.lazy(() => import('@/pages/rackViews'));
-const Reports = React.lazy(() => import('@/pages/reports'));
 const Landing = React.lazy(() => import('@/pages/landing'));
 import { dynamicPackages, Entry, dynamicPages } from '@/utils';
 // @ts-ignore
@@ -157,7 +156,7 @@ export default function Content() {
       !location.pathname.includes('/settings/infrastructure/add') &&
       !location.pathname.includes('/settings/source/') &&
       !location.pathname.startsWith('/nightingale-ai') &&
-      !['/targets/cmdb', '/targets/racks', '/reports/inspection', '/reports/incident'].includes(location.pathname) &&
+      !['/targets/cmdb', '/targets/racks'].includes(location.pathname) &&
       !location.pathname.includes('/403')
     ) {
       if (profile?.roles.indexOf('Admin') === -1) {
@@ -259,8 +258,6 @@ export default function Content() {
           <Route exact path='/alert-his-events/:eventId' component={EventDetail} />
           <Route exact path='/targets/cmdb' component={CMDB} />
           <Route exact path='/targets/racks' component={RackViews} />
-          <Route exact path='/reports/inspection' component={Reports} />
-          <Route exact path='/reports/incident' component={Reports} />
 
           <Route exact path='/job-tpls' component={TaskTpl} />
           <Route exact path='/job-tpls/add' component={TaskTplAdd} />

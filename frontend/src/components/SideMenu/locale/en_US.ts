@@ -12,8 +12,6 @@ const en_US = {
   menu: {
     cmdb: 'CMDB',
     rack_views: 'Rack views',
-    inspection_reports: 'Inspection reports',
-    incident_reports: 'Incident reports',
     infrastructure: 'Infrastructure',
     business_group: 'Business group',
     devices: 'Hosts',

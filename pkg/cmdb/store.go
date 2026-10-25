@@ -1,4 +1,4 @@
-// Package cmdb owns inventory and report persistence within the center deployment.
+// Package cmdb owns inventory persistence within the center deployment.
 package cmdb
 
 import (

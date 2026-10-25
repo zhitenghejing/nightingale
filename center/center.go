@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"path/filepath"
 	"time"
 
 	"github.com/ccfos/nightingale/v6/dscache"
@@ -81,29 +80,6 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 	if err = cmdbStore.Migrate(); err != nil {
 		return nil, fmt.Errorf("initialize CMDB schema: %w", err)
 	}
-	reportsDir := config.Center.CMDB.ReportsDir
-	if reportsDir == "" {
-		reportsDir = "data/reports"
-	}
-	reportsDir, err = filepath.Abs(reportsDir)
-	if err != nil {
-		return nil, err
-	}
-	reports, err := cmdb.NewReportStore(reportsDir)
-	if err != nil {
-		return nil, fmt.Errorf("initialize report storage: %w", err)
-	}
-	unlockReports, err := reports.Lock()
-	if err != nil {
-		return nil, err
-	}
-	// Release ownership on any later initialization failure as well as shutdown.
-	started := false
-	defer func() {
-		if !started {
-			unlockReports()
-		}
-	}()
 	isRootInit := models.InitRoot(ctx)
 	models.InitDefaultAIAgent(ctx)
 
@@ -226,7 +202,7 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 	// categrafMeta 反查「机器指标写进了哪个数据源」要读 writer 地址；单独赋值而非
 	// 加进 New 的参数表，避免动到嵌入方（企业版）调用的函数签名。
 	centerRouter.Pushgw = config.Pushgw
-	centerRouter.CMDB = &cmdb.API{Store: cmdbStore, Reports: reports}
+	centerRouter.CMDB = &cmdb.API{Store: cmdbStore}
 	pushgwRouter := pushgwrt.New(config.HTTP, config.Pushgw, config.Alert, targetCache, busiGroupCache, idents, metas, writers, ctx)
 
 	r := httpx.GinEngine(config.Global.RunMode, config.HTTP, configCvalCache.PrintBodyPaths, configCvalCache.PrintAccessLog)
@@ -245,13 +221,6 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 	}
 
 	httpClean := httpx.Init(config.HTTP, r)
-	reportContext, stopReports := context.WithCancel(context.Background())
-	reportsDone := make(chan struct{})
-	go func() {
-		defer close(reportsDone)
-		reports.Run(reportContext)
-	}()
-	started = true
 
 	fmt.Printf("please view n9e at  http://%v:%v\n", config.Alert.Heartbeat.IP, config.HTTP.Port)
 	if isRootInit {
@@ -262,9 +231,6 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 		// httpClean 优雅关闭：等在途请求处理完才返回，之后不再有 remote write
 		// 请求进到本地 tsdb，Close 不会与写入竞态
 		httpClean()
-		stopReports()
-		<-reportsDone
-		unlockReports()
 		if tsdbInstance != nil {
 			if err := tsdbInstance.Close(); err != nil {
 				logger.Errorf("failed to close embedded tsdb: %v", err)

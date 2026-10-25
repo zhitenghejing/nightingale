@@ -12,8 +12,6 @@ const ja_JP = {
   menu: {
     cmdb: 'CMDB',
     rack_views: 'Rack views',
-    inspection_reports: 'Inspection reports',
-    incident_reports: 'Incident reports',
     infrastructure: 'インフラストラクチャ',
     business_group: 'ビジネスグループ',
     devices: 'デバイスリスト',

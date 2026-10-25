@@ -338,8 +338,6 @@ UseFileAssets = {str(bool(binding.get('frontendDir') or binding.get('inTreeFront
 MetricsYamlFile = {json.dumps(str(ROOT / 'etc/metrics.yaml'))}
 BuiltinIntegrationsDir = {json.dumps(str(ROOT / 'integrations'))}
 I18NHeaderKey = "X-Language"
-[Center.CMDB]
-ReportsDir = {json.dumps(str(directory / 'run/reports'))}
 [Center.AIAgent]
 SkillsPath = "skill"
 [Center.Sandbox]

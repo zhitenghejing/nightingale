@@ -20,7 +20,6 @@ type User struct {
 	Disabled int   `json:"disabled"`
 }
 type API struct {
-	Reports    *ReportStore
 	Store      *Store
 	AuthOrigin string
 	Client     *http.Client
@@ -101,10 +100,6 @@ func (a *API) ServeUser(w http.ResponseWriter, r *http.Request, u User) {
 		} else {
 			respond(w, r, 200, "ok", nil)
 		}
-		return
-	}
-	if r.URL.Path == "/api/cmdb/reports" || strings.HasPrefix(r.URL.Path, "/api/cmdb/reports/") {
-		a.reportHTTP(w, r, u)
 		return
 	}
 	access := Access{UserID: u.ID}

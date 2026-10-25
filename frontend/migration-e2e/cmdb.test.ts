@@ -4,25 +4,7 @@ import { test, expect } from '@playwright/test';
 
 test.use({ locale: 'zh-CN' });
 
-function pdfFixture(): Buffer {
-  const content = 'BT /F1 16 Tf 50 780 Td (CMDB migration acceptance report) Tj ET';
-  const objects = [
-    '<< /Type /Catalog /Pages 2 0 R >>',
-    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
-    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>',
-    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
-    `<< /Length ${Buffer.byteLength(content)} >>\nstream\n${content}\nendstream`,
-  ];
-  let source = '%PDF-1.4\n';
-  const offsets = [0];
-  objects.forEach((object, i) => { offsets.push(Buffer.byteLength(source)); source += `${i + 1} 0 obj\n${object}\nendobj\n`; });
-  const xref = Buffer.byteLength(source);
-  source += `xref\n0 6\n0000000000 65535 f \n${offsets.slice(1).map((offset) => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')}`;
-  source += `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
-  return Buffer.from(source);
-}
-
-test('CMDB production UI, native ACL, rack moves and report ownership', async ({ page, request }, testInfo) => {
+test('CMDB production UI, native ACL, rack moves', async ({ page, request }, testInfo) => {
   page.setDefaultTimeout(15000);
   const info = await (await request.get('/__preview/info')).json();
   expect(info.role).toBe('development');
@@ -31,7 +13,6 @@ test('CMDB production UI, native ACL, rack moves and report ownership', async ({
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   expect((await request.get('/api/cmdb/devices')).status()).toBe(401);
-  expect((await request.get('/api/cmdb/reports')).status()).toBe(401);
   const credentials = JSON.parse(readFileSync(process.env.N9E_E2E_CREDENTIALS_FILE!, 'utf8'));
   await page.goto('/login');
   await page.locator('#username').fill(credentials.username);
@@ -109,26 +90,6 @@ test('CMDB production UI, native ACL, rack moves and report ownership', async ({
   await api('restore', 'POST', [deleted]);
   expect((await api('devices')).some((d: any) => d.id === device.id)).toBe(true);
 
-  await page.goto('/reports/inspection');
-  await page.getByRole('button', { name: /上传巡检报告/ }).click();
-  const reportDialog = page.getByRole('dialog');
-  const reportTitle = `E2E inspection ${suffix}`;
-  await reportDialog.getByLabel('报告标题').fill(reportTitle);
-  await reportDialog.getByLabel('工程师姓名').fill('E2E engineer');
-  await reportDialog.getByLabel('文档简要内容').fill('Persistent report acceptance check');
-  const pdf = pdfFixture();
-  await reportDialog.locator('input[type=file]').setInputFiles({
-    name: `${suffix}.pdf`, mimeType: 'application/pdf', buffer: pdf,
-  });
-  await reportDialog.getByRole('button', { name: /确\s*定/ }).click();
-  await expect(reportDialog).toHaveCount(0);
-  await expect(page.getByTitle(`${reportTitle} 在线预览`)).toBeVisible();
-  await page.reload();
-  await expect(page.getByTitle(`${reportTitle} 在线预览`)).toBeVisible();
-  const report = (await api('reports?kind=inspection')).find((r: any) => r.title === reportTitle);
-  const original = await request.get(`/api/cmdb/reports/${report.id}/file`, { headers });
-  expect(await original.body()).toEqual(pdf);
-
   // Verify a real Standard identity, rather than mocking the CMDB identity callback.
   const username = `cmdb-e2e-${suffix}`;
   const password = `E2e-private-${randomUUID()}`;
@@ -139,18 +100,17 @@ test('CMDB production UI, native ACL, rack moves and report ownership', async ({
   const login = await (await request.post('/api/n9e/auth/login', { data: { username, password } })).json();
   const userHeaders = { Authorization: `Bearer ${login.dat.access_token}` };
   expect((await request.get('/api/cmdb/devices', { headers: userHeaders })).status()).toBe(403);
-  expect((await request.get(`/api/cmdb/reports/${report.id}/file`, { headers: userHeaders })).status()).toBe(404);
   await api('acl', 'PUT', { userId, read: true });
   expect((await request.get('/api/cmdb/devices', { headers: userHeaders })).status()).toBe(200);
   expect((await request.post('/api/cmdb/devices', { headers: userHeaders, data: device })).status()).toBe(403);
   await request.put(`/api/n9e/user/${userId}/disabled`, { headers, data: { disabled: 1 } });
   expect((await request.get('/api/cmdb/devices', { headers: userHeaders })).status()).toBe(401);
-  for (const route of ['/targets/cmdb', '/targets/racks', '/reports/incident']) {
+  for (const route of ['/targets/cmdb', '/targets/racks']) {
     await page.goto(route);
     await page.reload();
     await expect(page.locator('#username')).toHaveCount(0);
-    await expect(page.locator('.cmdb-page, .rack-views, .reports-page').first()).toBeVisible();
+    await expect(page.locator('.cmdb-page, .rack-views').first()).toBeVisible();
   }
-  await testInfo.attach('cmdb-reports-preview', { body: await page.screenshot(), contentType: 'image/png' });
+  await testInfo.attach('cmdb-preview', { body: await page.screenshot(), contentType: 'image/png' });
   expect(errors).toEqual([]);
 });

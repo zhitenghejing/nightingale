@@ -12,8 +12,6 @@ const zh_HK = {
   menu: {
     cmdb: 'CMDB',
     rack_views: '机柜图',
-    inspection_reports: '巡检报告',
-    incident_reports: '故障报告',
     infrastructure: '基礎設施',
     business_group: '業務組',
     devices: '設備列表',

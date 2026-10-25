@@ -25,7 +25,7 @@ one horizontally scrollable row, with cross-cabinet dragging.
 Administrators have every inventory permission. Other users default to no inventory
 access; administrators grant read/create/edit/delete/import/export by user ID from
 the CMDB permission dialog. These grants cover the entire inventory, not business-group
-rows. Rack changes and restoration use edit permission. Report ownership is separate.
+rows. Rack changes and restoration use edit permission.
 
 | Method | Path below /api/cmdb | Data / result | Permission |
 |---|---|---|---|
