@@ -90,6 +90,12 @@ make frontend-e2e
 上游 Midscene E2E 需要模型配置和业务 fixture，不属于无模型的默认门禁，
 不得连接生产实例执行创建或清理操作。人工验收保持独立，由人确认。
 
+开发实例启用 LAN 时，`make frontend-e2e` 优先使用 `lanUrl` 并忽略
+`N9E_E2E_PROXY_SERVER`，仍要求本地、LAN 和已配置的公网检查均通过。
+显式 `python3 -B scripts/frontend.py e2e --local` 仍优先选择 loopback。
+未启用 LAN 时保持原公网 URL 和代理行为。LAN HTTP 的剪贴板等安全上下文差异见
+[局域网入口](worktree-preview.md#局域网入口)。
+
 ## 发布
 
 GoReleaser 在多架构构建前只构建、嵌入一次同仓 UI；各架构消费同一份静态资源。

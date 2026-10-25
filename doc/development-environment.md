@@ -32,6 +32,7 @@ make verify
     "url": "https://n9e.zhiteng.win"
   },
   "services": {"postgresPort": 35432, "prometheusPort": 39090},
+  "lan": {"host": "192.168.0.152"},
   "slots": [
     {"id": 0, "port": 30300, "url": "https://n9e-dev0.zhiteng.win"},
     {"id": 1, "port": 30301, "url": "https://n9e-dev1.zhiteng.win"},
@@ -47,7 +48,10 @@ make verify
 }
 ```
 
-没有文件时使用这些默认值；stable.worktree 未配置时通过 Git common-dir 定位主 checkout。
+LAN 配置为可选项，默认不开启；示例地址必须替换为本机实际私网 IPv4，仅为新分配的开发实例
+启用额外入口，stable 不继承。也可用 `up/refresh --lan-host <IP>` 逐实例设置、
+`refresh --no-lan` 关闭；配置和生命周期见[局域网入口](worktree-preview.md#局域网入口)。
+没有文件时其余字段使用仓库默认值；stable.worktree 未配置时通过 Git common-dir 定位主 checkout。
 ID、端口、公网 URL 不得重复，稳定域名禁止出现在开发槽位中；修改前先清理受影响
 绑定。已有绑定保留原配置，不会自动漂移。目录、配置和凭据仅本机保存。
 域名变更时需同步本机 config.json、Tunnel ingress 和 DNS；仅更新仓库默认值不会

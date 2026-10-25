@@ -4,6 +4,7 @@ import argparse
 import contextlib
 import fcntl
 import hashlib
+import ipaddress
 import json
 import os
 from pathlib import Path
@@ -85,6 +86,8 @@ def write_json(path, obj):
 def config():
     path = STATE / "config.json"
     cfg = json.loads(path.read_text()) if path.exists() else DEFAULT_CONFIG
+    if "lan" in cfg:
+        validate_lan_host(cfg["lan"]["host"])
     services = preview_services.settings(STATE, cfg)
     slots = cfg["slots"]
     ids, ports, urls = set(), set(), set()
@@ -115,6 +118,51 @@ def config():
         if not stable["url"].startswith("https://") or not stable.get("branch"):
             raise ValueError("stable requires an HTTPS URL and an expected branch")
     return cfg
+
+
+def validate_lan_host(host):
+    """Only explicit RFC1918 IPv4 addresses; never expose every host interface."""
+    try:
+        address = ipaddress.IPv4Address(host)
+    except (ipaddress.AddressValueError, TypeError):
+        raise ValueError("LAN host must be an explicit RFC1918 IPv4 address") from None
+    if not isinstance(host, str) or not any(address in ipaddress.IPv4Network(network)
+            for network in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")):
+        raise ValueError("LAN host must be an explicit RFC1918 IPv4 address")
+    return host
+
+
+def lan_url(binding):
+    host = binding.get("lanHost")
+    if not host or binding.get("role") == "stable":
+        return None
+    return f"http://{validate_lan_host(host)}:{binding['port']}"
+
+
+def entry_urls(binding, lan=False, public=False):
+    local_lan = lan_url(binding)
+    if lan and not local_lan:
+        raise RuntimeError("this preview has no LAN entry; use refresh --lan-host <private-IP>")
+    fallback = binding.get("url") or f"http://127.0.0.1:{binding['port']}"
+    if lan:
+        return [local_lan]
+    if public:
+        return [fallback]
+    return [url for url in (local_lan, binding.get("url")) if url] or [fallback]
+
+
+def check_listeners(binding):
+    hosts = ["127.0.0.1"]
+    if lan_url(binding):
+        hosts.append(binding["lanHost"])
+    with contextlib.ExitStack() as stack:
+        for host in hosts:
+            sock = stack.enter_context(socket.socket())
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            try:
+                sock.bind((host, binding["port"]))
+            except OSError as error:
+                raise RuntimeError(f"preview listener unavailable at {host}:{binding['port']}: {error}") from error
 
 
 def stable_root():
@@ -168,7 +216,12 @@ def alive(binding):
 
 def fetch(url):
     # Local readiness must not be sent through a host HTTP proxy.
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}) if url.startswith("http://127.")
+    host = urlsplit(url).hostname
+    try:
+        direct = ipaddress.ip_address(host).is_private
+    except ValueError:
+        direct = False
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}) if direct
                                         else urllib.request.ProxyHandler())
     request = urllib.request.Request(url, headers={"User-Agent": "n9e-preview/1.0", "Accept": "application/json"})
     with opener.open(request, timeout=12) as response:
@@ -212,32 +265,42 @@ def inspect(binding, public=True):
         except (OSError, subprocess.CalledProcessError, KeyError):
             result["frontendChanged"] = True
     result["local"] = probe(f"http://127.0.0.1:{binding['port']}", result["buildId"]) if result["running"] else {"ok": False}
+    if lan_url(binding):
+        result["lanUrl"] = lan_url(binding)
+        result["lan"] = probe(result["lanUrl"], result["buildId"]) if result["running"] else {"ok": False}
     if public and binding.get("url"):
         result["public"] = probe(binding["url"], result["buildId"])
     return result
 
 
-def reserve(all_bindings, slot_id, stable=False):
+def reserve(all_bindings, slot_id, stable=False, lan_host=None):
     used = {b["slot"] for b in all_bindings.values()}
     cfg = config()
     resources = [{**cfg["stable"], "id": "stable"}] if stable else cfg["slots"]
+    if lan_host is None:
+        lan_host = cfg.get("lan", {}).get("host", "") if not stable else ""
+    if stable and lan_host:
+        raise ValueError("stable does not support the development LAN entry")
+    if lan_host:
+        validate_lan_host(lan_host)
+    last_error = ""
     for slot in resources:
         if slot_id is not None and slot["id"] != slot_id:
             continue
         if slot["id"] in used:
             continue
-        with socket.socket() as sock:
-            # Match Go's listener semantics: TIME_WAIT from a destroyed preview
-            # must not make its released slot appear occupied.
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            try:
-                sock.bind(("127.0.0.1", slot["port"]))
-            except OSError:
-                continue
-        return {"slot": slot["id"], "port": slot["port"], "url": slot.get("url"),
+        binding = {"slot": slot["id"], "port": slot["port"], "url": slot.get("url"),
                 "instance": secrets.token_hex(8), "worktree": str(ROOT),
                 "role": "stable" if stable else "development"}
-    raise RuntimeError("no free slot (stopped/failed previews retain their binding; destroy to release)")
+        if lan_host:
+            binding["lanHost"] = lan_host
+        try:
+            check_listeners(binding)
+        except RuntimeError as error:
+            last_error = f"; {error}"
+            continue
+        return binding
+    raise RuntimeError("no free slot (stopped/failed previews retain their binding; destroy to release)" + last_error)
 
 
 def stop(binding):
@@ -442,6 +505,8 @@ def build(binding, profile):
                 "binary": str(directory / "run/n9e"), "runDir": str(directory / "run"),
                 "tempDir": str(temp),
                 "credentialsFile": str(directory / "credentials.json")}
+    if lan_url(binding):
+        manifest["lanHost"] = binding["lanHost"]
     manifest.update(databaseDsn=resource["dsn"], prometheusURL=resource["prometheusURL"],
                     storage={"database": "postgres", "databaseName": resource["name"],
                              "redis": "miniredis", "metrics": "shared-prometheus"})
@@ -473,10 +538,20 @@ def main():
     parser.add_argument("--stable", action="store_true", help="manage the separate clean main-checkout instance")
     parser.add_argument("--if-exists", action="store_true")
     parser.add_argument("--local-only", action="store_true", help="skip public probe (never changes binding)")
+    lan_options = parser.add_mutually_exclusive_group()
+    lan_options.add_argument("--lan-host", type=validate_lan_host, help="up/refresh: bind this private IPv4 address too")
+    lan_options.add_argument("--no-lan", action="store_true", help="up/refresh: disable LAN access")
+    url_options = parser.add_mutually_exclusive_group()
+    url_options.add_argument("--lan", action="store_true", help="url: require a LAN entry")
+    url_options.add_argument("--public", action="store_true", help="url: select the existing public entry")
     parser.add_argument("--profile", choices=["basic", "full"], default=None)
     parser.add_argument("--frontend-dir", type=Path, help="built frontend directory containing index.html")
     parser.add_argument("--frontend-ref", help="frontend commit/tag corresponding to --frontend-dir")
     args = parser.parse_args()
+    if (args.lan_host or args.no_lan) and (args.stable or args.command not in ("up", "refresh")):
+        parser.error("--lan-host/--no-lan apply only to development up/refresh")
+    if (args.lan or args.public) and args.command != "url":
+        parser.error("--lan/--public apply only to url")
     if args.stable:
         if args.slot is not None or args.frontend_dir:
             parser.error("stable has its own binding and committed frontend; --slot/--frontend-dir are not allowed")
@@ -497,7 +572,8 @@ def main():
                 return
             raise RuntimeError("this worktree has no preview binding")
         if args.command == "url":
-            print((binding.get("url") or f"http://127.0.0.1:{binding['port']}") + "/__preview/ready")
+            for url in entry_urls(binding, lan=args.lan, public=args.public):
+                print(url + "/__preview/ready")
             return
         result = inspect(binding, public=not args.local_only)
         print(json.dumps(result, indent=2, ensure_ascii=False))
@@ -534,6 +610,8 @@ def main():
             print(args.command + " complete")
             return
         if binding and alive(binding) and args.command == "up":
+            if (args.lan_host and args.lan_host != binding.get("lanHost")) or (args.no_lan and binding.get("lanHost")):
+                raise RuntimeError("use refresh to change the LAN entry")
             if args.frontend_dir:
                 raise RuntimeError("use refresh to change frontend assets")
             if args.profile and args.profile != binding.get("profile"):
@@ -543,10 +621,16 @@ def main():
                 stop(binding)
                 archive_legacy(instance(binding))
             else:
-                binding = reserve(all_bindings, args.slot, stable=args.stable)
+                binding = reserve(all_bindings, args.slot, stable=args.stable,
+                                  lan_host="" if args.no_lan else args.lan_host)
                 all_bindings[binding_key] = binding
+            if args.lan_host:
+                binding["lanHost"] = args.lan_host
+            elif args.no_lan:
+                binding.pop("lanHost", None)
             # Persist binding before build: failures remain inspectable/cleanable.
             write_json(STATE / "bindings.json", all_bindings)
+            check_listeners(binding)
             directory = instance(binding)
             directory.mkdir(parents=True, exist_ok=True)
             if args.frontend_dir:
@@ -579,6 +663,7 @@ def main():
         result = inspect(binding, public=not args.local_only)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         if (not result["local"]["ok"] or not result.get("public", {"ok": True})["ok"]
+                or not result.get("lan", {"ok": True})["ok"]
                 or result["sourceChanged"] or result.get("frontendChanged")):
             raise RuntimeError("preview not ready for handoff; inspect status (use --local-only before tunnel setup)")
 
