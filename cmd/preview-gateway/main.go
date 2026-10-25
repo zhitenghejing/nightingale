@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -36,6 +37,7 @@ type manifest struct {
 	AppVersion      string          `json:"appVersion"`
 	Port            int             `json:"port"`
 	BackendPort     int             `json:"backendPort"`
+	LANHost         string          `json:"lanHost"`
 	Binary          string          `json:"binary"`
 	RunDir          string          `json:"runDir"`
 	CredentialsFile string          `json:"credentialsFile"`
@@ -268,14 +270,46 @@ func previewCommand(m manifest) *exec.Cmd {
 	return command
 }
 
-func serve(path string) error {
+func listenPreview(m manifest) ([]net.Listener, error) {
+	addresses := []string{fmt.Sprintf("127.0.0.1:%d", m.Port)}
+	if m.LANHost != "" {
+		ip := net.ParseIP(m.LANHost)
+		if m.Role == "stable" || ip == nil || ip.To4() == nil || ip.String() != m.LANHost || !ip.IsPrivate() {
+			return nil, fmt.Errorf("LAN entry requires a private IPv4 address and a development instance")
+		}
+		addresses = append(addresses, net.JoinHostPort(m.LANHost, fmt.Sprint(m.Port)))
+	}
+	listeners := make([]net.Listener, 0, len(addresses))
+	for _, address := range addresses {
+		listener, err := net.Listen("tcp4", address)
+		if err != nil {
+			for _, previous := range listeners {
+				_ = previous.Close()
+			}
+			return nil, fmt.Errorf("preview listener unavailable at %s: %w", address, err)
+		}
+		listeners = append(listeners, listener)
+	}
+	return listeners, nil
+}
+
+func serve(ctx context.Context, path string) error {
 	var m manifest
 	if err := readJSON(path, &m); err != nil {
 		return err
 	}
+	// Bind every entry before starting the child. A LAN bind failure must not
+	// leave a half-started preview or a database writer behind.
+	listeners, err := listenPreview(m)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		for _, listener := range listeners {
+			_ = listener.Close()
+		}
+	}()
 	base := fmt.Sprintf("http://127.0.0.1:%d", m.BackendPort)
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
 	command := previewCommand(m)
 	command.Stdout, command.Stderr = os.Stdout, os.Stderr
 	// A killed gateway must not leave an orphaned database/TSDB writer.
@@ -286,7 +320,7 @@ func serve(path string) error {
 	done := make(chan error, 1)
 	go func() { done <- command.Wait() }()
 	var ready atomic.Bool
-	server := &http.Server{Addr: fmt.Sprintf("127.0.0.1:%d", m.Port), Handler: handler(m, base, &ready),
+	server := &http.Server{Handler: handler(m, base, &ready),
 		ReadHeaderTimeout: 10 * time.Second, IdleTimeout: 120 * time.Second}
 	defer func() {
 		shutdown, stop := context.WithTimeout(context.Background(), 3*time.Second)
@@ -300,18 +334,22 @@ func serve(path string) error {
 			<-done
 		}
 	}()
-	go func() {
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Print(err)
-			cancel()
-		}
-	}()
+	failed := make(chan error, len(listeners))
+	for _, listener := range listeners {
+		go func() {
+			if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
+				failed <- err
+			}
+		}()
+	}
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
+		case err := <-failed:
+			return fmt.Errorf("preview listener failed: %w", err)
 		case err := <-done:
 			done <- err // Keep completion available to the cleanup path.
 			return fmt.Errorf("n9e child exited: %v", err)
@@ -332,7 +370,9 @@ func main() {
 	if len(os.Args) != 2 {
 		log.Fatal("usage: preview-gateway /absolute/path/to/manifest.json")
 	}
-	if err := serve(os.Args[1]); err != nil {
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer cancel()
+	if err := serve(ctx, os.Args[1]); err != nil {
 		log.Fatal(err)
 	}
 }

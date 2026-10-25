@@ -9,7 +9,7 @@
 | `up` | 分配槽位、构建、启动；存活实例只复验 |
 | `refresh` | 停止、重建、启动；保留槽位、数据库与账号 |
 | `status` | JSON 状态、源码/前端变化、本地/公网探测和私有路径 |
-| `url` | 准备入口地址，不检查可用性 |
+| `url` | 逐行返回所有已配置的准备入口（LAN 在前、公网在后）；不检查可用性 |
 | `stop --if-exists` | 停止，保留绑定和数据 |
 | `destroy --if-exists` | 停止、删除本实例数据和日志、释放绑定 |
 | `list` | 查看本机登记目录中的所有绑定 |
@@ -31,6 +31,47 @@ up/refresh 默认要求已配置的公网探测通过，初次配置 Tunnel 或�
 `--local-only`；它不改变绑定，也不能作为公网验收结果。status 只报告状态，不以
 退出码代表全部健康；交付检查 running、local.ok、public.ok（若存在）、
 sourceChanged/frontendChanged。源码变化后必须 refresh。
+
+## 局域网入口
+
+可以为开发实例显式指定本机 RFC1918 私网 IPv4 地址。以下示例中的地址须替换为
+主机实际地址，客户端需要能从局域网访问该主机：
+
+```bash
+python3 -B scripts/preview.py up --lan-host 192.168.0.152
+# 已有实例需要刷新后启用或修改地址
+python3 -B scripts/preview.py refresh --lan-host 192.168.0.152
+make preview-url                                      # 同时返回 LAN 和公网准备入口
+python3 -B scripts/preview.py url --lan                # 明确要求 LAN
+python3 -B scripts/preview.py url --public             # 原公网准备入口
+python3 -B scripts/preview.py refresh --no-lan          # 关闭 LAN，保留数据
+```
+
+也可在主机 config.json 增加 `"lan": {"host": "192.168.0.152"}`，为**新分配**的
+开发实例默认启用；`up --no-lan` 可覆盖。已有绑定不会因主机配置变化自动启用或改址，
+refresh 默认保留绑定中的 LAN 配置；用上述显式选项改变。运行中的 `up` 只检查，
+不修改入口。stable 不接受 LAN 选项，也不继承主机 LAN 默认值。
+
+网关同时监听 `127.0.0.1:<slotPort>` 与 `<lanHost>:<slotPort>`，两者共用同一
+handler、构建身份和内部路径拒绝规则，后端和共享依赖仍只监听本机。
+LAN 入口由网关进程直接拥有，stop 同时关闭两个监听并保留地址配置与实例数据，
+refresh 重建，destroy 关闭监听并删除绑定，不生成需要额外清理的 systemd 转发单元。
+新增入口不会接管其他实例的手工转发；端口被占用或地址不在本机时明确失败，
+不会降级成只开放回环的半启动状态。主机 IP 变化后需显式 refresh 改址；建议使用 DHCP 地址保留。
+
+status 的 `url` 保留公网语义，额外返回 `lanUrl` 和 `lan.ok/buildId`。
+up/refresh 要求所有启用入口的探测通过且构建身份一致；`--local-only` 仍只跳过公网，
+不会跳过 LAN，也不会启用 LAN。LAN 探测和浏览器 E2E 不使用宿主机代理；
+`make frontend-e2e` 在检查配置入口均健康后优先使用 LAN。
+
+LAN HTTP 适用于可信开发网：传输没有 TLS 保护，与公网域名的登录状态独立，
+进入 `/__preview/ready` 后重新登录。部分安全上下文功能（例如异步剪贴板）受限；
+SSO/外部 OAuth 客户端需按实际地址单独验证。公网 HTTPS 入口继续保留。
+主机探测成功不等同于其他电脑可达，交付时还需验证实际客户端的路由与防火墙。
+只需开放指定私网地址的 dev 槽位端口，不要开放应用内部随机端口或共享数据库端口。
+
+可运行 `python3 -B scripts/preview-smoke.py --lan-host <本机私网IPv4>`，在独立临时登记目录
+验证双入口身份、真实登录、访问限制、刷新保留地址、停止、销毁、槽位复用和显式关闭 LAN。
 
 ## 隔离与身份
 

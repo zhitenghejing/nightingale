@@ -127,14 +127,16 @@ def e2e(local=False):
     status = json.loads(result)
     if (status.get("role") != "development" or not status.get("running") or status.get("sourceChanged")
             or status.get("frontendChanged") or status.get("frontend", {}).get("kind") != "in-tree"
-            or not status.get("local", {}).get("ok") or not status.get("public", {"ok": True}).get("ok")):
+            or not status.get("local", {}).get("ok") or not status.get("lan", {"ok": True}).get("ok")
+            or not status.get("public", {"ok": True}).get("ok")):
         raise RuntimeError("refresh the in-tree development preview before running E2E")
-    environment = {**os.environ, "N9E_E2E_BASE_URL": status["url"], "N9E_E2E_BUILD_ID": status["buildId"],
+    environment = {**os.environ, "N9E_E2E_BASE_URL": status.get("lanUrl") or status["url"], "N9E_E2E_BUILD_ID": status["buildId"],
                    "N9E_E2E_CREDENTIALS_FILE": status["credentialsFile"]}
     if local:
         # Same verified gateway/build, without the tunnel's cold asset transfer.
         # Public readiness above is still mandatory when configured.
         environment["N9E_E2E_BASE_URL"] = f"http://127.0.0.1:{status['port']}"
+    if local or status.get("lanUrl"):
         environment.pop("N9E_E2E_PROXY_SERVER", None)
     run(["pnpm", "exec", "playwright", "test", "--config", "playwright.migration.config.ts"], env=environment)
 

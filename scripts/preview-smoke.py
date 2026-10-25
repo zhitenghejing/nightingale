@@ -4,6 +4,7 @@
 Run separately from make verify. Leaves the ordinary host registry untouched.
 """
 import json
+import argparse
 import contextlib
 import os
 from pathlib import Path
@@ -16,6 +17,7 @@ import urllib.error
 import urllib.request
 
 import preview_services
+from preview import validate_lan_host
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -33,6 +35,9 @@ def smoke_directory():
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--lan-host", type=validate_lan_host, help="also verify LAN lifecycle on this host's private IPv4")
+    args = parser.parse_args()
     with smoke_directory() as temporary:
         base = Path(temporary)
         second = base / "worktree"
@@ -45,9 +50,12 @@ def main():
                 ports.append(sock.getsockname()[1])
         if len(set(ports)) != len(ports):
             raise RuntimeError("port collision; retry smoke check")
-        (state / "config.json").write_text(json.dumps({"slots": [
+        config = {"slots": [
             {"id": 0, "port": ports[0]}, {"id": 1, "port": ports[1]}],
-            "services": {"postgresPort": ports[2], "prometheusPort": ports[3]}}))
+            "services": {"postgresPort": ports[2], "prometheusPort": ports[3]}}
+        if args.lan_host:
+            config["lan"] = {"host": args.lan_host}
+        (state / "config.json").write_text(json.dumps(config))
         shared_cfg = preview_services.settings(state, json.loads((state / "config.json").read_text()))
         env = {**os.environ, "N9E_PREVIEW_STATE": str(state), "PYTHONDONTWRITEBYTECODE": "1",
                "CONFIGTYPE_HTTP_APIFORSERVICE_ENABLE": "true",
@@ -65,28 +73,28 @@ def main():
                 raise RuntimeError(f"{args}: {result.stdout}\n{result.stderr}\n" + "\n".join(logs))
             return json.loads(result.stdout) if result.stdout.lstrip().startswith("{") else result.stdout
 
-        def read(port, path):
+        def read(port, path, host="127.0.0.1"):
             opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-            with opener.open(f"http://127.0.0.1:{port}{path}", timeout=10) as response:
+            with opener.open(f"http://{host}:{port}{path}", timeout=10) as response:
                 return response.read().decode()
 
-        def api(port, path, body=None, token=None, method=None):
+        def api(port, path, body=None, token=None, method=None, host="127.0.0.1"):
             headers = {"Content-Type": "application/json"}
             if token:
                 headers["Authorization"] = "Bearer " + token
-            request = urllib.request.Request(f"http://127.0.0.1:{port}/api/n9e{path}",
+            request = urllib.request.Request(f"http://{host}:{port}/api/n9e{path}",
                 data=json.dumps(body).encode() if body is not None else None,
                 headers=headers, method=method)
             opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
             with opener.open(request, timeout=10) as response:
                 return json.load(response)
 
-        def check_access_boundaries(port):
+        def check_access_boundaries(port, host="127.0.0.1"):
             opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
             for path, expected in (("/v1/n9e/users", 403), ("/v1/n9e/user-token", 403),
                                    ("/prometheus/api/v1/query?query=vector(1)", 403),
                                    ("/api/n9e/self/profile", 401)):
-                request = urllib.request.Request(f"http://127.0.0.1:{port}{path}",
+                request = urllib.request.Request(f"http://{host}:{port}{path}",
                                                  headers={"X-Smoke-User": "root"})
                 try:
                     with opener.open(request, timeout=10) as response:
@@ -114,6 +122,11 @@ def main():
             assert first["local"]["ok"] and not first["sourceChanged"]
             assert first["frontend"]["kind"] == "in-tree" and not first["frontendChanged"]
             check_access_boundaries(ports[0])
+            if args.lan_host:
+                assert first["lan"]["ok"]
+                assert json.loads(read(ports[0], "/__preview/info", args.lan_host))["buildId"] == first["buildId"]
+                check_access_boundaries(ports[0], args.lan_host)
+                assert command(ROOT, "url").splitlines() == [first["lanUrl"] + "/__preview/ready"]
             command(second, "up", "--slot", "0", success=False)
             frontend = base / "frontend"
             frontend.mkdir()
@@ -153,6 +166,11 @@ def main():
             assert "smoke frontend one" in read(ports[1], "/login")  # staged, never live-linked
             initial_login = api(ports[1], "/auth/login", other_credentials)
             token = initial_login["dat"]["access_token"]
+            if args.lan_host:
+                check_access_boundaries(ports[1], args.lan_host)
+                lan_login = api(ports[1], "/auth/login", other_credentials, host=args.lan_host)
+                assert api(ports[1], "/self/profile", token=lan_login["dat"]["access_token"],
+                           host=args.lan_host)["dat"]["username"] == "root"
             first_login = api(ports[0], "/auth/login", first_credentials)
             try:
                 api(ports[1], "/self/profile", token=first_login["dat"]["access_token"])
@@ -174,6 +192,9 @@ def main():
             refreshed = command(second, "refresh")
             assert refreshed["buildId"] != other["buildId"]
             assert not refreshed["frontendChanged"] and not refreshed["sourceChanged"]
+            if args.lan_host:
+                assert refreshed["lan"]["ok"] and refreshed["lanUrl"] == other["lanUrl"]
+                assert json.loads(read(ports[1], "/__preview/info", args.lan_host))["buildId"] == refreshed["buildId"]
             check_access_boundaries(ports[1])
             assert "smoke frontend two" in read(ports[1], "/login")
             assert json.loads(Path(refreshed["credentialsFile"]).read_text()) == other_credentials
@@ -186,6 +207,10 @@ def main():
             command(second, "stop")
             stopped = command(second, "status")
             assert not stopped["running"] and not stopped["local"]["ok"]
+            if args.lan_host:
+                assert not stopped["lan"]["ok"] and stopped["lanUrl"] == other["lanUrl"]
+                with socket.socket() as sock:
+                    assert sock.connect_ex((args.lan_host, ports[1])) != 0, "stop leaked LAN listener"
             assert command(ROOT, "status")["local"]["ok"]
             command(second, "destroy")
             assert not Path(other["instanceDir"]).exists()
@@ -198,12 +223,22 @@ def main():
             replacement = command(second, "up", "--slot", "1", "--frontend-dir", str(frontend),
                                   "--frontend-ref", "smoke-fixture")
             assert replacement["instanceDir"] != other["instanceDir"]
+            if args.lan_host:
+                assert replacement["lan"]["ok"]
+                assert json.loads(read(ports[1], "/__preview/info", args.lan_host))["buildId"] == replacement["buildId"]
+                disabled = command(second, "refresh", "--no-lan")
+                assert disabled["local"]["ok"] and "lanUrl" not in disabled
+                with socket.socket() as sock:
+                    assert sock.connect_ex((args.lan_host, ports[1])) != 0, "disabling LAN leaked listener"
+                command(second, "up", "--lan-host", args.lan_host, success=False)
+                assert "lanUrl" not in command(second, "status"), "up changed a running preview"
             print(json.dumps({"result": "passed", "checks": ["two worktrees", "slot ownership",
                 "host auth environment isolation", "internal APIs blocked", "anonymous/spoofed profile rejected",
                 "private credentials and PostgreSQL databases", "cross-environment token rejection",
                 "authenticated shared Prometheus query", "shared read-only Prometheus", "dirty source detection", "in-tree frontend identity", "frontend staging and drift",
                 "refresh after password change preserves account and roles", "initial password rejected",
                 "stop isolation", "destroy/idempotence", "slot reuse"],
+                "lanLifecycleVerified": bool(args.lan_host),
                 "firstBuildId": first["buildId"], "secondBuildId": refreshed["buildId"]}, indent=2))
         finally:
             for root in (second, ROOT):

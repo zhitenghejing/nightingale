@@ -85,6 +85,31 @@ class FrontendTest(unittest.TestCase):
                 frontend.embed()
         self.assertEqual(target.read_text(), "previous statik")
 
+    def test_e2e_uses_lan_without_proxy_and_requires_both_entries_healthy(self):
+        status = {"role": "development", "running": True, "sourceChanged": False,
+                  "frontendChanged": False, "frontend": {"kind": "in-tree"},
+                  "local": {"ok": True}, "public": {"ok": True}, "lan": {"ok": True},
+                  "lanUrl": "http://192.168.0.152:30300", "url": "https://n9e-dev0.zhiteng.win",
+                  "port": 30300, "buildId": "current", "credentialsFile": "/private/credentials.json"}
+        with patch.object(frontend, "check_toolchain"), \
+                patch.object(frontend.subprocess, "check_output", side_effect=lambda *a, **k: json.dumps(status).encode()), \
+                patch.object(frontend, "run") as run, \
+                patch.dict(os.environ, {"N9E_E2E_PROXY_SERVER": "http://host-proxy:8080"}):
+            frontend.e2e()
+            environment = run.call_args.kwargs["env"]
+            self.assertEqual(environment["N9E_E2E_BASE_URL"], status["lanUrl"])
+            self.assertNotIn("N9E_E2E_PROXY_SERVER", environment)
+            frontend.e2e(local=True)
+            self.assertEqual(run.call_args.kwargs["env"]["N9E_E2E_BASE_URL"], "http://127.0.0.1:30300")
+            self.assertNotIn("N9E_E2E_PROXY_SERVER", run.call_args.kwargs["env"])
+            status["lan"]["ok"] = False
+            with self.assertRaisesRegex(RuntimeError, "refresh"):
+                frontend.e2e()
+            status["lan"]["ok"] = True
+            status["public"]["ok"] = False
+            with self.assertRaisesRegex(RuntimeError, "refresh"):
+                frontend.e2e()
+
 
 class FrontendE2ETest(unittest.TestCase):
     def status(self, public_ok=True):
