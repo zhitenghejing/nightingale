@@ -11,6 +11,8 @@ const ja_JP = {
   personalCollection: '個人コレクション',
   menu: {
     archives: 'Archives',
+    cmdb: 'CMDB',
+    rack_views: 'Rack views',
     infrastructure: 'インフラストラクチャ',
     business_group: 'ビジネスグループ',
     devices: 'デバイスリスト',

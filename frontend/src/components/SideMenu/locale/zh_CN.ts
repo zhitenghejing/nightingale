@@ -11,6 +11,8 @@ const zh_CN = {
   personalCollection: '个人收藏',
   menu: {
     archives: '档案管理',
+    cmdb: 'CMDB',
+    rack_views: '机柜图',
     infrastructure: '基础设施',
     business_group: '业务组',
     devices: '设备列表',

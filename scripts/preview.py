@@ -285,6 +285,19 @@ def app_config(binding, backend_port):
     # A dedicated minimal profile: never inherit production DSNs, writers or notifications.
     directory = instance(binding)
     resource = json.loads((directory / "postgres.json").read_text())
+    collector_file = directory / "collector.json"
+    collector = json.loads(collector_file.read_text()) if collector_file.exists() else None
+    agent_auth = ""
+    collector_writer = ""
+    if collector is not None:
+        if (binding.get("role", "development") != "development"
+                or set(collector) != {"username", "password"}
+                or not all(isinstance(v, str) and len(v) >= 8 for v in collector.values())):
+            raise ValueError("invalid private development collector configuration")
+        agent_auth = "BasicAuth = {" + json.dumps(collector["username"]) + " = " + json.dumps(collector["password"]) + "}"
+        if not preview_services.prometheus_write_flags(STATE / "shared"):
+            raise ValueError("collector requires the host-owned shared Prometheus remote-write opt-in")
+        collector_writer = "[[Pushgw.Writers]]\nUrl = " + json.dumps(resource["prometheusURL"].rstrip("/") + "/api/v1/write")
     return f'''[Global]
 RunMode = "release"
 [Log]
@@ -300,7 +313,8 @@ ShutdownTimeout = 20
 [HTTP.APIForService]
 Enable = false
 [HTTP.APIForAgent]
-Enable = false
+Enable = {str(collector is not None).lower()}
+{agent_auth}
 [HTTP.ProxyAuth]
 Enable = false
 [HTTP.TokenAuth]
@@ -334,6 +348,7 @@ DataDir = {json.dumps(str(runtime_temp(binding) / 'sandbox'))}
 Enable = false
 [Ibex]
 Enable = false
+{collector_writer}
 '''
 
 
@@ -436,6 +451,8 @@ def build(binding, profile):
     manifest.update(databaseDsn=resource["dsn"], prometheusURL=resource["prometheusURL"],
                     storage={"database": "postgres", "databaseName": resource["name"],
                              "redis": "miniredis", "metrics": "shared-prometheus"})
+    if (directory / "collector.json").exists():
+        manifest["storage"]["collectorMetrics"] = "shared-prometheus"
     if profile == "full":
         manifest["qaCorpus"] = json.loads((ROOT / "aiagent/skill/embedded/codeassets/manifest.json").read_text())
     if source_identity()["fingerprint"] != source["fingerprint"]:

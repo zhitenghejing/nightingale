@@ -1,0 +1,10 @@
+{
+  "model": "Dell PowerEdge R740",
+  "variant": "带蜂窝面罩的整机参考",
+  "imageUrl": "https://media.gekko-computer.de/images/Shop1600px/30005709_1.jpg",
+  "sourcePage": "https://www.gekko-computer.de/en/p/Dell-PowerEdge-R740-Server-2x-Xeon-Platinum-8160-24C-2-1GHz-128GB-BOSS-2x-240GB-en",
+  "width": 1600,
+  "height": 1600,
+  "sha256": "d197052e871ea5611d5505d07eb257402d3515ddd8197d21a1ca48c633445210",
+  "status": "user-approved-reference; vector-revised"
+}

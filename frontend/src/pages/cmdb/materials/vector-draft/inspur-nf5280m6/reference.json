@@ -1,0 +1,21 @@
+{
+  "id": "inspur-nf5280m6",
+  "model": "NF5280M6",
+  "units": 2,
+  "status": "review-only",
+  "appearance": "保留蓝灰金属盘托、横向 12 盘位与浪潮信息品牌标识；背面保留彩色接口和蓝色电源卡扣。",
+  "reference": {
+    "front": {
+      "sourcePage": "https://www.ieisystem.com/product-details.thtml?id=8405",
+      "imageUrl": "https://www.ieisystem.com/global/upload/2024-04-15/17131667186632c975afc8e82c47a714018ee0b196c7173e.png",
+      "sha256": "f773c756fdd021326c06890c5d7462710b10369c2befc8f638e906ad3b5c444f",
+      "original": "originals/inspur-nf5280m6/front.png"
+    },
+    "rear": {
+      "sourcePage": "https://www.ieisystem.com/product-details.thtml?id=8405",
+      "imageUrl": "https://www.ieisystem.com/global/upload/2024-04-15/17131667184052c975afc8e82c47a225018ee0b195c51738.png",
+      "sha256": "e7fb28311ca399746a74bd41c5a7a293639bbbb51d65db7100842f3530dec564",
+      "original": "originals/inspur-nf5280m6/rear.png"
+    }
+  }
+}

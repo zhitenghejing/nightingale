@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ccfos/nightingale/v6/models"
+	"github.com/ccfos/nightingale/v6/pkg/cmdb"
 	"github.com/ccfos/nightingale/v6/pkg/ormx"
 
 	imodels "github.com/flashcatcloud/ibex/src/models"
@@ -343,7 +344,7 @@ func MigrateTables(db *gorm.DB) error {
 	// 删除 builtin_metrics 表的 idx_collector_typ_name 唯一索引
 	DropUniqueFiledLimit(db, &models.BuiltinMetric{}, "idx_collector_typ_name", "idx_collector_typ_name")
 
-	return nil
+	return (&cmdb.Store{DB: db}).Migrate()
 }
 
 // AssistantChat / AssistantMessage row structs live in models package

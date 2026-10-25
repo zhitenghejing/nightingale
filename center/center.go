@@ -28,6 +28,7 @@ import (
 	"github.com/ccfos/nightingale/v6/memsto"
 	"github.com/ccfos/nightingale/v6/models"
 	"github.com/ccfos/nightingale/v6/models/migrate"
+	"github.com/ccfos/nightingale/v6/pkg/cmdb"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
 	"github.com/ccfos/nightingale/v6/pkg/evallog"
 	"github.com/ccfos/nightingale/v6/pkg/flashduty"
@@ -75,6 +76,10 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 	}
 	ctx := ctx.NewContext(context.Background(), db, true)
 	migrate.Migrate(db)
+	cmdbStore := &cmdb.Store{DB: db}
+	if err = cmdbStore.Migrate(); err != nil {
+		return nil, fmt.Errorf("initialize CMDB schema: %w", err)
+	}
 	isRootInit := models.InitRoot(ctx)
 	models.InitDefaultAIAgent(ctx)
 
@@ -197,6 +202,7 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 	// categrafMeta 反查「机器指标写进了哪个数据源」要读 writer 地址；单独赋值而非
 	// 加进 New 的参数表，避免动到嵌入方（企业版）调用的函数签名。
 	centerRouter.Pushgw = config.Pushgw
+	centerRouter.CMDB = &cmdb.API{Store: cmdbStore}
 	pushgwRouter := pushgwrt.New(config.HTTP, config.Pushgw, config.Alert, targetCache, busiGroupCache, idents, metas, writers, ctx)
 
 	r := httpx.GinEngine(config.Global.RunMode, config.HTTP, configCvalCache.PrintBodyPaths, configCvalCache.PrintAccessLog)

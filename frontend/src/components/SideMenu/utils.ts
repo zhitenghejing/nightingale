@@ -14,6 +14,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+// Inventory pages enforce their own server ACL rather than n9e menu operations.
+export const isInventoryMenuPath = (path: string) => ['/targets/cmdb', '/targets/racks'].includes(path);
+
 export const getCurrentMenuList = (embeddedProductMenu: MenuItem[] = [], hideDeprecatedMenus: boolean = false): MenuItem[] => {
   return IS_PLUS ? getPlusMenuList(embeddedProductMenu, hideDeprecatedMenus) : getMenuList(embeddedProductMenu, hideDeprecatedMenus);
 };

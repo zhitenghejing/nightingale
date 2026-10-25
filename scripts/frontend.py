@@ -135,7 +135,7 @@ def embed():
     return manifest
 
 
-def e2e():
+def e2e(local=False):
     check_toolchain()
     result = subprocess.check_output([sys.executable, "-B", str(ROOT / "scripts/preview.py"), "status"], cwd=ROOT)
     status = json.loads(result)
@@ -145,6 +145,11 @@ def e2e():
         raise RuntimeError("refresh the in-tree development preview before running E2E")
     environment = {**os.environ, "N9E_E2E_BASE_URL": status["url"], "N9E_E2E_BUILD_ID": status["buildId"],
                    "N9E_E2E_CREDENTIALS_FILE": status["credentialsFile"]}
+    if local:
+        # Same verified gateway/build, without the tunnel's cold asset transfer.
+        # Public readiness above is still mandatory when configured.
+        environment["N9E_E2E_BASE_URL"] = f"http://127.0.0.1:{status['port']}"
+        environment.pop("N9E_E2E_PROXY_SERVER", None)
     run(["pnpm", "exec", "playwright", "test", "--config", "playwright.migration.config.ts"], env=environment)
 
 
@@ -152,12 +157,15 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("install", "build", "verify", "embed", "identity", "source", "e2e"))
     parser.add_argument("--force", action="store_true", help="rebuild even when source and asset digests still match")
+    parser.add_argument("--local", action="store_true", help="run E2E through the verified loopback gateway; public readiness is still checked")
     args = parser.parse_args()
+    if args.local and args.command != "e2e":
+        parser.error("--local applies only to e2e")
     if args.command == "source":
         print(source_sha())
         return
     if args.command == "e2e":
-        e2e()
+        e2e(local=args.local)
         return
     if args.command == "identity":
         manifest = current()

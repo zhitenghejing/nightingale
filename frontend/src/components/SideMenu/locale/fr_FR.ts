@@ -10,6 +10,8 @@ const fr_FR = {
   "recentUsed": "Utilisés récemment",
   "personalCollection": "Favoris",
   "menu": {
+    cmdb: 'CMDB',
+    rack_views: 'Rack views',
     "infrastructure": "Infrastructure",
     "business_group": "Groupe métier",
     "devices": "Liste des équipements",

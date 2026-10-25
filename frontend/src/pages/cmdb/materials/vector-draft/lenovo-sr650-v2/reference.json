@@ -1,0 +1,21 @@
+{
+  "id": "lenovo-sr650-v2",
+  "model": "ThinkSystem SR650 V2",
+  "units": 2,
+  "status": "review-only",
+  "appearance": "保留黑色竖向盘架、右侧蜂窝空位与白色 Lenovo 标识；背面双电源保留橙色卡扣。",
+  "reference": {
+    "front": {
+      "sourcePage": "https://www.lcrservix.com/products/lenovo-thinksystem-sr650-v2-base-2u-rack-server",
+      "imageUrl": "https://www.lcrservix.com/cdn/shop/files/lenovo-sr650v2-rear-ports.webp?v=1765423478&width=1445",
+      "sha256": "ad59683b4721c5db32e87200e8f5f1d702a8c1a0ffa8cc7c931c820f5075cfc7",
+      "original": "originals/lenovo-sr650-v2/front.jpg"
+    },
+    "rear": {
+      "sourcePage": "https://gtrzmall.en.made-in-china.com/product/zEoUrDWdJupi/China-Le-Novo-Thinksystem-Sr650-V2-Rack-Servers-with-1100W-Power-Supply-64GB-Memory-12-Slots-in-Stock.html",
+      "imageUrl": "https://image.made-in-china.com/2f0j00CLibEcagqzuM/Le-Novo-Thinksystem-Sr650-V2-Rack-Servers-with-1100W-Power-Supply-64GB-Memory-12-Slots-in-Stock.jpg",
+      "sha256": "0e2b987d4d3d3576f0aec2d291019c33c88832ad2e67b1567a7067ae70422aac",
+      "original": "originals/lenovo-sr650-v2/rear.jpg"
+    }
+  }
+}

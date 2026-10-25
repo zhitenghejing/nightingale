@@ -91,6 +91,8 @@ const NotificationSettings = React.lazy(() => import('@/pages/help/NotificationS
 const MigrateDashboards = React.lazy(() => import('@/pages/help/migrate'));
 const VariableConfigs = React.lazy(() => import('@/pages/variableConfigs'));
 const SiteSettings = React.lazy(() => import('@/pages/siteSettings'));
+const CMDB = React.lazy(() => import('@/pages/cmdb'));
+const RackViews = React.lazy(() => import('@/pages/rackViews'));
 const Landing = React.lazy(() => import('@/pages/landing'));
 import { dynamicPackages, Entry, dynamicPages } from '@/utils';
 // @ts-ignore
@@ -155,6 +157,7 @@ export default function Content() {
       !location.pathname.includes('/settings/source/') &&
       !location.pathname.startsWith('/nightingale-ai') &&
       !(location.pathname === '/archives' || location.pathname.startsWith('/archives/')) &&
+      !['/targets/cmdb', '/targets/racks'].includes(location.pathname) &&
       !location.pathname.includes('/403')
     ) {
       if (profile?.roles.indexOf('Admin') === -1) {
@@ -254,7 +257,8 @@ export default function Content() {
           <Route exact path='/alert-his-events' component={historyEvents} />
           <Route exact path='/alert-cur-events/:eventId' component={EventDetail} />
           <Route exact path='/alert-his-events/:eventId' component={EventDetail} />
-          {/* <Route exact path='/targets' component={Targets} /> */}
+          <Route exact path='/targets/cmdb' component={CMDB} />
+          <Route exact path='/targets/racks' component={RackViews} />
 
           <Route exact path='/job-tpls' component={TaskTpl} />
           <Route exact path='/job-tpls/add' component={TaskTplAdd} />

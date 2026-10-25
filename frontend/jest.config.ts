@@ -91,6 +91,7 @@ const config: Config = {
 
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
   moduleNameMapper: {
+    '\\.(svg|png|jpg|jpeg|webp)$': '<rootDir>/src/test/mocks/assetStub.cjs',
     '^@/(.*)$': '<rootDir>/src/$1',
     // ai-kit only exposes its entry through package `exports`, which this jest
     // resolver does not read; point straight at the file.

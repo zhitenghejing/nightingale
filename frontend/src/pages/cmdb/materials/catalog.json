@@ -1,0 +1,763 @@
+[
+  {
+    "id": "hpe-dl380-gen10",
+    "brand": "HPE 惠普",
+    "vendor": "HPE",
+    "vendorAliases": [
+      "HPE",
+      "HP",
+      "惠普",
+      "Hewlett Packard Enterprise",
+      "HPE 惠普",
+      "HP 惠普",
+      "惠普 HPE",
+      "惠普 HP"
+    ],
+    "model": "ProLiant DL380 Gen10",
+    "modelAliases": [
+      "DL380 Gen10",
+      "DL380 G10",
+      "HP DL380 G10"
+    ],
+    "type": "机架式服务器",
+    "units": 2,
+    "front": {
+      "imageUrl": "https://tanphat.com.vn/media/news/712_hpe_dl380_gen10_6_x_4_copy_0.jpg",
+      "sourcePage": "https://tanphat.com.vn/danh-gia-hieu-nang-hpe-dl380-gen10.html",
+      "sourceWidth": 1500,
+      "sourceHeight": 844,
+      "sha256": "1795a876504c6defb6b659d72f4add694ea72b361eed2279ab5c8e96e021c1be",
+      "viewBox": [
+        120,
+        195,
+        1250,
+        226
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/hpe-dl380-gen10/front.jpg",
+      "panel": "panels/hpe-dl380-gen10-front.svg",
+      "panelSha256": "f909039dc403b6147c6d78ad4743f4a9e62a0d94a3974e8d60a866efc1cfc013",
+      "renderKind": "vector",
+      "vectorSource": "vectors/hpe-dl380-gen10/front.svg",
+      "vectorSha256": "f909039dc403b6147c6d78ad4743f4a9e62a0d94a3974e8d60a866efc1cfc013",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "rear": {
+      "imageUrl": "https://tanphat.com.vn/media/news/712_hpe_dl380_gen10_6_x_4_copy_0.jpg",
+      "sourcePage": "https://tanphat.com.vn/danh-gia-hieu-nang-hpe-dl380-gen10.html",
+      "sourceWidth": 1500,
+      "sourceHeight": 844,
+      "sha256": "1795a876504c6defb6b659d72f4add694ea72b361eed2279ab5c8e96e021c1be",
+      "viewBox": [
+        140,
+        539,
+        1205,
+        239
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/hpe-dl380-gen10/rear.jpg",
+      "panel": "panels/hpe-dl380-gen10-rear.svg",
+      "panelSha256": "82fa2df3f3a4cedb0aa93ab40d618cd37b19b6b695352262c84426eaf6c7ba71",
+      "renderKind": "vector",
+      "vectorSource": "vectors/hpe-dl380-gen10/rear.svg",
+      "vectorSha256": "82fa2df3f3a4cedb0aa93ab40d618cd37b19b6b695352262c84426eaf6c7ba71",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "style": "product-vector-v1"
+  },
+  {
+    "id": "hpe-dl360-gen10",
+    "brand": "HPE 惠普",
+    "vendor": "HPE",
+    "vendorAliases": [
+      "HPE",
+      "HP",
+      "惠普",
+      "Hewlett Packard Enterprise",
+      "HPE 惠普",
+      "HP 惠普",
+      "惠普 HPE",
+      "惠普 HP"
+    ],
+    "model": "ProLiant DL360 Gen10",
+    "modelAliases": [
+      "DL360 Gen10",
+      "DL360 G10",
+      "HP DL360 G10"
+    ],
+    "type": "机架式服务器",
+    "units": 1,
+    "front": {
+      "imageUrl": "https://cdn.mos.cms.futurecdn.net/GJqpx33N8qMTGBHxPnuH6V.jpg",
+      "sourcePage": "https://www.itpro.com/server/29565/hpe-proliant-dl360-gen10-review",
+      "sourceWidth": 1252,
+      "sourceHeight": 704,
+      "sha256": "b100f7917acbc7e8747988b61b187b8631e77a99104264cfdd6900180ea6b9a3",
+      "viewBox": [
+        52,
+        272,
+        1154,
+        107
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/hpe-dl360-gen10/front.jpg",
+      "panel": "panels/hpe-dl360-gen10-front.svg",
+      "panelSha256": "99145fb11f3a646bbcdf96cf52a1b8aa4483bfe9d7c93f1dcc61fdc7ac1f0c09",
+      "renderKind": "vector",
+      "vectorSource": "vectors/hpe-dl360-gen10/front.svg",
+      "vectorSha256": "99145fb11f3a646bbcdf96cf52a1b8aa4483bfe9d7c93f1dcc61fdc7ac1f0c09",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        120
+      ]
+    },
+    "rear": {
+      "imageUrl": "https://cdn.mos.cms.futurecdn.net/GJqpx33N8qMTGBHxPnuH6V.jpg",
+      "sourcePage": "https://www.itpro.com/server/29565/hpe-proliant-dl360-gen10-review",
+      "sourceWidth": 1252,
+      "sourceHeight": 704,
+      "sha256": "b100f7917acbc7e8747988b61b187b8631e77a99104264cfdd6900180ea6b9a3",
+      "viewBox": [
+        117,
+        475,
+        1031,
+        101
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/hpe-dl360-gen10/rear.jpg",
+      "panel": "panels/hpe-dl360-gen10-rear.svg",
+      "panelSha256": "98f5a954dd97b98f6579c2989e647aee16329f3125239059b3568e5c0e3b810a",
+      "renderKind": "vector",
+      "vectorSource": "vectors/hpe-dl360-gen10/rear.svg",
+      "vectorSha256": "98f5a954dd97b98f6579c2989e647aee16329f3125239059b3568e5c0e3b810a",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        120
+      ]
+    },
+    "style": "product-vector-v1"
+  },
+  {
+    "id": "hpe-dl380-gen11",
+    "brand": "HPE 惠普",
+    "vendor": "HPE",
+    "vendorAliases": [
+      "HPE",
+      "HP",
+      "惠普",
+      "Hewlett Packard Enterprise",
+      "HPE 惠普",
+      "HP 惠普",
+      "惠普 HPE",
+      "惠普 HP"
+    ],
+    "model": "ProLiant DL380 Gen11",
+    "modelAliases": [
+      "DL380 Gen11",
+      "DL380 G11"
+    ],
+    "type": "机架式服务器",
+    "units": 2,
+    "front": {
+      "imageUrl": "https://maychunamviet.vn/upload/img/products/HPE_DL380_Gen11_2.5in_2.jpg",
+      "sourcePage": "https://maychunamviet.vn/hpe-proliant-dl380-gen11-8sff-nc-cto-server-s4516y.html",
+      "sourceWidth": 600,
+      "sourceHeight": 493,
+      "sha256": "1a29dcd3ee23a310fb9bebb70f5f969299d1ec97392339faff53015ccfaba52d",
+      "viewBox": [
+        25,
+        133,
+        549,
+        100
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/hpe-dl380-gen11/front.jpg",
+      "panel": "panels/hpe-dl380-gen11-front.svg",
+      "panelSha256": "709ab061e3c3d4f79cd530b097df8472fdfba287213d19c69d0cd58e224168be",
+      "renderKind": "vector",
+      "vectorSource": "vectors/hpe-dl380-gen11/front.svg",
+      "vectorSha256": "709ab061e3c3d4f79cd530b097df8472fdfba287213d19c69d0cd58e224168be",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "rear": {
+      "imageUrl": "https://maychunamviet.vn/upload/img/products/HPE_DL380_Gen11_2.5in_2.jpg",
+      "sourcePage": "https://maychunamviet.vn/hpe-proliant-dl380-gen11-8sff-nc-cto-server-s4516y.html",
+      "sourceWidth": 600,
+      "sourceHeight": 493,
+      "sha256": "1a29dcd3ee23a310fb9bebb70f5f969299d1ec97392339faff53015ccfaba52d",
+      "viewBox": [
+        24,
+        322,
+        550,
+        108
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/hpe-dl380-gen11/rear.jpg",
+      "panel": "panels/hpe-dl380-gen11-rear.svg",
+      "panelSha256": "b90a429af4d743f27f4f68d2f82de2e264b5208a99927b5263ecd69f4f98d5ea",
+      "renderKind": "vector",
+      "vectorSource": "vectors/hpe-dl380-gen11/rear.svg",
+      "vectorSha256": "b90a429af4d743f27f4f68d2f82de2e264b5208a99927b5263ecd69f4f98d5ea",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "style": "product-vector-v1"
+  },
+  {
+    "id": "dell-r740",
+    "brand": "Dell 戴尔",
+    "vendor": "Dell",
+    "vendorAliases": [
+      "Dell",
+      "Dell EMC",
+      "戴尔",
+      "Dell 戴尔",
+      "戴尔 Dell",
+      "Dell Inc."
+    ],
+    "model": "PowerEdge R740",
+    "modelAliases": [
+      "R740",
+      "Dell EMC PowerEdge R740"
+    ],
+    "type": "机架式服务器",
+    "units": 2,
+    "front": {
+      "imageUrl": "https://media.gekko-computer.de/images/Shop1600px/30005709_1.jpg",
+      "sourcePage": "https://www.gekko-computer.de/en/p/Dell-PowerEdge-R740-Server-2x-Xeon-Platinum-8160-24C-2-1GHz-128GB-BOSS-2x-240GB-en",
+      "sourceWidth": 1600,
+      "sourceHeight": 1600,
+      "sha256": "d197052e871ea5611d5505d07eb257402d3515ddd8197d21a1ca48c633445210",
+      "viewBox": [
+        207,
+        861,
+        1194,
+        251
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/dell-r740/front-bezel.jpg",
+      "panel": "panels/dell-r740-front.svg",
+      "panelSha256": "804d3fa56481ca4b96e028a18634530ef1a6e0b480c15c8a9b9053f097b0d141",
+      "renderKind": "vector",
+      "vectorSource": "vectors/dell-r740/front.svg",
+      "vectorSha256": "804d3fa56481ca4b96e028a18634530ef1a6e0b480c15c8a9b9053f097b0d141",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "rear": {
+      "imageUrl": "https://www.piospartslap.de/media/image/product/31289/lg/dell-poweredge-r740-no-cpu-no-pc4-ram-2x-performance-kuehler-6x-performance-luefter-16x-sff-25-h750_1.jpg",
+      "sourcePage": "https://www.piospartslap.de/Dell-PowerEdge-R740-NO-CPU-NO-PC4-RAM-2x-Performance-Kuehler-6x-Performance-Luefter-16x-SFF-25-H750_1",
+      "sourceWidth": 2000,
+      "sourceHeight": 2000,
+      "sha256": "531559a96d3e8e1a8b528c3c91fe5f8e5ccfb89c19526f61dfa47fb603d91219",
+      "viewBox": [
+        400,
+        1185,
+        1200,
+        215
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/dell-r740/rear.jpg",
+      "panel": "panels/dell-r740-rear.svg",
+      "panelSha256": "72a850976d2d9b8a7c9daf54566a45edcd2d536330fcc3082dbc816110b423ae",
+      "renderKind": "vector",
+      "vectorSource": "vectors/dell-r740/rear.svg",
+      "vectorSha256": "72a850976d2d9b8a7c9daf54566a45edcd2d536330fcc3082dbc816110b423ae",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "style": "product-vector-v1"
+  },
+  {
+    "id": "dell-r750",
+    "brand": "Dell 戴尔",
+    "vendor": "Dell",
+    "vendorAliases": [
+      "Dell",
+      "Dell EMC",
+      "戴尔",
+      "Dell 戴尔",
+      "戴尔 Dell",
+      "Dell Inc."
+    ],
+    "model": "PowerEdge R750",
+    "modelAliases": [
+      "R750",
+      "Dell EMC PowerEdge R750"
+    ],
+    "type": "机架式服务器",
+    "units": 2,
+    "front": {
+      "imageUrl": "https://www.tritondatacom.com/cdn/shop/products/dell-poweredge-r750-10-drive-bay-customizable-server-per750-16-8sff-frnt-nvme-r2-1-refurbished-29891936059462.webp?v=1673375606",
+      "sourcePage": "https://www.tritondatacom.com/products/dell-poweredge-r750-10-drive-bay-customizable-server-per750-16-8sff-frnt-nvme-r2-1-refurbished",
+      "sourceWidth": 1052,
+      "sourceHeight": 1052,
+      "sha256": "c1b635f51398e58f2948c36fbe70fa30ce3a204c4c1ec8aeb3648560a7eb1864",
+      "viewBox": [
+        18,
+        348,
+        1014,
+        188
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/dell-r750/front.jpg",
+      "panel": "panels/dell-r750-front.svg",
+      "panelSha256": "8835270f994396b0a54a27fd96c4e986e40a283e3714e4ed5cfd7b36b13a8200",
+      "renderKind": "vector",
+      "vectorSource": "vectors/dell-r750/front.svg",
+      "vectorSha256": "8835270f994396b0a54a27fd96c4e986e40a283e3714e4ed5cfd7b36b13a8200",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "rear": {
+      "imageUrl": "https://www.tritondatacom.com/cdn/shop/products/dell-poweredge-r750-10-drive-bay-customizable-server-per750-16-8sff-frnt-nvme-r2-1-refurbished-29891936059462.webp?v=1673375606",
+      "sourcePage": "https://www.tritondatacom.com/products/dell-poweredge-r750-10-drive-bay-customizable-server-per750-16-8sff-frnt-nvme-r2-1-refurbished",
+      "sourceWidth": 1052,
+      "sourceHeight": 1052,
+      "sha256": "c1b635f51398e58f2948c36fbe70fa30ce3a204c4c1ec8aeb3648560a7eb1864",
+      "viewBox": [
+        20,
+        588,
+        1012,
+        203
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/dell-r750/rear.jpg",
+      "panel": "panels/dell-r750-rear.svg",
+      "panelSha256": "016fbc28dcf8fb95233144902596b5b3264f770272bbca41265d4d5df9146a83",
+      "renderKind": "vector",
+      "vectorSource": "vectors/dell-r750/rear.svg",
+      "vectorSha256": "016fbc28dcf8fb95233144902596b5b3264f770272bbca41265d4d5df9146a83",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "style": "product-vector-v1"
+  },
+  {
+    "id": "dell-r650",
+    "brand": "Dell 戴尔",
+    "vendor": "Dell",
+    "vendorAliases": [
+      "Dell",
+      "Dell EMC",
+      "戴尔",
+      "Dell 戴尔",
+      "戴尔 Dell",
+      "Dell Inc."
+    ],
+    "model": "PowerEdge R650",
+    "modelAliases": [
+      "R650",
+      "Dell EMC PowerEdge R650"
+    ],
+    "type": "机架式服务器",
+    "units": 1,
+    "front": {
+      "imageUrl": "https://www.servermonkey.com/media/catalog/product/r/6/r65010p_1_1.png",
+      "sourcePage": "https://www.servermonkey.com/servers/refurbished-dell/dell-poweredge-15th-generation/rackmount-servers/dell-poweredge-r650.html",
+      "sourceWidth": 1550,
+      "sourceHeight": 402,
+      "sha256": "225bd4da8ccdd01bd9b71e74c9a071257194a7dc09f99d3fa7382e2ec92f95b4",
+      "viewBox": [
+        97,
+        160,
+        1328,
+        124
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/dell-r650/front.webp",
+      "panel": "panels/dell-r650-front.svg",
+      "panelSha256": "673a6ac7d578ecdbad1ee7fbf6d5052efe7e9514f8f245bac19161fad6d0c2eb",
+      "renderKind": "vector",
+      "vectorSource": "vectors/dell-r650/front.svg",
+      "vectorSha256": "673a6ac7d578ecdbad1ee7fbf6d5052efe7e9514f8f245bac19161fad6d0c2eb",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        120
+      ]
+    },
+    "rear": {
+      "imageUrl": "https://www.allserver.co.kr/files/uploads/images/20241203063106287.png",
+      "sourcePage": "https://www.allserver.co.kr/products/info?mainCategory=260&menuId=9&prdId=2590",
+      "sourceWidth": 1000,
+      "sourceHeight": 1000,
+      "sha256": "a28aaff01d14d795768e4ad100a8fc1cca15b6cdb99c89799248f20ae971aec9",
+      "viewBox": [
+        50,
+        450,
+        890,
+        90
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/dell-r650/rear.png",
+      "panel": "panels/dell-r650-rear.svg",
+      "panelSha256": "13be6ce517b6b686e3dbc23ce3df25555c28d8409fbfe35330a729f98cf40dda",
+      "renderKind": "vector",
+      "vectorSource": "vectors/dell-r650/rear.svg",
+      "vectorSha256": "13be6ce517b6b686e3dbc23ce3df25555c28d8409fbfe35330a729f98cf40dda",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        120
+      ]
+    },
+    "style": "product-vector-v1"
+  },
+  {
+    "id": "lenovo-sr650-v2",
+    "brand": "Lenovo 联想",
+    "vendor": "Lenovo",
+    "vendorAliases": [
+      "Lenovo",
+      "联想",
+      "Lenovo 联想",
+      "联想 Lenovo"
+    ],
+    "model": "ThinkSystem SR650 V2",
+    "modelAliases": [
+      "SR650 V2",
+      "SR650V2",
+      "Lenovo ThinkSystem SR650 V2"
+    ],
+    "type": "机架式服务器",
+    "units": 2,
+    "front": {
+      "imageUrl": "https://www.lcrservix.com/cdn/shop/files/lenovo-sr650v2-rear-ports.webp?v=1765423478&width=1445",
+      "sourcePage": "https://www.lcrservix.com/products/lenovo-thinksystem-sr650-v2-base-2u-rack-server",
+      "sourceWidth": 1445,
+      "sourceHeight": 813,
+      "sha256": "ad59683b4721c5db32e87200e8f5f1d702a8c1a0ffa8cc7c931c820f5075cfc7",
+      "viewBox": [
+        120,
+        505,
+        1210,
+        228
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/lenovo-sr650-v2/front.jpg",
+      "panel": "panels/lenovo-sr650-v2-front.svg",
+      "panelSha256": "2b7e06fba8ef724722c887b1a49ed7c9b8f551c1cc7545481dcc61e2db9de1bb",
+      "renderKind": "vector",
+      "vectorSource": "vectors/lenovo-sr650-v2/front.svg",
+      "vectorSha256": "2b7e06fba8ef724722c887b1a49ed7c9b8f551c1cc7545481dcc61e2db9de1bb",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "rear": {
+      "imageUrl": "https://image.made-in-china.com/2f0j00CLibEcagqzuM/Le-Novo-Thinksystem-Sr650-V2-Rack-Servers-with-1100W-Power-Supply-64GB-Memory-12-Slots-in-Stock.jpg",
+      "sourcePage": "https://gtrzmall.en.made-in-china.com/product/zEoUrDWdJupi/China-Le-Novo-Thinksystem-Sr650-V2-Rack-Servers-with-1100W-Power-Supply-64GB-Memory-12-Slots-in-Stock.html",
+      "sourceWidth": 600,
+      "sourceHeight": 600,
+      "sha256": "0e2b987d4d3d3576f0aec2d291019c33c88832ad2e67b1567a7067ae70422aac",
+      "viewBox": [
+        18,
+        242,
+        567,
+        112
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/lenovo-sr650-v2/rear.jpg",
+      "panel": "panels/lenovo-sr650-v2-rear.svg",
+      "panelSha256": "db586627424e0a7619dc037a2687f04c2c2dc4b154c1abed225375c90a2b09d1",
+      "renderKind": "vector",
+      "vectorSource": "vectors/lenovo-sr650-v2/rear.svg",
+      "vectorSha256": "db586627424e0a7619dc037a2687f04c2c2dc4b154c1abed225375c90a2b09d1",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "style": "product-vector-v1"
+  },
+  {
+    "id": "huawei-2288h-v5",
+    "brand": "Huawei 华为",
+    "vendor": "Huawei",
+    "vendorAliases": [
+      "Huawei",
+      "华为",
+      "Huawei 华为",
+      "华为 Huawei"
+    ],
+    "model": "FusionServer Pro 2288H V5",
+    "modelAliases": [
+      "2288H V5",
+      "RH2288H V5",
+      "FusionServer 2288H V5",
+      "Huawei 2288H V5"
+    ],
+    "type": "机架式服务器",
+    "units": 2,
+    "front": {
+      "imageUrl": "https://www.xhwy.com.cn/Storage/Shop/2013/Products/936205/1.png",
+      "sourcePage": "https://www.xhwy.com.cn/Product/Detail/936205",
+      "sourceWidth": 800,
+      "sourceHeight": 800,
+      "sha256": "457d9d447bf396b9dbf796b5d50f99587b6ea4bfc1014bba6e5d48f24678dd92",
+      "viewBox": [
+        90,
+        393,
+        620,
+        112
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/huawei-2288h-v5/front.png",
+      "panel": "panels/huawei-2288h-v5-front.svg",
+      "panelSha256": "399d518951c4ffce3f0a4a4673766bda4911d26e4bf81889319e58924c9f4815",
+      "renderKind": "vector",
+      "vectorSource": "vectors/huawei-2288h-v5/front.svg",
+      "vectorSha256": "399d518951c4ffce3f0a4a4673766bda4911d26e4bf81889319e58924c9f4815",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "rear": {
+      "imageUrl": "https://www.xhwy.com.cn/Storage/Shop/2013/Products/936205/4.png",
+      "sourcePage": "https://www.xhwy.com.cn/Product/Detail/936205",
+      "sourceWidth": 800,
+      "sourceHeight": 800,
+      "sha256": "f744940c74abcc11e86fa29da1c784189a59db253cc8abdef85682ff5dc2f0c2",
+      "viewBox": [
+        90,
+        369,
+        620,
+        122
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/huawei-2288h-v5/rear.png",
+      "panel": "panels/huawei-2288h-v5-rear.svg",
+      "panelSha256": "739b6e07e361c53392eb18107cf089f9623aaed7456c6fa8e6c9572932d39644",
+      "renderKind": "vector",
+      "vectorSource": "vectors/huawei-2288h-v5/rear.svg",
+      "vectorSha256": "739b6e07e361c53392eb18107cf089f9623aaed7456c6fa8e6c9572932d39644",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "style": "product-vector-v1"
+  },
+  {
+    "id": "inspur-nf5280m6",
+    "brand": "Inspur 浪潮信息",
+    "vendor": "Inspur",
+    "vendorAliases": [
+      "Inspur",
+      "浪潮",
+      "浪潮信息",
+      "IEIT",
+      "IEIT SYSTEMS",
+      "元脑",
+      "浪潮 Inspur",
+      "Inspur 浪潮"
+    ],
+    "model": "NF5280M6",
+    "modelAliases": [
+      "NF5280 M6",
+      "Inspur NF5280M6"
+    ],
+    "type": "机架式服务器",
+    "units": 2,
+    "front": {
+      "imageUrl": "https://www.ieisystem.com/global/upload/2024-04-15/17131667186632c975afc8e82c47a714018ee0b196c7173e.png",
+      "sourcePage": "https://www.ieisystem.com/product-details.thtml?id=8405",
+      "sourceWidth": 1366,
+      "sourceHeight": 768,
+      "sha256": "f773c756fdd021326c06890c5d7462710b10369c2befc8f638e906ad3b5c444f",
+      "viewBox": [
+        90,
+        370,
+        1190,
+        212
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/inspur-nf5280m6/front.png",
+      "panel": "panels/inspur-nf5280m6-front.svg",
+      "panelSha256": "cbca188efa6be66da60b351e6eb09def9389c81821d0a6d05e894a322947d54e",
+      "renderKind": "vector",
+      "vectorSource": "vectors/inspur-nf5280m6/front.svg",
+      "vectorSha256": "cbca188efa6be66da60b351e6eb09def9389c81821d0a6d05e894a322947d54e",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "rear": {
+      "imageUrl": "https://www.ieisystem.com/global/upload/2024-04-15/17131667184052c975afc8e82c47a225018ee0b195c51738.png",
+      "sourcePage": "https://www.ieisystem.com/product-details.thtml?id=8405",
+      "sourceWidth": 1366,
+      "sourceHeight": 768,
+      "sha256": "e7fb28311ca399746a74bd41c5a7a293639bbbb51d65db7100842f3530dec564",
+      "viewBox": [
+        80,
+        267,
+        1208,
+        231
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/inspur-nf5280m6/rear.png",
+      "panel": "panels/inspur-nf5280m6-rear.svg",
+      "panelSha256": "24a655ba34972f9aff7c1b134433b4910e82e63b97b1bbeedd2bb49421a61874",
+      "renderKind": "vector",
+      "vectorSource": "vectors/inspur-nf5280m6/rear.svg",
+      "vectorSha256": "24a655ba34972f9aff7c1b134433b4910e82e63b97b1bbeedd2bb49421a61874",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        240
+      ]
+    },
+    "style": "product-vector-v1"
+  },
+  {
+    "id": "h3c-s5130s-28s-ei",
+    "brand": "H3C 新华三",
+    "vendor": "H3C",
+    "vendorAliases": [
+      "H3C",
+      "华三",
+      "新华三",
+      "H3C 新华三",
+      "H3C 华三",
+      "新华三 H3C",
+      "华三 H3C"
+    ],
+    "model": "S5130S-28S-EI",
+    "modelAliases": [
+      "LS-5130S-28S-EI",
+      "LS-5130S-28S-EI-GL",
+      "H3C S5130S-28S-EI"
+    ],
+    "type": "交换机",
+    "units": 1,
+    "front": {
+      "imageUrl": "https://corenet.vip/firewall/h3c-s5130s-28s-ei.jpg",
+      "sourcePage": "https://corenet.vip/firewall/s5130s-28s-ei-h3c-switches-product-price-datasheet/",
+      "sourceWidth": 600,
+      "sourceHeight": 600,
+      "sha256": "9e3bf1aa2298c68ecd1d0cfc8b2897253d0e398cf77cfcdf9ac22ed276031bbc",
+      "viewBox": [
+        62,
+        300,
+        474,
+        43
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/h3c-s5130s-28s-ei/front.jpg",
+      "panel": "panels/h3c-s5130s-28s-ei-front.svg",
+      "panelSha256": "03a803d58352ed836096910577e974fb4130efc7d44fcfcec63887a62cd9b2e3",
+      "renderKind": "vector",
+      "vectorSource": "vectors/h3c-s5130s-28s-ei/front.svg",
+      "vectorSha256": "03a803d58352ed836096910577e974fb4130efc7d44fcfcec63887a62cd9b2e3",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        120
+      ]
+    },
+    "rear": {
+      "imageUrl": "https://kobidestek.kurumsalit.com/panel/uploads/products_description_v/1080x1080/switch---h3c-s5130s-ags.jpg",
+      "sourcePage": "https://www.kurumsalit.com/urun/h3c-s5130s-28s-ei-l2-ethernet-switch-ls-5130s-28s-ei-gl",
+      "sourceWidth": 1080,
+      "sourceHeight": 1080,
+      "sha256": "93ab9f826142aeca11efb6d6f38c515c880f912bb4b0400ed29f5da0b085d314",
+      "viewBox": [
+        135,
+        556,
+        824,
+        76
+      ],
+      "sourceKind": "公开产品图",
+      "license": "来源页面未提供开放许可声明，保留原始来源",
+      "original": "originals/h3c-s5130s-28s-ei/rear.webp",
+      "panel": "panels/h3c-s5130s-28s-ei-rear.svg",
+      "panelSha256": "c9cd7e74325a08be135a56fafdee66e20ee9e43fc0b444545346ba6da87613ff",
+      "renderKind": "vector",
+      "vectorSource": "vectors/h3c-s5130s-28s-ei/rear.svg",
+      "vectorSha256": "c9cd7e74325a08be135a56fafdee66e20ee9e43fc0b444545346ba6da87613ff",
+      "panelViewBox": [
+        0,
+        0,
+        1200,
+        120
+      ]
+    },
+    "style": "product-vector-v1"
+  }
+]

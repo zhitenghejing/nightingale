@@ -73,6 +73,13 @@ class ServicesTest(unittest.TestCase):
                 services.ensure_container("test", self.cfg["owner"], [])
             docker.assert_not_called()
 
+    def test_shared_prometheus_remote_write_requires_host_owned_opt_in(self):
+        shared = self.state / "shared"
+        shared.mkdir()
+        self.assertEqual(services.prometheus_write_flags(shared), [])
+        (shared / "prometheus-remote-write.enabled").touch()
+        self.assertEqual(services.prometheus_write_flags(shared), ["--web.enable-remote-write-receiver"])
+
     def test_missing_provisioning_receipt_never_adopts_or_deletes_a_database(self):
         self.resource(provisioned=False)
         with patch.object(services, "ensure", return_value=self.cfg), \

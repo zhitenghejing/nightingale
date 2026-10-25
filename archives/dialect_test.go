@@ -58,7 +58,16 @@ func TestArchiveDatabaseDialects(t *testing.T) {
 			if index < 0 {
 				t.Fatal("archive initialization SQL missing")
 			}
-			for _, statement := range strings.Split(string(data[index:]), ";") {
+			// Schema sections appended by other modules can contain semicolons in
+			// full-line comments. Remove those comments before splitting the DDL.
+			var sql strings.Builder
+			for _, line := range strings.Split(string(data[index:]), "\n") {
+				if !strings.HasPrefix(strings.TrimSpace(line), "--") {
+					sql.WriteString(line)
+					sql.WriteByte('\n')
+				}
+			}
+			for _, statement := range strings.Split(sql.String(), ";") {
 				if strings.TrimSpace(statement) != "" {
 					if err := db.Exec(statement).Error; err != nil {
 						t.Fatalf("initialization SQL: %v", err)

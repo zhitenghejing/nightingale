@@ -11,6 +11,8 @@ const en_US = {
   personalCollection: 'Personal collection',
   menu: {
     archives: 'Archives',
+    cmdb: 'CMDB',
+    rack_views: 'Rack views',
     infrastructure: 'Infrastructure',
     business_group: 'Business group',
     devices: 'Hosts',

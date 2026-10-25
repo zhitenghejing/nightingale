@@ -19,7 +19,7 @@ import { eventBus, EVENT_KEYS } from '@/pages/embeddedProduct/eventBus';
 import { DETAIL_PATH as embeddedProductDetailPath } from '@/pages/embeddedProduct/constants';
 import { V8_BETA_14_TS } from '@/utils/constant';
 
-import { cn, getCurrentMenuList } from './utils';
+import { cn, getCurrentMenuList, isInventoryMenuPath } from './utils';
 import SideMenuHeader from './Header';
 import MenuList from './MenuList';
 // @ts-ignore
@@ -216,13 +216,13 @@ const SideMenu = (props: SideMenuProps) => {
               }
             }
             if (child.type === 'tabs' && child.children) {
-              const filteredTabs = child.children.filter((tab) => perms?.includes(tab.key));
+              const filteredTabs = child.children.filter((tab) => isInventoryMenuPath(tab.key) || perms?.includes(tab.key));
               if (filteredTabs.length > 0) {
                 return { ...child, children: filteredTabs };
               }
               return null;
             }
-            return perms?.includes(calcUrlPath(child.key)) ? child : null;
+            return isInventoryMenuPath(child.key) || perms?.includes(calcUrlPath(child.key)) ? child : null;
           })
           .filter(Boolean);
 
@@ -254,9 +254,9 @@ const SideMenu = (props: SideMenuProps) => {
                 return child;
               }
               if (child.type === 'tabs' && child.children && child.children.length > 0) {
-                return child.children.some((tabChild) => _.includes(perms, calcUrlPath(tabChild.key)));
+                return child.children.some((tabChild) => isInventoryMenuPath(tabChild.key) || _.includes(perms, calcUrlPath(tabChild.key)));
               }
-              return child && _.includes(perms, child.key);
+              return child && (isInventoryMenuPath(child.key) || _.includes(perms, child.key));
             })
             .map((c) => {
               if (c.type === 'tabs' && c.children && c.children.length) {

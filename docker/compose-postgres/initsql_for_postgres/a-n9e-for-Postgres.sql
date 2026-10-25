@@ -29,6 +29,7 @@ COMMENT ON COLUMN users.contacts IS 'json e.g. {wecom:xx, dingtalk_robot_token:y
 COMMENT ON COLUMN users.belong IS 'belong';
 
 insert into users(id, username, nickname, password, roles, create_at, create_by, update_at, update_by) values(1, 'root', 'Admin', 'root.2020', 'Admin', date_part('epoch',current_timestamp)::int, 'system', date_part('epoch',current_timestamp)::int, 'system');
+SELECT setval(pg_get_serial_sequence('users', 'id'), (SELECT MAX(id) FROM users), true);
 
 CREATE TABLE user_group (
     id bigserial,
@@ -44,6 +45,7 @@ CREATE INDEX user_group_create_by_idx ON user_group (create_by);
 CREATE INDEX user_group_update_at_idx ON user_group (update_at);
 
 insert into user_group(id, name, create_at, create_by, update_at, update_by) values(1, 'demo-root-group', date_part('epoch',current_timestamp)::int, 'root', date_part('epoch',current_timestamp)::int, 'root');
+SELECT setval(pg_get_serial_sequence('user_group', 'id'), (SELECT MAX(id) FROM user_group), true);
 
 CREATE TABLE user_group_member (
     id bigserial,
@@ -178,6 +180,7 @@ CREATE TABLE busi_group (
 COMMENT ON COLUMN busi_group.label_value IS 'if label_enable: label_value can not be blank';
 
 insert into busi_group(id, name, create_at, create_by, update_at, update_by) values(1, 'Default Busi Group', date_part('epoch',current_timestamp)::int, 'root', date_part('epoch',current_timestamp)::int, 'root');
+SELECT setval(pg_get_serial_sequence('busi_group', 'id'), (SELECT MAX(id) FROM busi_group), true);
 
 CREATE TABLE busi_group_member (
     id bigserial,
@@ -1217,3 +1220,79 @@ CREATE TABLE IF NOT EXISTS archive_export (
 CREATE INDEX IF NOT EXISTS idx_archive_export_state ON archive_export(state);
 
 CREATE INDEX IF NOT EXISTS idx_archive_export_archive_id ON archive_export(archive_id);
+-- CMDB inventory schema. Uses the configured center database; contains no asset data.
+
+CREATE TABLE IF NOT EXISTS "cmdb_room" (
+    "id" varchar(36) PRIMARY KEY,
+    "name" varchar(160)
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_cmdb_room_name" ON "cmdb_room" ("name");
+
+CREATE TABLE IF NOT EXISTS "cmdb_rack" (
+    "id" varchar(36) PRIMARY KEY,
+    "room_id" varchar(36),
+    "name" varchar(160),
+    "units" bigint,
+    "version" bigint
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "rack_name" ON "cmdb_rack" ("room_id", "name");
+
+CREATE TABLE IF NOT EXISTS "cmdb_device" (
+    "id" varchar(36) PRIMARY KEY,
+    "serial" varchar(240),
+    "rack_id" varchar(36),
+    "start" bigint,
+    "end" bigint,
+    "version" bigint,
+    "deleted" boolean,
+    "payload" text,
+    "updated_at" timestamptz
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "idx_cmdb_device_serial" ON "cmdb_device" ("serial");
+
+CREATE INDEX IF NOT EXISTS "idx_cmdb_device_rack_id" ON "cmdb_device" ("rack_id");
+
+CREATE INDEX IF NOT EXISTS "idx_cmdb_device_deleted" ON "cmdb_device" ("deleted");
+
+CREATE TABLE IF NOT EXISTS "cmdb_device_disk" (
+    "id" bigserial PRIMARY KEY,
+    "asset_id" varchar(36),
+    "position" bigint,
+    "model" varchar(240),
+    "description" text,
+    "count" bigint
+);
+
+CREATE INDEX IF NOT EXISTS "idx_cmdb_device_disk_asset_id" ON "cmdb_device_disk" ("asset_id");
+
+CREATE TABLE IF NOT EXISTS "cmdb_change" (
+    "id" bigserial PRIMARY KEY,
+    "asset_id" varchar(36),
+    "user_id" bigint,
+    "action" varchar(40),
+    "before" text,
+    "after" text,
+    "created_at" timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS "idx_cmdb_change_asset_id" ON "cmdb_change" ("asset_id");
+
+CREATE TABLE IF NOT EXISTS "cmdb_access" (
+    "user_id" bigint PRIMARY KEY,
+    "read" boolean,
+    "create" boolean,
+    "edit" boolean,
+    "delete" boolean,
+    "import" boolean,
+    "export" boolean
+);
+
+CREATE TABLE IF NOT EXISTS "cmdb_write_lock" (
+    "id" bigint PRIMARY KEY,
+    "revision" bigint
+);
+
+INSERT INTO "cmdb_write_lock" ("id", "revision") VALUES (1, 0) ON CONFLICT DO NOTHING;

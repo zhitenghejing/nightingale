@@ -18,7 +18,7 @@ const tsGraphPlotLineColor: Record<TsGraphThemeMode, string> = {
 export const TS_GRAPH_AXIS_LABEL_FONT_SIZE = 11;
 
 /** 与 App.less body font-family 一致，computed 不可用时兜底 */
-const TS_GRAPH_AXIS_LABEL_FONT_FALLBACK = "'Inter', -apple-system, 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif";
+const TS_GRAPH_AXIS_LABEL_FONT_FALLBACK = "'Inter', -apple-system, 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', 'Noto Sans SC', sans-serif";
 
 function resolveAxisLabelFontFromElement(el?: HTMLElement | null) {
   if (typeof window === 'undefined') {

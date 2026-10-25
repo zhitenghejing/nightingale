@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import _ from 'lodash';
 
 import { CommonStateContext } from '@/App';
-import { getStorageKey } from '@/components/SideMenu/utils';
+import { getStorageKey, isInventoryMenuPath } from '@/components/SideMenu/utils';
 import { MenuMatchResult } from '@/components/SideMenu/types';
 
 import './TabMenu.less';
@@ -36,7 +36,8 @@ export const TabMenu: React.FC<TabMenuProps> = ({ currentMenu, onTabChange }) =>
   }
 
   const permissionedMenus = _.filter(currentMenu.parentItem.children, (item) => {
-    return _.includes(perms, calcUrlPath(item.key));
+    // Inventory has its own server ACL; it has no /api/n9e menu permission points.
+    return isInventoryMenuPath(item.key) || _.includes(perms, calcUrlPath(item.key));
   });
 
   return (

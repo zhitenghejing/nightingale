@@ -11,6 +11,8 @@ const ru_RU = {
   personalCollection: 'Личные коллекции',
   menu: {
     archives: 'Archives',
+    cmdb: 'CMDB',
+    rack_views: 'Rack views',
     infrastructure: 'Инфраструктура',
     business_group: 'Бизнес-группа',
     devices: 'Список устройств',

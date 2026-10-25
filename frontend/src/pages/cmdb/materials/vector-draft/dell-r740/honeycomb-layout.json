@@ -1,0 +1,120 @@
+{
+  "reference": "reference-front-bezel.jpg",
+  "referenceSize": [
+    1600,
+    1600
+  ],
+  "frontFacadeBounds": [
+    32,
+    851,
+    1535,
+    267
+  ],
+  "bezelBounds": [
+    207,
+    861,
+    1194,
+    251
+  ],
+  "middleCellCenters": [
+    [
+      312,
+      995
+    ],
+    [
+      558,
+      995
+    ],
+    [
+      804,
+      995
+    ],
+    [
+      1050,
+      995
+    ],
+    [
+      1296,
+      995
+    ]
+  ],
+  "topCellCenters": [
+    [
+      189,
+      922
+    ],
+    [
+      435,
+      922
+    ],
+    [
+      681,
+      922
+    ],
+    [
+      927,
+      922
+    ],
+    [
+      1173,
+      922
+    ],
+    [
+      1419,
+      922
+    ]
+  ],
+  "bottomCellCenters": [
+    [
+      189,
+      1068
+    ],
+    [
+      435,
+      1068
+    ],
+    [
+      681,
+      1068
+    ],
+    [
+      927,
+      1068
+    ],
+    [
+      1173,
+      1068
+    ],
+    [
+      1419,
+      1068
+    ]
+  ],
+  "verticesRelativeToCenter": [
+    [
+      -82,
+      0
+    ],
+    [
+      -41,
+      -73
+    ],
+    [
+      41,
+      -73
+    ],
+    [
+      82,
+      0
+    ],
+    [
+      41,
+      73
+    ],
+    [
+      -41,
+      73
+    ]
+  ],
+  "note": "Coordinates measured on the approved photo; end cells are clipped at bezel bounds. The sample is a simplified orthographic asset, not a mechanical drawing."
+}

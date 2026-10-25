@@ -59,6 +59,36 @@ class PreviewTest(unittest.TestCase):
                 self.assertEqual(config["Redis"]["RedisType"], "miniredis")
                 self.assertFalse(config["EmbeddedTSDB"]["Enable"])
 
+    def test_private_collector_uses_authenticated_agent_and_opted_in_shared_prometheus(self):
+        binding = {"instance": "collector-instance", "role": "development", "profile": "basic"}
+        directory = preview.instance(binding)
+        directory.mkdir(parents=True)
+        (directory / "postgres.json").write_text(json.dumps({"dsn": "isolated-preview", "prometheusURL": "http://127.0.0.1:39090"}))
+        auth = {"username": "preview-collector", "password": 'private-secret-"\\with-escapes'}
+        (directory / "collector.json").write_text(json.dumps(auth))
+        with self.assertRaisesRegex(ValueError, "remote-write opt-in"):
+            preview.app_config(binding, 30310)
+        shared = self.state / "shared"
+        shared.mkdir()
+        (shared / "prometheus-remote-write.enabled").touch()
+        for port in (30310, 30312):
+            config = tomllib.loads(preview.app_config(binding, port))
+            self.assertTrue(config["HTTP"]["APIForAgent"]["Enable"])
+            self.assertEqual(config["HTTP"]["APIForAgent"]["BasicAuth"], {auth["username"]: auth["password"]})
+            self.assertFalse(config["HTTP"]["APIForService"]["Enable"])
+            self.assertFalse(config["HTTP"]["ProxyAuth"]["Enable"])
+            self.assertEqual(config["HTTP"]["Host"], "127.0.0.1")
+            self.assertFalse(config["EmbeddedTSDB"]["Enable"])
+            self.assertEqual(config["Pushgw"]["Writers"], [{"Url": "http://127.0.0.1:39090/api/v1/write"}])
+            self.assertFalse(config["Ibex"]["Enable"])
+        binding["role"] = "stable"
+        with self.assertRaisesRegex(ValueError, "private development collector"):
+            preview.app_config(binding, 30310)
+        binding["role"] = "development"
+        (directory / "collector.json").write_text(json.dumps({"username": "collector", "password": ""}))
+        with self.assertRaises(ValueError):
+            preview.app_config(binding, 30310)
+
     def test_in_tree_preview_detects_ignored_frontend_configuration_changes(self):
         root = self.state / "repo"
         (root / "scripts").mkdir(parents=True)

@@ -26,6 +26,7 @@ import (
 	"github.com/ccfos/nightingale/v6/memsto"
 	"github.com/ccfos/nightingale/v6/models"
 	"github.com/ccfos/nightingale/v6/pkg/aop"
+	"github.com/ccfos/nightingale/v6/pkg/cmdb"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
 	"github.com/ccfos/nightingale/v6/pkg/ginx"
 	"github.com/ccfos/nightingale/v6/pkg/httpx"
@@ -64,6 +65,8 @@ type Router struct {
 	LogDir            string
 	archivesOnce      sync.Once
 	archivesService   *archives.Service
+	// CMDB is initialized by center before Config; nil disables the optional routes for embedders.
+	CMDB *cmdb.API
 
 	// Pushgw is this deployment's forwarding config. It is only read to answer
 	// "which datasource do host metrics end up in" (categrafMeta), so it is set
@@ -266,10 +269,10 @@ func (rt *Router) configNoRoute(r *gin.Engine, fs *http.FileSystem) {
 }
 
 func (rt *Router) Config(r *gin.Engine) {
-
 	r.Use(stat())
 	r.Use(languageDetector(rt.Center.I18NHeaderKey))
 	r.Use(aop.Recovery())
+	rt.configCMDB(r)
 
 	statikFS, err := fs.New()
 	if err != nil {
