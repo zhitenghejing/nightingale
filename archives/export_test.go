@@ -92,6 +92,72 @@ func TestArchiveRendererAndAnnotationExports(t *testing.T) {
 	if !bytes.Equal(data, mustRead(t, filepath.Join(s.Root, "objects", mustBlob(t, s, pdfDoc.File.ID).StorageKey))) {
 		t.Fatal("PDF original changed")
 	}
+	// A selected document produces exactly the requested format, including PDF
+	// original versus annotated output. No second rendition or internal files.
+	currentSelection, err := s.Get(a.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		name, format string
+		documentID   int64
+		extensions   []string
+	}{
+		{"online PDF only", "pdf", id, []string{".pdf"}},
+		{"online Word only", "docx", id, []string{".docx"}},
+		{"online both", "pdf_and_docx", id, []string{".docx", ".pdf"}},
+		{"PDF original only", "original", pdfDoc.ID, []string{".pdf"}},
+		{"PDF annotated only", "annotated_pdf", pdfDoc.ID, []string{".pdf"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			job, err := s.CreateFormattedDownload(alice, a.ID, currentSelection.Revision, []DocumentDownload{{DocumentID: tc.documentID, Format: tc.format}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for deadline := time.Now().Add(40 * time.Second); ; {
+				job, path, err := s.Export(job.ID)
+				if err != nil || job.State == "error" || time.Now().After(deadline) {
+					t.Fatal("formatted download failed", err, job)
+				}
+				if job.State != "done" {
+					time.Sleep(20 * time.Millisecond)
+					continue
+				}
+				bundle, err := zip.OpenReader(path)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer bundle.Close()
+				if len(bundle.File) != len(tc.extensions) {
+					t.Fatalf("unexpected files: %v", bundle.File)
+				}
+				for i, file := range bundle.File {
+					if filepath.Ext(file.Name) != tc.extensions[i] {
+						t.Fatalf("wrong format: %s", file.Name)
+					}
+					reader, err := file.Open()
+					if err != nil {
+						t.Fatal(err)
+					}
+					got, err := io.ReadAll(reader)
+					reader.Close()
+					if err != nil {
+						t.Fatal(err)
+					}
+					if tc.documentID == pdfDoc.ID && (bytes.Equal(got, data) != (tc.format == "original")) {
+						t.Fatal("PDF original/annotated selection was not respected")
+					}
+					if tc.extensions[i] == ".pdf" && !bytes.HasPrefix(got, []byte("%PDF-")) {
+						t.Fatal("download is not PDF")
+					}
+					if tc.extensions[i] == ".docx" && !bytes.HasPrefix(got, []byte("PK")) {
+						t.Fatal("download is not DOCX")
+					}
+				}
+				break
+			}
+		})
+	}
 	input.BaseVersionID = saved.CurrentVersionID
 	input.Body = encode(AnnotationBody{Annotations: []Annotation{{Type: "note", Page: 999, Rects: []Rect{{X: 0.1, Y: 0.1, Width: 0.1, Height: 0.1}}}}})
 	_, err = s.Save(alice, pdfDoc.ID, input)
@@ -158,10 +224,10 @@ func TestArchiveRendererAndAnnotationExports(t *testing.T) {
 			for _, f := range z.File {
 				names[f.Name] = true
 			}
-			if !names["archive-information.pdf"] || !names["archive-information.json"] {
+			if !names["archive-information.pdf"] || names["archive-information.json"] {
 				t.Fatal(names)
 			}
-			if len(names) < 5 {
+			if len(names) < 4 {
 				t.Fatalf("incomplete archive: %v", names)
 			}
 			_ = id
@@ -170,6 +236,123 @@ func TestArchiveRendererAndAnnotationExports(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 	t.Fatal("export timed out")
+}
+
+func TestArchiveDownloadSelectsOnlyRequestedSavedDocuments(t *testing.T) {
+	s := newTestService(t)
+	a, _ := other(t, s)
+	a, err := s.Upload(alice, a.ID, 0, "selected.png", "other", "", 0, bytes.NewReader(pngBytes(t)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc := a.Documents[len(a.Documents)-1]
+	a, err = s.Upload(alice, a.ID, 0, "also-selected.png", "other", "", 0, bytes.NewReader(pngBytes(t)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	second := a.Documents[len(a.Documents)-1]
+	_, foreignID := other(t, s)
+	for _, tc := range []struct {
+		name     string
+		revision int64
+		ids      []int64
+		status   int
+	}{
+		{"empty", a.Revision, nil, 422},
+		{"missing revision", 0, []int64{doc.ID}, 422},
+		{"too many", a.Revision, make([]int64, MaxDocuments+1), 422},
+		{"stale", a.Revision - 1, []int64{doc.ID}, 409},
+		{"duplicate", a.Revision, []int64{doc.ID, doc.ID}, 422},
+		{"foreign", a.Revision, []int64{foreignID}, 422},
+		{"missing", a.Revision, []int64{999999}, 422},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := s.CreateDownload(alice, a.ID, tc.revision, tc.ids)
+			problemStatus(t, err, tc.status)
+		})
+	}
+	var count int64
+	s.DB.Model(&models.ArchiveExport{}).Count(&count)
+	if count != 0 {
+		t.Fatal("invalid selection queued an export")
+	}
+	job, err := s.CreateDownload(alice, a.ID, a.Revision, []int64{doc.ID, second.ID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Removing the current document must not alter the export's pinned snapshot.
+	if err := s.DeleteDocument(alice, a.ID, doc.ID); err != nil {
+		t.Fatal(err)
+	}
+	for deadline := time.Now().Add(10 * time.Second); ; {
+		job, path, err := s.Export(job.ID)
+		if err != nil || job.State == "error" || time.Now().After(deadline) {
+			t.Fatal("download failed", err, job)
+		}
+		if job.State == "done" {
+			zip, err := zip.OpenReader(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer zip.Close()
+			if len(zip.File) != 2 || !strings.HasSuffix(zip.File[0].Name, "-selected.png") || !strings.HasSuffix(zip.File[1].Name, "-also-selected.png") {
+				t.Fatalf("unselected or internal files leaked: %v", zip.File)
+			}
+			r, err := zip.File[0].Open()
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer r.Close()
+			got, _ := io.ReadAll(r)
+			if !bytes.Equal(got, pngBytes(t)) {
+				t.Fatal("original bytes changed")
+			}
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	logs, err := s.Logs(a.ID, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var audited bool
+	for _, log := range logs {
+		if log.Action == "export_requested" && strings.Contains(string(log.Detail), "document_ids") {
+			audited = true
+		}
+	}
+	if !audited {
+		t.Fatal("selection was not audited")
+	}
+}
+
+func TestArchiveDownloadRejectsInvalidFormatSelections(t *testing.T) {
+	s := newTestService(t)
+	a, onlineID := other(t, s)
+	a, err := s.Upload(alice, a.ID, 0, "image.png", "other", "", 0, bytes.NewReader(pngBytes(t)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	imageID := a.Documents[len(a.Documents)-1].ID
+	for _, documents := range [][]DocumentDownload{
+		nil,
+		{{DocumentID: onlineID}},
+		{{DocumentID: onlineID, Format: "original"}},
+		{{DocumentID: imageID, Format: "pdf"}},
+		{{DocumentID: imageID, Format: "annotated_pdf"}},
+		{{DocumentID: onlineID, Format: "pdf"}, {DocumentID: onlineID, Format: "docx"}},
+		{{DocumentID: 99999, Format: "pdf"}},
+	} {
+		_, err := s.CreateFormattedDownload(alice, a.ID, a.Revision, documents)
+		problemStatus(t, err, 422)
+	}
+	_, err = s.CreateFormattedDownload(alice, a.ID, a.Revision-1, []DocumentDownload{{DocumentID: onlineID, Format: "pdf"}})
+	problemStatus(t, err, 409)
+	var count int64
+	s.DB.Model(&models.ArchiveExport{}).Count(&count)
+	if count != 0 {
+		t.Fatal("invalid format selection queued an export")
+	}
 }
 func mustRead(t *testing.T, p string) []byte {
 	t.Helper()
