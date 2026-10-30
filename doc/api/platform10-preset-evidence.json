@@ -1,0 +1,42 @@
+{
+  "buildId": "20261029T071631Z-f604f710",
+  "channelId": 25,
+  "draftRuleId": 13,
+  "local": {
+    "ok": true,
+    "buildId": "20261029T071631Z-f604f710"
+  },
+  "lan": {
+    "ok": true,
+    "buildId": "20261029T071631Z-f604f710"
+  },
+  "public": {
+    "ok": false,
+    "error": "<urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)>"
+  },
+  "checks": [
+    "anonymous rejected",
+    "wrong password rejected",
+    "login",
+    "one saved default channel pinned on first page across date sort directions",
+    "default disabled with confirmed event types and file-key reference",
+    "actual UI save of the disabled preset; confirmed endpoint, timezone, file key reference",
+    "disabled business mapping draft saved; customer supplied in instance only; unknown CMDB association stays empty",
+    "selectable in existing notification rule; no local recipient expansion",
+    "reload retains one saved channel",
+    "zero task writes, no new tasks, no real send and no browser errors"
+  ],
+  "writes": [
+    "PUT /api/n9e/notify-channel-config/25"
+  ],
+  "pageErrors": [],
+  "scope": "Disabled configuration only; no production request, new task, or downstream notification test",
+  "automated": {
+    "infra": 63,
+    "goPassedIncludingSubtests": 2783,
+    "goSkippedExternalService": 48,
+    "frontendSuitesPassed": 214,
+    "frontendTestsPassed": 1859,
+    "embeddedAssetsMatch": true
+  }
+}

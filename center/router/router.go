@@ -800,6 +800,10 @@ func (rt *Router) Config(r *gin.Engine) {
 		pages.DELETE("/notify-channel-configs", rt.auth(), rt.user(), rt.perm("/notification-channels/del"), rt.notifyChannelsDel)
 		pages.PUT("/notify-channel-config/:id", rt.auth(), rt.user(), rt.perm("/notification-channels/put"), rt.notifyChannelPut)
 		pages.GET("/notify-channel-config/:id", rt.auth(), rt.user(), rt.perm("/notification-channels"), rt.notifyChannelGet)
+		pages.GET("/external-push-signing-key", rt.auth(), rt.admin(), rt.externalPushSigningKey)
+		pages.GET("/external-push-tasks", rt.auth(), rt.admin(), rt.externalPushTasks)
+		pages.GET("/external-push-tasks/:id", rt.auth(), rt.admin(), rt.externalPushDetail)
+		pages.POST("/external-push-tasks/:id/actions", rt.auth(), rt.admin(), rt.externalPushAction)
 		pages.GET("/notify-channel-configs", rt.auth(), rt.user(), rt.perm("/notification-channels"), rt.notifyChannelsGet)
 		pages.GET("/simplified-notify-channel-configs", rt.auth(), rt.user(), rt.notifyChannelsGetForNormalUser)
 		pages.GET("/flashduty-channel-list/:id", rt.auth(), rt.user(), rt.flashDutyNotifyChannelsGet)
@@ -936,6 +940,7 @@ func (rt *Router) Config(r *gin.Engine) {
 
 			service.GET("/notify-rules", rt.notifyRulesGetByService)
 
+			service.POST("/external-push-tasks", rt.externalPushRegister)
 			service.GET("/notify-channels", rt.notifyChannelConfigGets)
 
 			service.GET("/message-templates", rt.messageTemplateGets)

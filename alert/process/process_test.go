@@ -199,3 +199,42 @@ func TestPushEventToQueueRecoveredNotTracked(t *testing.T) {
 		t.Fatal("队列里不能放活对象")
 	}
 }
+
+func TestDispatchAndIncidentIdentitySurviveSnapshots(t *testing.T) {
+	queue.EventQueue.RemoveAll()
+	defer queue.EventQueue.RemoveAll()
+	p := &Processor{fires: NewAlertCurEventMap(nil)}
+	first := &models.AlertCurEvent{Hash: "same-hash", FirstTriggerTime: 100, LastEvalTime: 100}
+	p.pushEventToQueue(first)
+	repeat := &models.AlertCurEvent{Hash: "same-hash", FirstTriggerTime: 100, LastEvalTime: 100}
+	p.pushEventToQueue(repeat)
+	recovered := repeat.DeepCopy()
+	recovered.IsRecovered = true
+	p.fires.Delete(repeat.Hash)
+	p.pushEventToQueue(recovered)
+	next := &models.AlertCurEvent{Hash: "same-hash", FirstTriggerTime: 100, LastEvalTime: 100}
+	p.pushEventToQueue(next)
+	events := queue.EventQueue.PopBackBy(10)
+	if len(events) != 4 {
+		t.Fatal(len(events))
+	}
+	seen := map[string]bool{}
+	for i, item := range events {
+		e := item.(*models.AlertCurEvent)
+		if e.DispatchID == "" || seen[e.DispatchID] {
+			t.Fatal("dispatch identity reused")
+		}
+		seen[e.DispatchID] = true
+		if i < 3 && (e.IncidentID != first.IncidentID || e.IncidentSequence != int64(i+1)) {
+			t.Fatalf("episode identity changed: %+v", e)
+		}
+		// Both persistent history conversion and reverse conversion preserve IDs.
+		roundtrip := e.ToHis(nil).ToCur()
+		if roundtrip.DispatchID != e.DispatchID || roundtrip.IncidentID != e.IncidentID || roundtrip.IncidentSequence != e.IncidentSequence {
+			t.Fatal("persistence conversion lost identity")
+		}
+	}
+	if next.IncidentID == first.IncidentID || next.IncidentSequence != 1 {
+		t.Fatal("new incident merged by same timestamp/hash")
+	}
+}

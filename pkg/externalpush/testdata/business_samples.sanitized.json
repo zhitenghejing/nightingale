@@ -1,0 +1,190 @@
+{
+  "normalization_assumptions": {
+    "source": "Nine unquoted display objects, not a confirmed wire format. Customer values, network addresses, names, tags, dates and signatures replaced.",
+    "alarm_type": "problem/ok confirmed by business owner.",
+    "deviceTags": "JSON string containing a bracketed display value; not an array. This is a local test assumption only.",
+    "sign": "One explicit identical test-only value for every record; no source signatures or inferred algorithm.",
+    "event_identity": "Explicit test incident/dispatch UUIDs; sample field equality does not establish receiver pairing rules.",
+    "additional_boundary_cases": "Synthetic IP:TCP-port, interface path, whitespace, quotes, slash and form-encoding characters; not claimed as additional source pairs."
+  },
+  "records": [
+    {
+      "ref": "R1",
+      "pair": "P2",
+      "payload": {
+        "alarmType": "ok",
+        "companyId": "TEST_独立部署-机构甲",
+        "deviceType": "数据库",
+        "deviceName": "TEST数据库-192.0.2.12",
+        "problemTime": "2026-01-03 03:04:05",
+        "recoveryTime": "2026-01-03 05:22:04",
+        "triggerName": "TEST_数据库连接数偏高",
+        "level": "警告",
+        "deviceTags": "[TEST_数据库-甲, TEST_监控, TEST_分组, TEST_等级]",
+        "sign": "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE"
+      }
+    },
+    {
+      "ref": "R2",
+      "pair": "P1",
+      "payload": {
+        "alarmType": "ok",
+        "companyId": "TEST_独立部署-机构甲",
+        "deviceType": "主机",
+        "deviceName": "192.0.2.11",
+        "problemTime": "2026-01-02 01:02:03",
+        "recoveryTime": "2026-01-02 01:14:05",
+        "triggerName": "TEST_主机负载偏高(5分钟)",
+        "level": "严重",
+        "deviceTags": "[TEST_OS, TEST_平台-甲, TEST_组1, TEST_组2, TEST_组3, TEST_组4, TEST_组5, TEST_组6, TEST_等级-乙]",
+        "sign": "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE"
+      }
+    },
+    {
+      "ref": "R3",
+      "pair": "P1",
+      "payload": {
+        "alarmType": "problem",
+        "companyId": "TEST_独立部署-机构甲",
+        "deviceType": "主机",
+        "deviceName": "192.0.2.11",
+        "problemTime": "2026-01-02 01:02:03",
+        "recoveryTime": "",
+        "triggerName": "TEST_主机负载偏高(5分钟)",
+        "level": "严重",
+        "deviceTags": "[TEST_OS, TEST_平台-甲, TEST_组1, TEST_组2, TEST_组3, TEST_组4, TEST_组5, TEST_组6, TEST_等级-乙]",
+        "sign": "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE"
+      }
+    },
+    {
+      "ref": "R4",
+      "pair": "P2",
+      "payload": {
+        "alarmType": "problem",
+        "companyId": "TEST_独立部署-机构甲",
+        "deviceType": "数据库",
+        "deviceName": "TEST数据库-192.0.2.12",
+        "problemTime": "2026-01-03 03:04:05",
+        "recoveryTime": "",
+        "triggerName": "TEST_数据库连接数偏高",
+        "level": "警告",
+        "deviceTags": "[TEST_数据库-甲, TEST_监控, TEST_分组, TEST_等级]",
+        "sign": "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE"
+      }
+    },
+    {
+      "ref": "R5",
+      "pair": "",
+      "payload": {
+        "alarmType": "ok",
+        "companyId": "TEST_独立部署-机构乙",
+        "deviceType": "服务器",
+        "deviceName": "TEST服务器-198.51.100.13",
+        "problemTime": "2026-01-05 06:07:08",
+        "recoveryTime": "2026-01-05 06:08:09",
+        "triggerName": "TEST_服务器另一个指标",
+        "level": "警告",
+        "deviceTags": "[TEST_服务器, TEST_模拟-业务-组, TEST_组1, TEST_分部-甲, TEST_组2, TEST_等级]",
+        "sign": "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE"
+      }
+    },
+    {
+      "ref": "R6",
+      "pair": "P3",
+      "payload": {
+        "alarmType": "ok",
+        "companyId": "TEST_独立部署-机构乙",
+        "deviceType": "服务器",
+        "deviceName": "TEST服务器-198.51.100.13",
+        "problemTime": "2026-01-04 05:06:07",
+        "recoveryTime": "2026-01-04 21:54:07",
+        "triggerName": "TEST_服务连接-探测失败",
+        "level": "严重",
+        "deviceTags": "[TEST_服务器, TEST_模拟-业务-组, TEST_组1, TEST_分部-甲, TEST_组2, TEST_等级]",
+        "sign": "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE"
+      }
+    },
+    {
+      "ref": "R7",
+      "pair": "",
+      "payload": {
+        "alarmType": "ok",
+        "companyId": "TEST_独立部署-机构乙",
+        "deviceType": "网络交换机",
+        "deviceName": "TEST交换机-203.0.113.14(TESTPORT7/2/31-)",
+        "problemTime": "2026-01-04 05:06:07",
+        "recoveryTime": "2026-01-04 21:55:08",
+        "triggerName": "TEST_接口状态异常(端口)",
+        "level": "严重",
+        "deviceTags": "[TEST_网络, TEST_交换机, TEST_模拟, TEST_分组-乙, TEST_等级]",
+        "sign": "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE"
+      }
+    },
+    {
+      "ref": "R8",
+      "pair": "P3",
+      "payload": {
+        "alarmType": "problem",
+        "companyId": "TEST_独立部署-机构乙",
+        "deviceType": "服务器",
+        "deviceName": "TEST服务器-198.51.100.13",
+        "problemTime": "2026-01-04 05:06:07",
+        "recoveryTime": "",
+        "triggerName": "TEST_服务连接-探测失败",
+        "level": "严重",
+        "deviceTags": "[TEST_服务器, TEST_模拟-业务-组, TEST_组1, TEST_分部-甲, TEST_组2, TEST_等级]",
+        "sign": "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE"
+      }
+    },
+    {
+      "ref": "R9",
+      "pair": "",
+      "payload": {
+        "alarmType": "ok",
+        "companyId": "TEST_独立部署-机构丙",
+        "deviceType": "网络交换机",
+        "deviceName": "TEST网络-203.0.113.15",
+        "problemTime": "2026-01-06 07:08:09",
+        "recoveryTime": "2026-01-06 07:09:10",
+        "triggerName": "TEST_设备可达性(探测)",
+        "level": "警告",
+        "deviceTags": "[TEST_网络, TEST_模拟, TEST_等级]",
+        "sign": "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE"
+      }
+    }
+  ],
+  "additional_boundary_cases": [
+    {
+      "ref": "B1",
+      "pair": "B1",
+      "payload": {
+        "alarmType": "problem",
+        "companyId": "TEST_独立部署-机构丙",
+        "deviceType": "网络交换机",
+        "deviceName": "TEST-203.0.113.20:18443(TESTPORT7/2/31-) +&=%\"\\名称",
+        "problemTime": "2026-02-02 02:02:02",
+        "recoveryTime": "",
+        "triggerName": "TEST_额外边界 + & = %",
+        "level": "警告",
+        "deviceTags": "[TEST_额外边界, 中文 + & = %, TEST_非数组类型]",
+        "sign": "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE"
+      }
+    },
+    {
+      "ref": "B2",
+      "pair": "B1",
+      "payload": {
+        "alarmType": "ok",
+        "companyId": "TEST_独立部署-机构丙",
+        "deviceType": "网络交换机",
+        "deviceName": "TEST-203.0.113.20:18443(TESTPORT7/2/31-) +&=%\"\\名称",
+        "problemTime": "2026-02-02 02:02:02",
+        "recoveryTime": "2026-02-02 02:03:03",
+        "triggerName": "TEST_额外边界 + & = %",
+        "level": "警告",
+        "deviceTags": "[TEST_额外边界, 中文 + & = %, TEST_非数组类型]",
+        "sign": "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE"
+      }
+    }
+  ]
+}

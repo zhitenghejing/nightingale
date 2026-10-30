@@ -1,0 +1,57 @@
+{
+  "decoded_form_json": [
+    {
+      "alarmType": "problem",
+      "companyId": "TEST_总部",
+      "deviceType": "TEST_主机",
+      "deviceName": "TEST_NODE_192.0.2.8:1443(TESTPORT2/3-)",
+      "problemTime": "2026-08-11 06:13:22",
+      "recoveryTime": "",
+      "triggerName": "CPU\u003e95% 中文+ \u0026=%\"\n换行",
+      "level": "TEST_严重",
+      "deviceTags": "['TEST_db', 'TEST_业务等级B']",
+      "sign": "TEST_ONLY_+ \u0026=%签名"
+    },
+    {
+      "alarmType": "ok",
+      "companyId": "TEST_总部",
+      "deviceType": "TEST_主机",
+      "deviceName": "TEST_NODE_192.0.2.8:1443(TESTPORT2/3-)",
+      "problemTime": "2026-08-11 06:13:22",
+      "recoveryTime": "2026-08-11 06:25:24",
+      "triggerName": "CPU\u003e95% 中文+ \u0026=%\"\n换行",
+      "level": "TEST_严重",
+      "deviceTags": "['TEST_db', 'TEST_业务等级B']",
+      "sign": "TEST_ONLY_+ \u0026=%签名"
+    },
+    {
+      "alarmType": "problem",
+      "companyId": "TEST_分部",
+      "deviceType": "TEST_网络设备",
+      "deviceName": "TEST_NODE_192.0.2.8:1443(TESTPORT2/3-)",
+      "problemTime": "2026-08-11 06:13:22",
+      "recoveryTime": "",
+      "triggerName": "CPU\u003e95% 中文+ \u0026=%\"\n换行",
+      "level": "TEST_严重",
+      "deviceTags": "['TEST_db', 'TEST_业务等级B']",
+      "sign": "TEST_ONLY_+ \u0026=%签名"
+    },
+    {
+      "alarmType": "ok",
+      "companyId": "TEST_分部",
+      "deviceType": "TEST_网络设备",
+      "deviceName": "TEST_NODE_192.0.2.8:1443(TESTPORT2/3-)",
+      "problemTime": "2026-08-11 06:13:22",
+      "recoveryTime": "2026-08-11 06:25:24",
+      "triggerName": "CPU\u003e95% 中文+ \u0026=%\"\n换行",
+      "level": "TEST_严重",
+      "deviceTags": "['TEST_db', 'TEST_业务等级B']",
+      "sign": "TEST_ONLY_+ \u0026=%签名"
+    }
+  ],
+  "endpoint": "http://127.0.0.1:42819",
+  "normalization": "10 JSON string fields; deviceTags string is a local assumption; fake signature is not a production signer",
+  "response_body": "{\"status\":200}",
+  "response_http_status": 200,
+  "scope": "LOCAL SYNTHETIC VALUES ONLY"
+}

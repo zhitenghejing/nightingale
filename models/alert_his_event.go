@@ -13,6 +13,9 @@ import (
 )
 
 type AlertHisEvent struct {
+	DispatchID         string            `json:"dispatch_id" gorm:"type:varchar(36);not null;default:''"`
+	IncidentID         string            `json:"incident_id" gorm:"type:varchar(36);not null;default:''"`
+	IncidentSequence   int64             `json:"incident_sequence" gorm:"not null;default:0"`
 	Id                 int64             `json:"id" gorm:"primaryKey"`
 	Cate               string            `json:"cate"`
 	IsRecovered        int               `json:"is_recovered"`
@@ -432,6 +435,7 @@ func AlertHisEventGetByIds(ctx *ctx.Context, ids []int64) ([]*AlertHisEvent, err
 
 func (e *AlertHisEvent) ToCur() *AlertCurEvent {
 	cur := AlertCurEvent{
+		DispatchID: e.DispatchID, IncidentID: e.IncidentID, IncidentSequence: e.IncidentSequence,
 		Id:                 e.Id,
 		Cate:               e.Cate,
 		Cluster:            e.Cluster,

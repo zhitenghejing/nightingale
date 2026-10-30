@@ -5,6 +5,7 @@ import _ from 'lodash';
 import { ChannelItem } from '@/pages/notificationChannels/types';
 
 import UserInfo from './UserInfo';
+import ExternalPush from './ExternalPush';
 import Flashduty from './Flashduty';
 import Custom from './Custom';
 import PagerDuty from './Pagerduty';
@@ -26,6 +27,7 @@ export default function index(props: Props) {
   const contactKey = channelItem?.param_config?.user_info?.contact_key;
   const customParams = channelItem?.param_config?.custom?.params ?? [];
 
+  if (request_type === 'external_push') return <ExternalPush field={field} />;
   if (request_type === 'flashduty') {
     return <Flashduty field={field} channelItem={channelItem} />;
   } else if (request_type === 'pagerduty') {

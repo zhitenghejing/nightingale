@@ -284,3 +284,9 @@ ForceUseServerTS = true
 [Ibex]
 Enable = true
 RPCListen = "0.0.0.0:20090"
+
+# Optional center-only override. The file is provisioned separately, outside Git.
+# The default reference platform10-v1 uses /etc/n9e/secrets/platform10.key.
+# Restart center after changing this path registry; keep each version immutable.
+# [Center.ExternalPushKeyFiles]
+# platform10-v1 = "/etc/n9e/secrets/platform10.key"
