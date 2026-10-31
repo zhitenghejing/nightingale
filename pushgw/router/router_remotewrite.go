@@ -146,6 +146,14 @@ func (rt *Router) remoteWrite(c *gin.Context) {
 		return
 	}
 
+	if rt.Collection != nil {
+		user, _, _ := c.Request.BasicAuth()
+		req.Timeseries, err = rt.Collection.FilterSamples(user, req.Timeseries)
+		if err != nil {
+			c.JSON(503, gin.H{"error": "collection validation unavailable"})
+			return
+		}
+	}
 	count := len(req.Timeseries)
 
 	if count == 0 {
@@ -177,7 +185,7 @@ func (rt *Router) remoteWrite(c *gin.Context) {
 			pstat.CounterSampleReceivedByIdent.WithLabelValues(ident).Inc()
 		}
 
-		if rt.Pushgw.GetHeartbeatFromMetric && insertTarget {
+		if rt.Pushgw.GetHeartbeatFromMetric && insertTarget && !hasCollectionLabels(req.Timeseries[i].Labels) {
 			// has ident tag or agent_hostname tag
 			// register host in table target
 			ids[ident] = struct{}{}

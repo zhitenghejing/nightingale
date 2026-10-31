@@ -287,6 +287,16 @@ ops:
     - name: /roles/del
       cname: Role - Delete
 
+- name: Collection Management
+  cname: Collection Management
+  ops:
+    - name: /collection/read
+      cname: Collection - View
+    - name: /collection/write
+      cname: Collection - Manage
+    - name: /collection/delete
+      cname: Collection - Delete
+
 - name: System Settings
   cname: System Settings
   ops:

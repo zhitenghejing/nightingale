@@ -18,6 +18,8 @@ keep shared project architecture in CLAUDE.md rather than duplicating it here.
   failures and skipped tests; never present them as passes.
 - Use preview for running-instance verification, refresh after edits, and check
   source/build identity plus local/public probes before handing off an address.
+- On `feat/snmp-device-management`, follow the [branch LAN testing policy](doc/worktree-preview.md#snmp-分支本地测试约定)
+  for deployment and all running-instance tests; its LAN checks replace the public probe requirement.
 - `n9e.zhiteng.win` is the separate stable/main instance. Worktrees only use
   `n9e-dev0.zhiteng.win` through `n9e-dev9.zhiteng.win`. Never publish a branch
   through the stable hostname. Stable commands require the configured clean main checkout.

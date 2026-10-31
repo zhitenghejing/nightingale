@@ -1,4 +1,17 @@
 const zh_CN = {
+  inventory: {
+    model: '设备型号',
+    name: '设备名称', type: '设备类型', ip: 'IP 地址', method: '采集方式', reachability: '可达性', alerts: '当前告警', groups: '业务组', tags: '设备标签', actions: '操作',
+    edit: '编辑', delete: '删除', cancel: '取消', delete_confirm: '确认删除此设备？', delete_failed: '删除失败，请重试', load_failed: '无法加载设备配置',
+    critical: '严重', warning: '警告', info: '提示', unavailable: '暂不可用', unclassified: '未分类',
+    resize: '调整{{column}}列宽', mysql_agent: '由采集器的 MySQL 插件远程采集，无需在数据库设备上安装 Agent。',
+    reachability_up: '可达', reachability_down: '不可达', reachability_unknown: '未知', reachability_error: '探测异常', reachability_conflict: '结果不一致',
+    reachability_up_tip: '最近 3 分钟的 ICMP 探测成功；不代表所有业务服务健康。',
+    reachability_down_tip: '最近 3 分钟的 ICMP 探测无响应。',
+    reachability_unknown_tip: '没有新鲜的 ICMP 探测结果；不以 Agent 心跳或 SNMP 采集状态代替。',
+    reachability_error_tip: 'ICMP 探测器执行失败，请检查探测器权限与配置。',
+    reachability_conflict_tip: '多个 ICMP 探测在同一时刻返回不同结果。',
+  },
   title: '机器列表',
   default_filter: '预置筛选',
   ungrouped_targets: '未归组机器',

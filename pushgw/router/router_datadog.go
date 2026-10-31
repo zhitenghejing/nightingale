@@ -249,6 +249,9 @@ func (r *Router) datadogSeries(c *gin.Context) {
 			continue
 		}
 
+		if !r.collectionSampleAllowed(c, pt) {
+			continue
+		}
 		if ident != "" {
 			if r.Pushgw.GetHeartbeatFromMetric {
 				// register host

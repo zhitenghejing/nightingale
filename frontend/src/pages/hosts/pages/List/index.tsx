@@ -160,7 +160,7 @@ export default function index() {
                 <HostTopoViewSwitch value={viewMode} onChange={changeViewMode} gids={gids} filters={hostFilters} onFiltersChange={setHostFilters} />
               </div>
             )}
-            <StatsCards gids={gids} collapsed={statsCollapsed} setCollapsed={setStatsCollapsed} refreshFlag={refreshFlag} />
+            <StatsCards filters={hostFilters} gids={gids} collapsed={statsCollapsed} setCollapsed={setStatsCollapsed} refreshFlag={refreshFlag} />
             {viewMode === 'topology' && IS_PLUS ? (
               <div className='flex-1 min-h-0 flex flex-col gap-2'>
                 {/* 拓扑视图下 <List/> 整个不渲染，它那条工具栏也跟着没了。

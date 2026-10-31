@@ -18,6 +18,8 @@ export function getList(params: {
   auth_level?: string; // 逗号分隔的授权等级，如 '1,2,3'
   downtime?: number;
   agent_versions?: string;
+  collection_kind?: string;
+  collector_id?: string;
 }): Promise<{ list: Item[]; total: number }> {
   const url = IS_PLUS ? '/api/n9e-plus/targets' : '/api/n9e/targets';
   return request(url, {
@@ -26,7 +28,7 @@ export function getList(params: {
   }).then((res) => res.dat);
 }
 
-export function getStats(params: { gids?: string }): Promise<Stats> {
+export function getStats(params: { gids?: string; collection_kind?: string; collector_id?: string }): Promise<Stats> {
   return request('/api/n9e/targets/stats', {
     method: RequestMethod.Get,
     params,

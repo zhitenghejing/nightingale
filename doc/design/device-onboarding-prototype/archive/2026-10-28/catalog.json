@@ -1,0 +1,5938 @@
+{
+  "date": "2026-10-28",
+  "defaultCount": 89,
+  "liveCount": 91,
+  "categories": [
+    {
+      "id": "host",
+      "name": "主机与操作系统",
+      "description": "Linux、Windows；选择 Agent 或 SNMP。",
+      "templates": [
+        "Linux",
+        "Linux_SNMP",
+        "Windows",
+        "Windows_SNMP"
+      ],
+      "default": "Linux_SNMP",
+      "phase": "P1"
+    },
+    {
+      "id": "database",
+      "name": "关系型数据库",
+      "description": "实例地址、数据库标识与监控账号。",
+      "templates": [
+        "Dameng",
+        "Greenplum",
+        "Kingbase",
+        "MySQL",
+        "Oracle",
+        "PostgreSQL",
+        "SQLServer"
+      ],
+      "default": "MySQL",
+      "phase": "P1"
+    },
+    {
+      "id": "analytics",
+      "name": "分析与分布式数据库",
+      "description": "按实际采集方式区分 SQL 和多角色指标端点。",
+      "templates": [
+        "ClickHouse",
+        "Doris",
+        "TDEngine",
+        "TiDB"
+      ],
+      "default": "TiDB",
+      "phase": "P2"
+    },
+    {
+      "id": "data-services",
+      "name": "缓存、文档与搜索",
+      "description": "Redis ACL、MongoDB 认证库、Elasticsearch API。",
+      "templates": [
+        "Elasticsearch",
+        "MongoDB",
+        "Redis"
+      ],
+      "default": "Redis",
+      "phase": "P1"
+    },
+    {
+      "id": "messaging",
+      "name": "消息队列与 MQTT",
+      "description": "Broker、管理接口、SASL 或 Prometheus 端点。",
+      "templates": [
+        "AutoMQ",
+        "EMQX",
+        "Kafka",
+        "NSQ",
+        "RabbitMQ"
+      ],
+      "default": "Kafka",
+      "phase": "P2"
+    },
+    {
+      "id": "web",
+      "name": "Web 与应用服务",
+      "description": "状态页或指标接口，按模板填写认证和路径。",
+      "templates": [
+        "Apache",
+        "Gitlab",
+        "HAProxy",
+        "IIS",
+        "Jenkins",
+        "Nginx",
+        "PHP",
+        "Tomcat"
+      ],
+      "default": "Nginx",
+      "phase": "P1"
+    },
+    {
+      "id": "java",
+      "name": "Java 与 JMX",
+      "description": "选择 JMX Exporter、Jolokia 或 Actuator。",
+      "templates": [
+        "Java",
+        "Jolokia_Agent",
+        "SpringBoot"
+      ],
+      "default": "SpringBoot",
+      "phase": "P2"
+    },
+    {
+      "id": "container",
+      "name": "容器与 Kubernetes",
+      "description": "已有 Agent、容器接口与集群多指标源。",
+      "templates": [
+        "Docker",
+        "Kubernetes",
+        "cAdvisor"
+      ],
+      "default": "Kubernetes",
+      "phase": "P2"
+    },
+    {
+      "id": "storage",
+      "name": "存储与虚拟化",
+      "description": "存储指标接口或 vCenter API，按对象范围绑定。",
+      "templates": [
+        "Ceph",
+        "MinIO",
+        "XSKYApi",
+        "vSphere"
+      ],
+      "default": "vSphere",
+      "phase": "P2"
+    },
+    {
+      "id": "network",
+      "name": "网络设备与带外硬件",
+      "description": "设备型号对应 OID；SNMP、IPMI、Redfish。",
+      "templates": [
+        "IPMI",
+        "Redfish",
+        "SNMP",
+        "Switch_Legacy"
+      ],
+      "default": "SNMP",
+      "phase": "P2"
+    },
+    {
+      "id": "cloud",
+      "name": "云平台与 SaaS",
+      "description": "云凭据、区域与产品；发现后选择监控资源。",
+      "templates": [
+        "Akamai",
+        "AliYun",
+        "Azure",
+        "CloudWatch",
+        "Cloudflare",
+        "GoogleCloud",
+        "Huawei",
+        "Meraki",
+        "OpenStack",
+        "Tencent"
+      ],
+      "default": "AliYun",
+      "phase": "P3"
+    },
+    {
+      "id": "probes",
+      "name": "网络拨测、域名与证书",
+      "description": "URL、域名、IP 或端口，不统一要求密码。",
+      "templates": [
+        "CDN",
+        "Dns_Query",
+        "HTTP_Response",
+        "Net_Response",
+        "Ping",
+        "Whois",
+        "X509_Cert"
+      ],
+      "default": "HTTP_Response",
+      "phase": "P1"
+    },
+    {
+      "id": "local",
+      "name": "主机专项与本地插件",
+      "description": "绑定目标机器自己的 Agent，再选择本机采集项。",
+      "templates": [
+        "AMD_ROCm_SMI",
+        "Exec",
+        "Filecount",
+        "HUATUO",
+        "IPVS",
+        "Mtail",
+        "NFSClient",
+        "NVIDIA",
+        "Netstat_Filter",
+        "Procstat",
+        "SMART",
+        "Systemd"
+      ],
+      "default": "NVIDIA",
+      "phase": "P3"
+    },
+    {
+      "id": "infra",
+      "name": "基础中间件与服务",
+      "description": "按服务协议提供 API、LDAP、RADIUS 或节点地址。",
+      "templates": [
+        "Bind",
+        "Canal",
+        "Consul",
+        "Ldap",
+        "Radius",
+        "ZooKeeper"
+      ],
+      "default": "Consul",
+      "phase": "P2"
+    },
+    {
+      "id": "observability",
+      "name": "指标平台与推送接入",
+      "description": "区分指标抓取、已有数据关联和监听接收。",
+      "templates": [
+        "AppDynamics",
+        "LLM",
+        "Logstash",
+        "N9E",
+        "Prometheus",
+        "RocketMQ",
+        "Skywalking",
+        "VictoriaMetrics",
+        "Zabbix"
+      ],
+      "default": "RocketMQ",
+      "phase": "P3"
+    },
+    {
+      "id": "custom",
+      "name": "自建模板与待归类",
+      "description": "保留自建内容，先补齐设备类型与参数映射。",
+      "templates": [
+        "jjj",
+        "Windows (snmp)"
+      ],
+      "default": "jjj",
+      "phase": "P0"
+    }
+  ],
+  "templates": [
+    {
+      "name": "AMD_ROCm_SMI",
+      "category": "local",
+      "id": 1,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/AMD_ROCm_SMI/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/AMD_ROCm_SMI/collect/amd_rocm_smi/rocm.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "AMD GPU 显存使用率过高",
+          "source": "integrations/AMD_ROCm_SMI/alerts/amd_rocm_smi_by_categraf.json"
+        },
+        {
+          "name": "AMD GPU 结温过高",
+          "source": "integrations/AMD_ROCm_SMI/alerts/amd_rocm_smi_by_categraf.json"
+        },
+        {
+          "name": "AMD GPU 边缘温度过高",
+          "source": "integrations/AMD_ROCm_SMI/alerts/amd_rocm_smi_by_categraf.json"
+        },
+        {
+          "name": "AMD GPU 显存温度过高",
+          "source": "integrations/AMD_ROCm_SMI/alerts/amd_rocm_smi_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Akamai",
+      "category": "cloud",
+      "id": 2,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Akamai/markdown/akamai.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Akamai/collect/akamai/akamai.toml"
+      ],
+      "boards": [
+        {
+          "name": "Akamai analyze api v1",
+          "source": "integrations/Akamai/dashboards/dashboard_api_v1.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Akamai 边缘 5xx 占比过高",
+          "source": "integrations/Akamai/alerts/akamai_by_categraf.json"
+        },
+        {
+          "name": "Akamai 回源 5xx 占比过高",
+          "source": "integrations/Akamai/alerts/akamai_by_categraf.json"
+        },
+        {
+          "name": "Akamai 缓存卸载率过低",
+          "source": "integrations/Akamai/alerts/akamai_by_categraf.json"
+        },
+        {
+          "name": "Akamai 边缘 4xx 占比过高",
+          "source": "integrations/Akamai/alerts/akamai_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "AliYun",
+      "category": "cloud",
+      "id": 3,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/AliYun/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/AliYun/collect/aliyun/cloud.toml"
+      ],
+      "boards": [
+        {
+          "name": "阿里云-消息队列RabbitMQ版",
+          "source": "integrations/AliYun/dashboards/RabbitMQ.json"
+        },
+        {
+          "name": "ARMS-Application",
+          "source": "integrations/AliYun/dashboards/arms-application.json"
+        },
+        {
+          "name": "ARMS-DB",
+          "source": "integrations/AliYun/dashboards/arms-db.json"
+        },
+        {
+          "name": "阿里云 ARMS-JVM-SERVICE",
+          "source": "integrations/AliYun/dashboards/arms-jvm-service.json"
+        },
+        {
+          "name": "ARMS-Machine",
+          "source": "integrations/AliYun/dashboards/arms-machine.json"
+        },
+        {
+          "name": "阿里云 ARMS-JVM",
+          "source": "integrations/AliYun/dashboards/arms_jvm.json"
+        },
+        {
+          "name": "阿里云CDN",
+          "source": "integrations/AliYun/dashboards/cdn.json"
+        },
+        {
+          "name": "阿里云ECS",
+          "source": "integrations/AliYun/dashboards/ecs.json"
+        },
+        {
+          "name": "阿里云MongoDB",
+          "source": "integrations/AliYun/dashboards/mongodb.json"
+        },
+        {
+          "name": "MSE监控大盘",
+          "source": "integrations/AliYun/dashboards/mse.json"
+        },
+        {
+          "name": "阿里云MySQL",
+          "source": "integrations/AliYun/dashboards/mysql.json"
+        },
+        {
+          "name": "阿里云NAT",
+          "source": "integrations/AliYun/dashboards/nat.json"
+        },
+        {
+          "name": "阿里云OSS",
+          "source": "integrations/AliYun/dashboards/oss.json"
+        },
+        {
+          "name": "阿里云POLARDB-MySQL",
+          "source": "integrations/AliYun/dashboards/polardb_mysql.json"
+        },
+        {
+          "name": "阿里云RDS",
+          "source": "integrations/AliYun/dashboards/rds.json"
+        },
+        {
+          "name": "阿里云RDS_N",
+          "source": "integrations/AliYun/dashboards/rds_new.json"
+        },
+        {
+          "name": "阿里云REDIS",
+          "source": "integrations/AliYun/dashboards/redis.json"
+        },
+        {
+          "name": "阿里云REDIS 集群版",
+          "source": "integrations/AliYun/dashboards/redis_cluster.json"
+        },
+        {
+          "name": "阿里云REDIS_N",
+          "source": "integrations/AliYun/dashboards/redis_new.json"
+        },
+        {
+          "name": "阿里云REDIS 标准版",
+          "source": "integrations/AliYun/dashboards/redis_standard.json"
+        },
+        {
+          "name": "阿里云SLB",
+          "source": "integrations/AliYun/dashboards/slb.json"
+        },
+        {
+          "name": "阿里云-负载均衡",
+          "source": "integrations/AliYun/dashboards/slb_new.json"
+        },
+        {
+          "name": "阿里云WAF",
+          "source": "integrations/AliYun/dashboards/waf.json"
+        },
+        {
+          "name": "阿里云-ALB",
+          "source": "integrations/AliYun/dashboards/阿里云-ALB.json"
+        },
+        {
+          "name": "CDN全局大盘",
+          "source": "integrations/AliYun/dashboards/阿里云-CDN.json"
+        },
+        {
+          "name": "ECS实例详情",
+          "source": "integrations/AliYun/dashboards/阿里云-ECS.json"
+        },
+        {
+          "name": "阿里云-EIP",
+          "source": "integrations/AliYun/dashboards/阿里云-EIP.json"
+        },
+        {
+          "name": "阿里云-ES",
+          "source": "integrations/AliYun/dashboards/阿里云-ES.json"
+        },
+        {
+          "name": "阿里云-Kafka",
+          "source": "integrations/AliYun/dashboards/阿里云-Kafka.json"
+        },
+        {
+          "name": "阿里云-MSE Ingress监控中心",
+          "source": "integrations/AliYun/dashboards/阿里云-MSE Ingress监控中心.json"
+        },
+        {
+          "name": "阿里云-MongoDB-副本集",
+          "source": "integrations/AliYun/dashboards/阿里云-MongoDB-副本集.json"
+        },
+        {
+          "name": "阿里云-OceanBase",
+          "source": "integrations/AliYun/dashboards/阿里云-OceanBase.json"
+        },
+        {
+          "name": "阿里云-PolarDB",
+          "source": "integrations/AliYun/dashboards/阿里云-PolarDB.json"
+        },
+        {
+          "name": "RDS-MySQL-全局概览",
+          "source": "integrations/AliYun/dashboards/阿里云-RDS-全局概览.json"
+        },
+        {
+          "name": "RDS-MySQL-单实例监控",
+          "source": "integrations/AliYun/dashboards/阿里云-RDS-单实例监控.json"
+        },
+        {
+          "name": "阿里云-RabbitMQ",
+          "source": "integrations/AliYun/dashboards/阿里云-RabbitMQ.json"
+        },
+        {
+          "name": "Redis/Tair内存型(标准版)实例详情大盘",
+          "source": "integrations/AliYun/dashboards/阿里云-Redis-Tair内存型(标准版).json"
+        },
+        {
+          "name": "Redis/Tair内存型(读写分离版/集群版)实例详情大盘",
+          "source": "integrations/AliYun/dashboards/阿里云-Redis-Tair内存型(读写分离版-集群版).json"
+        },
+        {
+          "name": "Redis社区版-监控大盘-标准版",
+          "source": "integrations/AliYun/dashboards/阿里云-Redis-社区版.json"
+        },
+        {
+          "name": "Redis社区版-监控大盘-集群版",
+          "source": "integrations/AliYun/dashboards/阿里云-Redis社区版-集群版.json"
+        },
+        {
+          "name": "Redis社区版-监控大盘-读写分离版",
+          "source": "integrations/AliYun/dashboards/阿里云-Redis社区版读写分离版.json"
+        },
+        {
+          "name": "阿里云 SLB",
+          "source": "integrations/AliYun/dashboards/阿里云-SLB.json"
+        },
+        {
+          "name": "WAF",
+          "source": "integrations/AliYun/dashboards/阿里云-WAF.json"
+        },
+        {
+          "name": "增强型NAT网关",
+          "source": "integrations/AliYun/dashboards/阿里云-增强NAT网关.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "阿里云CDN 边缘状态码5XX占比 超过1%",
+          "source": "integrations/AliYun/alerts/AliYun-CDN.json"
+        },
+        {
+          "name": "阿里云CDN 边缘状态码4XX占比 达到100%",
+          "source": "integrations/AliYun/alerts/AliYun-CDN.json"
+        },
+        {
+          "name": "Mongo副本集-CPU利用率大于50%",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Replica Set.json"
+        },
+        {
+          "name": "Mongo副本集-IOPS利用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Replica Set.json"
+        },
+        {
+          "name": "Mongo副本集-QPS超过突增100% ",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Replica Set.json"
+        },
+        {
+          "name": "Mongo副本集-主从延迟超过5秒",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Replica Set.json"
+        },
+        {
+          "name": "Mongo副本集-内存利用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Replica Set.json"
+        },
+        {
+          "name": "Mongo副本集-磁盘利用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Replica Set.json"
+        },
+        {
+          "name": "Mongo分片集群-CPU利用率大于50%",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Sharded Cluster.json"
+        },
+        {
+          "name": "Mongo分片集群-IOPS利用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Sharded Cluster.json"
+        },
+        {
+          "name": "Mongo分片集群-QPS超过突增100% ",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Sharded Cluster.json"
+        },
+        {
+          "name": "Mongo分片集群-主从延迟超过5秒",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Sharded Cluster.json"
+        },
+        {
+          "name": "Mongo分片集群-内存利用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Sharded Cluster.json"
+        },
+        {
+          "name": "Mongo分片集群-磁盘利用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Sharded Cluster.json"
+        },
+        {
+          "name": "Mongo单节点实例-磁盘利用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Standalone.json"
+        },
+        {
+          "name": "Mongo单节点实例-内存利用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Standalone.json"
+        },
+        {
+          "name": "Mongo单节点实例-CPU利用率大于50%",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Standalone.json"
+        },
+        {
+          "name": "Mongo单节点实列-QPS超过突增100% ",
+          "source": "integrations/AliYun/alerts/AliYun-MongoDB Standalone.json"
+        },
+        {
+          "name": "阿里云-NAT-并发连接水位大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-NAT.json"
+        },
+        {
+          "name": "阿里云-NAT-新建连接水位大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-NAT.json"
+        },
+        {
+          "name": "阿里云-OSS-GetObject请求平均延时大于100ms",
+          "source": "integrations/AliYun/alerts/AliYun-OSS.json"
+        },
+        {
+          "name": "阿里云-OSS-可用性低于100%",
+          "source": "integrations/AliYun/alerts/AliYun-OSS.json"
+        },
+        {
+          "name": "阿里云-OSS-有效请求率低于100%",
+          "source": "integrations/AliYun/alerts/AliYun-OSS.json"
+        },
+        {
+          "name": "阿里云-OSS-服务端错误请求占比大于0",
+          "source": "integrations/AliYun/alerts/AliYun-OSS.json"
+        },
+        {
+          "name": "阿里云-OSS-服务端错误请求数大于0",
+          "source": "integrations/AliYun/alerts/AliYun-OSS.json"
+        },
+        {
+          "name": "PolarDB CPU使用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-PolarDB-MySQL.json"
+        },
+        {
+          "name": "PolarDB inode使用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-PolarDB-MySQL.json"
+        },
+        {
+          "name": "PolarDB IOPS使用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-PolarDB-MySQL.json"
+        },
+        {
+          "name": "PolarDB ProxyCPU使用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-PolarDB-MySQL.json"
+        },
+        {
+          "name": "PolarDB 只读节点复制延迟大于1秒",
+          "source": "integrations/AliYun/alerts/AliYun-PolarDB-MySQL.json"
+        },
+        {
+          "name": "PolarDB内存使用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-PolarDB-MySQL.json"
+        },
+        {
+          "name": "PolarDB慢查量突增大于100",
+          "source": "integrations/AliYun/alerts/AliYun-PolarDB-MySQL.json"
+        },
+        {
+          "name": "PolarDB磁盘使用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-PolarDB-MySQL.json"
+        },
+        {
+          "name": "PolarDB连接数使用率大于80%",
+          "source": "integrations/AliYun/alerts/AliYun-PolarDB-MySQL.json"
+        },
+        {
+          "name": "阿里云 RDS 数据库 MySQL/CPU使用率告警",
+          "source": "integrations/AliYun/alerts/AliYun-RDS.json"
+        },
+        {
+          "name": "阿里云 RDS 数据库 MySQL/IOPS使用率告警",
+          "source": "integrations/AliYun/alerts/AliYun-RDS.json"
+        },
+        {
+          "name": "阿里云 RDS 数据库 MySQL/QPS波动率告警",
+          "source": "integrations/AliYun/alerts/AliYun-RDS.json"
+        },
+        {
+          "name": "阿里云 RDS 数据库 MySQL/TPS波动率告警",
+          "source": "integrations/AliYun/alerts/AliYun-RDS.json"
+        },
+        {
+          "name": "阿里云 RDS 数据库 MySQL/内存使用率告警",
+          "source": "integrations/AliYun/alerts/AliYun-RDS.json"
+        },
+        {
+          "name": "阿里云 RDS 数据库 MySQL/总连接数告警",
+          "source": "integrations/AliYun/alerts/AliYun-RDS.json"
+        },
+        {
+          "name": "阿里云 RDS 数据库 MySQL/慢查询占比大于1告警",
+          "source": "integrations/AliYun/alerts/AliYun-RDS.json"
+        },
+        {
+          "name": "阿里云 RDS 数据库 MySQL/慢查询告警",
+          "source": "integrations/AliYun/alerts/AliYun-RDS.json"
+        },
+        {
+          "name": "阿里云 RDS 数据库 MySQL/磁盘空间使用率告警",
+          "source": "integrations/AliYun/alerts/AliYun-RDS.json"
+        },
+        {
+          "name": "阿里云 RDS 数据库 MySQL/运行状态异常告警",
+          "source": "integrations/AliYun/alerts/AliYun-RDS.json"
+        },
+        {
+          "name": "阿里云 RDS 数据库 MySQL/连接数使用率告警",
+          "source": "integrations/AliYun/alerts/AliYun-RDS.json"
+        },
+        {
+          "name": "RabbitMQ连接数大于1000",
+          "source": "integrations/AliYun/alerts/AliYun-RabbitMQ.json"
+        },
+        {
+          "name": "RabbitMQ消费者数量为0",
+          "source": "integrations/AliYun/alerts/AliYun-RabbitMQ.json"
+        },
+        {
+          "name": "RabbitMQ消息堆积大于1000",
+          "source": "integrations/AliYun/alerts/AliYun-RabbitMQ.json"
+        },
+        {
+          "name": "阿里云 Redis CPU使用率告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云 Redis QPS使用率告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云 Redis 内存使用率告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云 Redis 命中率告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云 Redis 失败次数告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云 Redis 平均响应时间告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云 Redis 数据同步延迟告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云 Redis 最大响应时间告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云 Redis 流入带宽使用率告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云 Redis 流出带宽使用率告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云 Redis 连接数使用率告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云 Redis 缓存内Key数量告警",
+          "source": "integrations/AliYun/alerts/AliYun-Redis.json"
+        },
+        {
+          "name": "阿里云-负载均衡-7层协议实例Upstream 5xx(Count/Second) 大于10",
+          "source": "integrations/AliYun/alerts/AliYun-SLB (Load Balancer).json"
+        },
+        {
+          "name": "阿里云-负载均衡-7层协议实例状态码5xx(Count/Second)大于10",
+          "source": "integrations/AliYun/alerts/AliYun-SLB (Load Balancer).json"
+        },
+        {
+          "name": "阿里云-负载均衡-七层实例QPS使用率大于50%",
+          "source": "integrations/AliYun/alerts/AliYun-SLB (Load Balancer).json"
+        },
+        {
+          "name": "阿里云-负载均衡-丢弃连接数大于0",
+          "source": "integrations/AliYun/alerts/AliYun-SLB (Load Balancer).json"
+        },
+        {
+          "name": "阿里云-负载均衡-入方向丢弃流量大于0",
+          "source": "integrations/AliYun/alerts/AliYun-SLB (Load Balancer).json"
+        },
+        {
+          "name": "阿里云-负载均衡-出方向丢弃流量大于0",
+          "source": "integrations/AliYun/alerts/AliYun-SLB (Load Balancer).json"
+        },
+        {
+          "name": "阿里云-负载均衡-实例新建连接数使用率大于50%",
+          "source": "integrations/AliYun/alerts/AliYun-SLB (Load Balancer).json"
+        },
+        {
+          "name": "阿里云-负载均衡-实例最大连接数使用率大于50%",
+          "source": "integrations/AliYun/alerts/AliYun-SLB (Load Balancer).json"
+        },
+        {
+          "name": "阿里云 SLB 4XX 占比告警 超过10%",
+          "source": "integrations/AliYun/alerts/AliYun-SLB.json"
+        },
+        {
+          "name": "阿里云 SLB 5XX 占比告警 超过10%",
+          "source": "integrations/AliYun/alerts/AliYun-SLB.json"
+        },
+        {
+          "name": "阿里云 SLB 七层实例 QPS 使用率超过80%",
+          "source": "integrations/AliYun/alerts/AliYun-SLB.json"
+        },
+        {
+          "name": "阿里云 SLB 实例最大连接数使用率超过80%",
+          "source": "integrations/AliYun/alerts/AliYun-SLB.json"
+        },
+        {
+          "name": "阿里云 SLB 每秒Drop连接数超过10",
+          "source": "integrations/AliYun/alerts/AliYun-SLB.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Apache",
+      "category": "web",
+      "id": 4,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Apache/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Apache/collect/apache/apache.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "Apache 实例不可达",
+          "source": "integrations/Apache/alerts/apache_by_categraf.json"
+        },
+        {
+          "name": "Apache 空闲工作进程耗尽",
+          "source": "integrations/Apache/alerts/apache_by_categraf.json"
+        },
+        {
+          "name": "Apache 工作进程使用率过高",
+          "source": "integrations/Apache/alerts/apache_by_categraf.json"
+        },
+        {
+          "name": "Apache 平均请求处理耗时过长",
+          "source": "integrations/Apache/alerts/apache_by_categraf.json"
+        },
+        {
+          "name": "Apache 近期发生过重启",
+          "source": "integrations/Apache/alerts/apache_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "AppDynamics",
+      "category": "observability",
+      "id": 5,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/AppDynamics/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/AppDynamics/collect/appdynamics/app.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "AutoMQ",
+      "category": "messaging",
+      "id": 6,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/AutoMQ/markdown/overview.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/AutoMQ/collect/prometheus/采集OTEL-COLLECTOR的样例.toml"
+      ],
+      "boards": [
+        {
+          "name": "Broker Metrics",
+          "source": "integrations/AutoMQ/dashboards/broker_metrics.json"
+        },
+        {
+          "name": "Cluster Overview",
+          "source": "integrations/AutoMQ/dashboards/cluster_overview.json"
+        },
+        {
+          "name": "Detailed  Metrics",
+          "source": "integrations/AutoMQ/dashboards/detailed_metrics.json"
+        },
+        {
+          "name": "Group Metrics",
+          "source": "integrations/AutoMQ/dashboards/group_metrics.json"
+        },
+        {
+          "name": "Topic Metrics",
+          "source": "integrations/AutoMQ/dashboards/topic_metrics.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Kafka active controller 数目异常",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        },
+        {
+          "name": "Kafka Broker 连接数过多",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        },
+        {
+          "name": "Kafka Fetch 请求高延迟",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        },
+        {
+          "name": "Kafka Partition 数量过多",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        },
+        {
+          "name": "Kafka Produce 请求高延迟",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        },
+        {
+          "name": "Kafka 每秒 Fetch 请求超过1000",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        },
+        {
+          "name": "Kafka 每秒 Produce 请求超过1000",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        },
+        {
+          "name": "Kafka 消费延迟较高",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        },
+        {
+          "name": "Kafka 请求 S3 失败率较高",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        },
+        {
+          "name": "Kafka 请求错误率过高",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        },
+        {
+          "name": "Kafka 集群入向网络流量较高",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        },
+        {
+          "name": "Kafka 集群出向网络流量较高",
+          "source": "integrations/AutoMQ/alerts/Common Alert Rules.json"
+        }
+      ],
+      "metricCount": 59,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Azure",
+      "category": "cloud",
+      "id": 7,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Azure/markdown/azure.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Azure/collect/azure/azure.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Bind",
+      "category": "infra",
+      "id": 8,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Bind/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Bind/collect/bind/bind.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "BIND 应答 SERVFAIL 占比过高",
+          "source": "integrations/Bind/alerts/bind_by_categraf.json"
+        },
+        {
+          "name": "BIND 递归客户端数逼近上限",
+          "source": "integrations/Bind/alerts/bind_by_categraf.json"
+        },
+        {
+          "name": "BIND 达到递归客户端上限并丢弃查询",
+          "source": "integrations/Bind/alerts/bind_by_categraf.json"
+        },
+        {
+          "name": "BIND 递归查询超时率过高",
+          "source": "integrations/Bind/alerts/bind_by_categraf.json"
+        },
+        {
+          "name": "BIND 查询被丢弃",
+          "source": "integrations/Bind/alerts/bind_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "CDN",
+      "category": "probes",
+      "id": 9,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/CDN/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/CDN/collect/cdn/cdn.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "CDN 探测失败",
+          "source": "integrations/CDN/alerts/cdn_by_categraf.json"
+        },
+        {
+          "name": "CDN 响应状态码异常",
+          "source": "integrations/CDN/alerts/cdn_by_categraf.json"
+        },
+        {
+          "name": "CDN 首包响应时间过长",
+          "source": "integrations/CDN/alerts/cdn_by_categraf.json"
+        },
+        {
+          "name": "CDN 请求总耗时过长",
+          "source": "integrations/CDN/alerts/cdn_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Canal",
+      "category": "infra",
+      "id": 10,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Canal/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "Canal instances",
+          "source": "integrations/Canal/dashboards/canal_by_categraf.json"
+        }
+      ],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Ceph",
+      "category": "storage",
+      "id": 11,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Ceph/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "Ceph - Cluster By Categraf",
+          "source": "integrations/Ceph/dashboards/ceph_by_categraf.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "CephErrorState",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "CephOsdReweighted",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "CephOSDUtilization",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "CephPgActivating",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "CephPgBackfillTooFull",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "CephPgDown",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "CephPgIncomplete",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "CephPgInconsistent",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "CephPgUnavailable",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "CephTargetDown",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "CephWarnState",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "MonitorAvailableStorage",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "MonitorClockSkewTooHigh",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "OsdApplyLatencyTooHigh",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        },
+        {
+          "name": "OsdDown",
+          "source": "integrations/Ceph/alerts/ceph_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "ClickHouse",
+      "category": "analytics",
+      "id": 12,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/ClickHouse/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/ClickHouse/collect/clickhouse/clickhouse.toml"
+      ],
+      "boards": [
+        {
+          "name": "ClickHouse_Categraf",
+          "source": "integrations/ClickHouse/dashboards/clickhouse_by_categraf.json"
+        },
+        {
+          "name": "ClickHouse_Exporter",
+          "source": "integrations/ClickHouse/dashboards/clickhouse_by_exporter.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "ClickHouse Categraf 副本进入只读",
+          "source": "integrations/ClickHouse/alerts/clickhouse_by_categraf.json"
+        },
+        {
+          "name": "ClickHouse Categraf 内存使用",
+          "source": "integrations/ClickHouse/alerts/clickhouse_by_categraf.json"
+        },
+        {
+          "name": "ClickHouse Categraf 磁盘使用",
+          "source": "integrations/ClickHouse/alerts/clickhouse_by_categraf.json"
+        },
+        {
+          "name": "ClickHouse Categraf 并发网络连接数过高",
+          "source": "integrations/ClickHouse/alerts/clickhouse_by_categraf.json"
+        },
+        {
+          "name": "ClickHouse 原生端点 认证错误",
+          "source": "integrations/ClickHouse/alerts/clickhouse_by_native_prometheus.json"
+        },
+        {
+          "name": "ClickHouse 原生端点 副本进入只读",
+          "source": "integrations/ClickHouse/alerts/clickhouse_by_native_prometheus.json"
+        },
+        {
+          "name": "ClickHouse 原生端点 内存使用",
+          "source": "integrations/ClickHouse/alerts/clickhouse_by_native_prometheus.json"
+        },
+        {
+          "name": "ClickHouse 原生端点 副本错误",
+          "source": "integrations/ClickHouse/alerts/clickhouse_by_native_prometheus.json"
+        },
+        {
+          "name": "ClickHouse 原生端点 磁盘使用",
+          "source": "integrations/ClickHouse/alerts/clickhouse_by_native_prometheus.json"
+        },
+        {
+          "name": "ClickHouse 原生端点 并发网络连接数过高",
+          "source": "integrations/ClickHouse/alerts/clickhouse_by_native_prometheus.json"
+        }
+      ],
+      "metricCount": 81,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "CloudWatch",
+      "category": "cloud",
+      "id": 13,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/CloudWatch/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/CloudWatch/collect/cloudwatch/cloud.toml"
+      ],
+      "boards": [
+        {
+          "name": "AWS RDS Telegraf",
+          "source": "integrations/CloudWatch/dashboards/dashboard-by-aws-rds.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "RDS 实例 CPU 使用率过高",
+          "source": "integrations/CloudWatch/alerts/aws_rds_by_categraf.json"
+        },
+        {
+          "name": "RDS 实例可用存储空间不足",
+          "source": "integrations/CloudWatch/alerts/aws_rds_by_categraf.json"
+        },
+        {
+          "name": "RDS 实例 IO 突发余额耗尽",
+          "source": "integrations/CloudWatch/alerts/aws_rds_by_categraf.json"
+        },
+        {
+          "name": "RDS 实例可用内存不足",
+          "source": "integrations/CloudWatch/alerts/aws_rds_by_categraf.json"
+        },
+        {
+          "name": "RDS 实例读延迟过高",
+          "source": "integrations/CloudWatch/alerts/aws_rds_by_categraf.json"
+        },
+        {
+          "name": "RDS 实例写延迟过高",
+          "source": "integrations/CloudWatch/alerts/aws_rds_by_categraf.json"
+        },
+        {
+          "name": "RDS 实例磁盘队列积压",
+          "source": "integrations/CloudWatch/alerts/aws_rds_by_categraf.json"
+        },
+        {
+          "name": "RDS 实例 Swap 使用过高",
+          "source": "integrations/CloudWatch/alerts/aws_rds_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Cloudflare",
+      "category": "cloud",
+      "id": 14,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Cloudflare/markdown/cloudflare.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Cloudflare/collect/cloudflare/cloudflare.toml"
+      ],
+      "boards": [
+        {
+          "name": "CloudFlare Zone Analytics",
+          "source": "integrations/Cloudflare/dashboards/cloudflare.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Cloudflare 边缘 5xx 占比过高",
+          "source": "integrations/Cloudflare/alerts/cloudflare_by_categraf.json"
+        },
+        {
+          "name": "Cloudflare 缓存命中率较昨日同期显著下降",
+          "source": "integrations/Cloudflare/alerts/cloudflare_by_categraf.json"
+        },
+        {
+          "name": "Cloudflare 威胁请求占比过高",
+          "source": "integrations/Cloudflare/alerts/cloudflare_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Consul",
+      "category": "infra",
+      "id": 15,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Consul/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Consul/collect/consul/consul.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "Consul 实例不可达",
+          "source": "integrations/Consul/alerts/consul_by_categraf.json"
+        },
+        {
+          "name": "Consul 集群没有 Leader",
+          "source": "integrations/Consul/alerts/consul_by_categraf.json"
+        },
+        {
+          "name": "Consul Autopilot 判定集群不健康",
+          "source": "integrations/Consul/alerts/consul_by_categraf.json"
+        },
+        {
+          "name": "Consul 集群容错度归零",
+          "source": "integrations/Consul/alerts/consul_by_categraf.json"
+        },
+        {
+          "name": "Consul 服务健康检查 critical",
+          "source": "integrations/Consul/alerts/consul_by_categraf.json"
+        },
+        {
+          "name": "Consul 节点健康检查 critical",
+          "source": "integrations/Consul/alerts/consul_by_categraf.json"
+        },
+        {
+          "name": "Consul 集群成员失联",
+          "source": "integrations/Consul/alerts/consul_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Dameng",
+      "category": "database",
+      "id": 16,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Dameng/markdown/dameng.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Dameng/collect/dmdb/metric.toml",
+        "integrations/Dameng/collect/dmdb/dmdb.toml"
+      ],
+      "boards": [
+        {
+          "name": "达梦DB",
+          "source": "integrations/Dameng/dashboards/dameng-dashboard.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Dameng 指标采集耗时过长",
+          "source": "integrations/Dameng/alerts/dameng_by_categraf.json"
+        },
+        {
+          "name": "Dameng 数据库down",
+          "source": "integrations/Dameng/alerts/dameng_by_categraf.json"
+        },
+        {
+          "name": "Dameng 缓存命中率过低",
+          "source": "integrations/Dameng/alerts/dameng_by_categraf.json"
+        },
+        {
+          "name": "Dameng 锁等待线程数异常",
+          "source": "integrations/Dameng/alerts/dameng_by_categraf.json"
+        }
+      ],
+      "metricCount": 11,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Dns_Query",
+      "category": "probes",
+      "id": 17,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Dns_Query/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Dns_Query/collect/dns_query/dns_query.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "DNS 响应状态码异常",
+          "source": "integrations/Dns_Query/alerts/dns_query_by_categraf.json"
+        },
+        {
+          "name": "DNS查询响应时间大于5秒",
+          "source": "integrations/Dns_Query/alerts/dns_query_by_categraf.json"
+        },
+        {
+          "name": "DNS 查询超时",
+          "source": "integrations/Dns_Query/alerts/dns_query_by_categraf.json"
+        },
+        {
+          "name": "DNS 查询异常",
+          "source": "integrations/Dns_Query/alerts/dns_query_by_categraf.json"
+        }
+      ],
+      "metricCount": 5,
+      "gaps": [
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Docker",
+      "category": "container",
+      "id": 18,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Docker/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Docker/collect/docker/docker.toml"
+      ],
+      "boards": [
+        {
+          "name": "Docker Dashboard",
+          "source": "integrations/Docker/dashboards/docker_dashboard.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Docker daemon 不可达",
+          "source": "integrations/Docker/alerts/docker_by_categraf.json"
+        },
+        {
+          "name": "Docker 容器健康检查失败",
+          "source": "integrations/Docker/alerts/docker_by_categraf.json"
+        },
+        {
+          "name": "Docker 容器被 OOM Kill",
+          "source": "integrations/Docker/alerts/docker_by_categraf.json"
+        },
+        {
+          "name": "Docker 容器反复重启",
+          "source": "integrations/Docker/alerts/docker_by_categraf.json"
+        },
+        {
+          "name": "Docker 容器内存使用率逼近上限",
+          "source": "integrations/Docker/alerts/docker_by_categraf.json"
+        },
+        {
+          "name": "Docker 容器 CPU 被限流",
+          "source": "integrations/Docker/alerts/docker_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Doris",
+      "category": "analytics",
+      "id": 19,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Doris/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Doris/collect/prometheus/collect_doris_examples.toml"
+      ],
+      "boards": [
+        {
+          "name": "Doris Overview",
+          "source": "integrations/Doris/dashboards/Doris_Overview.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Doris JVM内存使用率",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_BE 1 分钟新增tcp包接收错误的次数",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_BE batch 的线程池队列积压",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_BE CPU 使用率",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_BE OlapScanner 线程池积压",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_BE 发送数据包的线程池出现积压",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 95百分位查询延迟",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 99百分位查询延迟",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 事务 publish 耗时95分位",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 事务 publish 耗时99分位",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 事务执行耗时95分位",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 事务执行耗时99分位",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 失败的事务数量",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 异常事务的数量",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 日志写入延迟95分位",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 日志写入延迟99分位",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 每秒错误查询数",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 清理元数据文件失败的次数",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 清理元数据日志失败的次数",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 生成元数据镜像文件失败的次数",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        },
+        {
+          "name": "Doris_FE 被拒绝的事务数量",
+          "source": "integrations/Doris/alerts/doris_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "EMQX",
+      "category": "messaging",
+      "id": 20,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/EMQX/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/EMQX/collect/emqx/emqx.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "EMQX 节点不在运行状态",
+          "source": "integrations/EMQX/alerts/emqx_by_categraf.json"
+        },
+        {
+          "name": "EMQX 集群存在已停止的节点",
+          "source": "integrations/EMQX/alerts/emqx_by_categraf.json"
+        },
+        {
+          "name": "EMQX 连接数逼近文件描述符上限",
+          "source": "integrations/EMQX/alerts/emqx_by_categraf.json"
+        },
+        {
+          "name": "EMQX Erlang 进程数逼近上限",
+          "source": "integrations/EMQX/alerts/emqx_by_categraf.json"
+        },
+        {
+          "name": "EMQX 节点内存使用率过高",
+          "source": "integrations/EMQX/alerts/emqx_by_categraf.json"
+        },
+        {
+          "name": "EMQX 消息丢弃激增",
+          "source": "integrations/EMQX/alerts/emqx_by_categraf.json"
+        },
+        {
+          "name": "EMQX 客户端认证失败激增",
+          "source": "integrations/EMQX/alerts/emqx_by_categraf.json"
+        },
+        {
+          "name": "EMQX 规则引擎动作失败率过高",
+          "source": "integrations/EMQX/alerts/emqx_by_categraf.json"
+        },
+        {
+          "name": "EMQX 节点近期发生过重启",
+          "source": "integrations/EMQX/alerts/emqx_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Elasticsearch",
+      "category": "data-services",
+      "id": 21,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Elasticsearch/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Elasticsearch/collect/elasticsearch/elasticsearch.toml"
+      ],
+      "boards": [
+        {
+          "name": "ElasticSearch",
+          "source": "integrations/Elasticsearch/dashboards/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elasticsearch Dashboard",
+          "source": "integrations/Elasticsearch/dashboards/elasticsearch_by_categraf_0.3.102.json"
+        },
+        {
+          "name": "ElasticSearch, group by service",
+          "source": "integrations/Elasticsearch/dashboards/elasticsearch_by_categraf_a.json"
+        },
+        {
+          "name": "ElasticSearch, group by cluster",
+          "source": "integrations/Elasticsearch/dashboards/elasticsearch_by_categraf_b.json"
+        },
+        {
+          "name": "ElasticSearch By Exporter",
+          "source": "integrations/Elasticsearch/dashboards/elasticsearch_by_exporter.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Elastic Cluster Red status",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elastic Cluster Yellow status",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elasticsearch disk out of space of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elasticsearch disk space low of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elasticsearch Heap Usage Too High of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elasticsearch Heap Usage warning of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elasticsearch initializing shards of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elasticsearch no new documents of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elasticsearch pending tasks of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elasticsearch relocation shards of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elasticsearch unassigned shards of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_categraf.json"
+        },
+        {
+          "name": "Elastic Cluster Red status",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_exporter.json"
+        },
+        {
+          "name": "Elastic Cluster Yellow status",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_exporter.json"
+        },
+        {
+          "name": "Elasticsearch disk out of space of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_exporter.json"
+        },
+        {
+          "name": "Elasticsearch disk space low of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_exporter.json"
+        },
+        {
+          "name": "Elasticsearch Heap Usage Too High of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_exporter.json"
+        },
+        {
+          "name": "Elasticsearch Heap Usage warning of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_exporter.json"
+        },
+        {
+          "name": "Elasticsearch initializing shards of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_exporter.json"
+        },
+        {
+          "name": "Elasticsearch no new documents of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_exporter.json"
+        },
+        {
+          "name": "Elasticsearch pending tasks of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_exporter.json"
+        },
+        {
+          "name": "Elasticsearch relocation shards of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_exporter.json"
+        },
+        {
+          "name": "Elasticsearch unassigned shards of the instance",
+          "source": "integrations/Elasticsearch/alerts/elasticsearch_by_exporter.json"
+        }
+      ],
+      "metricCount": 30,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Exec",
+      "category": "local",
+      "id": 22,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Exec/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Exec/collect/exec/exec.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Filecount",
+      "category": "local",
+      "id": 23,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Filecount/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Filecount/collect/filecount/filecount.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Gitlab",
+      "category": "web",
+      "id": 24,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Gitlab/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "GitLab - Machine Performance",
+          "source": "integrations/Gitlab/dashboards/MachinePerformance.json"
+        },
+        {
+          "name": "GitLab - NGINX VTS",
+          "source": "integrations/Gitlab/dashboards/NGINXVTS.json"
+        },
+        {
+          "name": "GitLab - Overview",
+          "source": "integrations/Gitlab/dashboards/Overview.json"
+        },
+        {
+          "name": "GitLab - PostgreSQL",
+          "source": "integrations/Gitlab/dashboards/PostgreSQL.json"
+        },
+        {
+          "name": "GitLab - Redis",
+          "source": "integrations/Gitlab/dashboards/Redis.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "HighgRPCResourceExhaustedRate",
+          "source": "integrations/Gitlab/alerts/gitlab_by_categraf.json"
+        },
+        {
+          "name": "HighPumaUtilization",
+          "source": "integrations/Gitlab/alerts/gitlab_by_categraf.json"
+        },
+        {
+          "name": "PostgresDatabaseDeadlocks",
+          "source": "integrations/Gitlab/alerts/gitlab_by_categraf.json"
+        },
+        {
+          "name": "PostgresDown",
+          "source": "integrations/Gitlab/alerts/gitlab_by_categraf.json"
+        },
+        {
+          "name": "PumaQueueing",
+          "source": "integrations/Gitlab/alerts/gitlab_by_categraf.json"
+        },
+        {
+          "name": "RedisDown",
+          "source": "integrations/Gitlab/alerts/gitlab_by_categraf.json"
+        },
+        {
+          "name": "ServiceDown",
+          "source": "integrations/Gitlab/alerts/gitlab_by_categraf.json"
+        },
+        {
+          "name": "SidekiqJobsQueuing",
+          "source": "integrations/Gitlab/alerts/gitlab_by_categraf.json"
+        },
+        {
+          "name": "WorkhorseHighErrorRate",
+          "source": "integrations/Gitlab/alerts/gitlab_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "GoogleCloud",
+      "category": "cloud",
+      "id": 25,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/GoogleCloud/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/GoogleCloud/collect/googlecloud/gcp.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Greenplum",
+      "category": "database",
+      "id": 26,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Greenplum/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Greenplum/collect/greenplum/greenplum.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "Greenplum 镜像段数据未同步",
+          "source": "integrations/Greenplum/alerts/greenplum_by_categraf.json"
+        },
+        {
+          "name": "Greenplum 镜像段角色异常",
+          "source": "integrations/Greenplum/alerts/greenplum_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "采集文件仅有间隔注释，连接契约需补齐"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "HAProxy",
+      "category": "web",
+      "id": 27,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/HAProxy/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/HAProxy/collect/haproxy/haproxy.toml"
+      ],
+      "boards": [
+        {
+          "name": "HAProxy By Categraf",
+          "source": "integrations/HAProxy/dashboards/dashboard.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "HAProxy 实例不可达",
+          "source": "integrations/HAProxy/alerts/haproxy_by_categraf.json"
+        },
+        {
+          "name": "HAProxy backend 整体不可用",
+          "source": "integrations/HAProxy/alerts/haproxy_by_categraf.json"
+        },
+        {
+          "name": "HAProxy 后端服务器不可用",
+          "source": "integrations/HAProxy/alerts/haproxy_by_categraf.json"
+        },
+        {
+          "name": "HAProxy backend 5xx 比例过高",
+          "source": "integrations/HAProxy/alerts/haproxy_by_categraf.json"
+        },
+        {
+          "name": "HAProxy backend 请求排队",
+          "source": "integrations/HAProxy/alerts/haproxy_by_categraf.json"
+        },
+        {
+          "name": "HAProxy frontend 会话数逼近上限",
+          "source": "integrations/HAProxy/alerts/haproxy_by_categraf.json"
+        },
+        {
+          "name": "HAProxy backend 响应时间过高",
+          "source": "integrations/HAProxy/alerts/haproxy_by_categraf.json"
+        },
+        {
+          "name": "HAProxy backend 出现连接错误",
+          "source": "integrations/HAProxy/alerts/haproxy_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "HTTP_Response",
+      "category": "probes",
+      "id": 28,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/HTTP_Response/markdown/http.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/HTTP_Response/collect/http_response/http_response.toml"
+      ],
+      "boards": [
+        {
+          "name": "HTTP detect by UlricQin",
+          "source": "integrations/HTTP_Response/dashboards/http_response_by_categraf.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "http detect failed",
+          "source": "integrations/HTTP_Response/alerts/http_response_by_categraf.json"
+        },
+        {
+          "name": "https certificate will expire within 7 days",
+          "source": "integrations/HTTP_Response/alerts/http_response_by_categraf.json"
+        }
+      ],
+      "metricCount": 11,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "HUATUO",
+      "category": "local",
+      "id": 29,
+      "origin": "default",
+      "instructions": false,
+      "readme": null,
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/HUATUO/collect/huatuo.toml"
+      ],
+      "boards": [
+        {
+          "name": "Huatuo-v2.0.0 网络监控分析",
+          "source": "integrations/HUATUO/dashboards/Huatuo_v2.0.0_by_categraf.json"
+        },
+        {
+          "name": "HUATUO-指标-容器视图",
+          "source": "integrations/HUATUO/dashboards/Huatuo_v2.0.0_container.json"
+        },
+        {
+          "name": "HUATUO-指标-宿主机视图",
+          "source": "integrations/HUATUO/dashboards/Huatuo_v2.0.0_host.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "主机 TCP 全连接队列溢出",
+          "source": "integrations/HUATUO/alerts/huatuo_by_categraf.json"
+        },
+        {
+          "name": "主机 TCP 半连接队列丢弃",
+          "source": "integrations/HUATUO/alerts/huatuo_by_categraf.json"
+        },
+        {
+          "name": "主机 TCP backlog 丢包",
+          "source": "integrations/HUATUO/alerts/huatuo_by_categraf.json"
+        },
+        {
+          "name": "主机发生 OOM",
+          "source": "integrations/HUATUO/alerts/huatuo_by_categraf.json"
+        },
+        {
+          "name": "主机 TCP 内存使用率过高",
+          "source": "integrations/HUATUO/alerts/huatuo_by_categraf.json"
+        },
+        {
+          "name": "主机 TCP 重传率过高",
+          "source": "integrations/HUATUO/alerts/huatuo_by_categraf.json"
+        },
+        {
+          "name": "容器 CPU 被限流等待占比过高",
+          "source": "integrations/HUATUO/alerts/huatuo_by_categraf.json"
+        }
+      ],
+      "metricCount": 251,
+      "gaps": [
+        "缺采集说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Huawei",
+      "category": "cloud",
+      "id": 30,
+      "origin": "default",
+      "instructions": false,
+      "readme": null,
+      "collectionEvidence": false,
+      "collect": [],
+      "boards": [
+        {
+          "name": "华为云-云搜索服务(CSS/ES)",
+          "source": "integrations/Huawei/dashboards/Huawei-CSS_ES.json"
+        },
+        {
+          "name": "华为云-分布式缓存服务(DCS)",
+          "source": "integrations/Huawei/dashboards/Huawei-DCS.json"
+        },
+        {
+          "name": "华为云-弹性负载均衡（ELB）",
+          "source": "integrations/Huawei/dashboards/Huawei-ELB.json"
+        },
+        {
+          "name": "华为云ECS主机监控仪表盘",
+          "source": "integrations/Huawei/dashboards/Huawei-Ecs_AGT.json"
+        },
+        {
+          "name": "华为云-分布式消息服务(Kafka)",
+          "source": "integrations/Huawei/dashboards/Huawei-Kafka.json"
+        },
+        {
+          "name": "华为云 RDS for MySQL实例",
+          "source": "integrations/Huawei/dashboards/Huawei-MySQL.json"
+        },
+        {
+          "name": "华为云 RDS for PostgreSQL实例",
+          "source": "integrations/Huawei/dashboards/Huawei-PostgreSQL.json"
+        },
+        {
+          "name": "华为云-数据库(RDS)",
+          "source": "integrations/Huawei/dashboards/Huawei-RDS.json"
+        },
+        {
+          "name": "华为云-Rabbitmq",
+          "source": "integrations/Huawei/dashboards/Huawei-Rabbitmq.json"
+        },
+        {
+          "name": "华为云-Redis实例监控仪表盘",
+          "source": "integrations/Huawei/dashboards/Huawei-Redis.json"
+        },
+        {
+          "name": "华为云-Redis Proxy节点实例监控仪表盘",
+          "source": "integrations/Huawei/dashboards/Huawei-Redis_Proxy.json"
+        },
+        {
+          "name": "华为云-Redis数据节点实例监控仪表盘",
+          "source": "integrations/Huawei/dashboards/Huawei-Redis_datanode.json"
+        },
+        {
+          "name": "Huawei-RocketMQ监控",
+          "source": "integrations/Huawei/dashboards/Huawei-RocketMQ.json"
+        },
+        {
+          "name": "华为云-Web应用防火墙(WAF)",
+          "source": "integrations/Huawei/dashboards/Huawei-WAF.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "华为云ecs cpu使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs inode已使用占比大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs NTP偏移量大于1秒",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs TME_WAIT状态的连接超过2万",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs 僵死进程数大于0",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs 可用内存低于20%",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs 发送丢包率大于50%",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs 发送误包率大于50%",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs 块设备使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs 接收丢包率大于50%",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs 接收误包率大于50%",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs 磁盘写IOPS过高",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云ecs 磁盘读IOPS过高",
+          "source": "integrations/Huawei/alerts/Huawei ECS Alert Rules.json"
+        },
+        {
+          "name": "华为云负载均衡4层入带宽使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ELB Alert Rules.json"
+        },
+        {
+          "name": "华为云负载均衡4层出带宽使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ELB Alert Rules.json"
+        },
+        {
+          "name": "华为云负载均衡4层并发连接数使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ELB Alert Rules.json"
+        },
+        {
+          "name": "华为云负载均衡4层新建连接数使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ELB Alert Rules.json"
+        },
+        {
+          "name": "华为云负载均衡7层入带宽使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ELB Alert Rules.json"
+        },
+        {
+          "name": "华为云负载均衡7层出带宽使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ELB Alert Rules.json"
+        },
+        {
+          "name": "华为云负载均衡7层并发连接数使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ELB Alert Rules.json"
+        },
+        {
+          "name": "华为云负载均衡7层新建连接数使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ELB Alert Rules.json"
+        },
+        {
+          "name": "华为云负载均衡异常主机数大于0",
+          "source": "integrations/Huawei/alerts/Huawei ELB Alert Rules.json"
+        },
+        {
+          "name": "华为云负载均衡查询速率使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei ELB Alert Rules.json"
+        },
+        {
+          "name": "华为云RedisCPU平均使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei Redis Alert Rules.json"
+        },
+        {
+          "name": "华为云Redis内存利用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei Redis Alert Rules.json"
+        },
+        {
+          "name": "华为云Redis存在慢日志",
+          "source": "integrations/Huawei/alerts/Huawei Redis Alert Rules.json"
+        },
+        {
+          "name": "华为云Redis带宽使用率大于90%",
+          "source": "integrations/Huawei/alerts/Huawei Redis Alert Rules.json"
+        },
+        {
+          "name": "华为云Redis新建连接数大于10000",
+          "source": "integrations/Huawei/alerts/Huawei Redis Alert Rules.json"
+        },
+        {
+          "name": "华为云Redis最大CPU使用率大于80%",
+          "source": "integrations/Huawei/alerts/Huawei Redis Alert Rules.json"
+        },
+        {
+          "name": "华为云Redis活跃的客户端数量大于8000",
+          "source": "integrations/Huawei/alerts/Huawei Redis Alert Rules.json"
+        },
+        {
+          "name": "华为云Redis流控次数大于0",
+          "source": "integrations/Huawei/alerts/Huawei Redis Alert Rules.json"
+        },
+        {
+          "name": "华为云RedisProxy节点活跃的客户端数量大于20000",
+          "source": "integrations/Huawei/alerts/Huawei Redis Alert Rules.json"
+        },
+        {
+          "name": "RocketMQ broker down",
+          "source": "integrations/Huawei/alerts/Huawei RocketMQ Alert Rules.json"
+        },
+        {
+          "name": "RocketMQ CPU核均负载大于1.5",
+          "source": "integrations/Huawei/alerts/Huawei RocketMQ Alert Rules.json"
+        },
+        {
+          "name": "RocketMQ 内存使用率大于85%",
+          "source": "integrations/Huawei/alerts/Huawei RocketMQ Alert Rules.json"
+        }
+      ],
+      "metricCount": 286,
+      "gaps": [
+        "缺采集说明",
+        "需补结构化采集定义"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "IIS",
+      "category": "web",
+      "id": 31,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/IIS/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/IIS/collect/iis/iis.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "IPMI",
+      "category": "network",
+      "id": 32,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/IPMI/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/IPMI/collect/ipmi/conf.toml"
+      ],
+      "boards": [
+        {
+          "name": "IPMI",
+          "source": "integrations/IPMI/dashboards/IPMI.json"
+        },
+        {
+          "name": "IPMI by Categraf",
+          "source": "integrations/IPMI/dashboards/IPMI_by_categraf.json"
+        },
+        {
+          "name": "IPMI for Prometheus",
+          "source": "integrations/IPMI/dashboards/IPMI_by_prometheus.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "CPU温度超过90",
+          "source": "integrations/IPMI/alerts/alerts.json"
+        },
+        {
+          "name": "CPU电压异常",
+          "source": "integrations/IPMI/alerts/alerts.json"
+        },
+        {
+          "name": "风扇转速异常",
+          "source": "integrations/IPMI/alerts/alerts.json"
+        },
+        {
+          "name": "主板温度超过90",
+          "source": "integrations/IPMI/alerts/alerts.json"
+        }
+      ],
+      "metricCount": 19,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "IPVS",
+      "category": "local",
+      "id": 33,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/IPVS/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/IPVS/collect/ipvs/ipvs.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "IPVS 后端服务器无任何连接",
+          "source": "integrations/IPVS/alerts/ipvs_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Java",
+      "category": "java",
+      "id": 34,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Java/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "JMX",
+          "source": "integrations/Java/dashboards/jmx_by_exporter.json"
+        },
+        {
+          "name": "JMX - Kubernetes",
+          "source": "integrations/Java/dashboards/jmx_by_kubernetes.json"
+        },
+        {
+          "name": "JVM by OpenTelementry",
+          "source": "integrations/Java/dashboards/jvm_by_opentelementry.json"
+        }
+      ],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Jenkins",
+      "category": "web",
+      "id": 35,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Jenkins/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Jenkins/collect/jenkins/jenkins.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "Jenkins 节点离线",
+          "source": "integrations/Jenkins/alerts/jenkins_by_categraf.json"
+        },
+        {
+          "name": "Jenkins 执行器全部占满",
+          "source": "integrations/Jenkins/alerts/jenkins_by_categraf.json"
+        },
+        {
+          "name": "Jenkins 节点磁盘空间不足",
+          "source": "integrations/Jenkins/alerts/jenkins_by_categraf.json"
+        },
+        {
+          "name": "Jenkins 节点可用内存不足",
+          "source": "integrations/Jenkins/alerts/jenkins_by_categraf.json"
+        },
+        {
+          "name": "Jenkins 构建失败",
+          "source": "integrations/Jenkins/alerts/jenkins_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Jolokia_Agent",
+      "category": "java",
+      "id": 36,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Jolokia_Agent/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Jolokia_Agent/collect/jolokia_agent/activemq.toml",
+        "integrations/Jolokia_Agent/collect/jolokia_agent/java.toml",
+        "integrations/Jolokia_Agent/collect/jolokia_agent/jboss.toml",
+        "integrations/Jolokia_Agent/collect/jolokia_agent/zookeeper.toml",
+        "integrations/Jolokia_Agent/collect/jolokia_agent/weblogic.toml",
+        "integrations/Jolokia_Agent/collect/jolokia_agent/cassandra.toml",
+        "integrations/Jolokia_Agent/collect/jolokia_agent/hadoop-hdfs.toml",
+        "integrations/Jolokia_Agent/collect/jolokia_agent/kafka.toml",
+        "integrations/Jolokia_Agent/collect/jolokia_agent/kafka-connect.toml",
+        "integrations/Jolokia_Agent/collect/jolokia_agent/tomcat.toml",
+        "integrations/Jolokia_Agent/collect/jolokia_agent/bitbucket.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Kafka",
+      "category": "messaging",
+      "id": 37,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Kafka/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Kafka/collect/kafka/kafka.toml"
+      ],
+      "boards": [
+        {
+          "name": "Kafka By Categraf",
+          "source": "integrations/Kafka/dashboards/kafka_by_categraf.json"
+        },
+        {
+          "name": "Kafka - exporter",
+          "source": "integrations/Kafka/dashboards/kafka_by_exporter.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "kafka 分区副本未同步",
+          "source": "integrations/Kafka/alerts/kafka_by_categraf.json"
+        },
+        {
+          "name": "kafka broker 数量下降",
+          "source": "integrations/Kafka/alerts/kafka_by_categraf.json"
+        },
+        {
+          "name": "kafka 消费组积压超过 1 万条",
+          "source": "integrations/Kafka/alerts/kafka_by_categraf.json"
+        },
+        {
+          "name": "Kafka consumer group lag exceeds 10000 messages - exporter",
+          "source": "integrations/Kafka/alerts/kafka_by_exporter.json"
+        },
+        {
+          "name": "Kafka under-replicated partitions - exporter",
+          "source": "integrations/Kafka/alerts/kafka_by_exporter.json"
+        }
+      ],
+      "metricCount": 6,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Kingbase",
+      "category": "database",
+      "id": 38,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Kingbase/markdown/kingbase.md",
+      "collectionEvidence": false,
+      "collect": [],
+      "boards": [
+        {
+          "name": "KingbaseES概览",
+          "source": "integrations/Kingbase/dashboards/kingbase-dashboard.json"
+        }
+      ],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "需补结构化采集定义",
+        "缺独立指标说明",
+        "无告警规则",
+        "文档指向 Prometheus，端点及指标契约待确认"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Kubernetes",
+      "category": "container",
+      "id": 39,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Kubernetes/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "Kubernetes / API Server",
+          "source": "integrations/Kubernetes/dashboards/APIServer.json"
+        },
+        {
+          "name": "Kubernetes / Controller Manager",
+          "source": "integrations/Kubernetes/dashboards/ControllerManager.json"
+        },
+        {
+          "name": "Kubernetes / Deployment / Container",
+          "source": "integrations/Kubernetes/dashboards/DeploymentContainer.json"
+        },
+        {
+          "name": "Kubernetes / Kube State Metrics",
+          "source": "integrations/Kubernetes/dashboards/KubeStateMetrics.json"
+        },
+        {
+          "name": "Kubernetes / Kubelet Metrics",
+          "source": "integrations/Kubernetes/dashboards/KubeletMetrics.json"
+        },
+        {
+          "name": "Kubernetes / Pod",
+          "source": "integrations/Kubernetes/dashboards/Pod.json"
+        },
+        {
+          "name": "Kubernetes / Scheduler",
+          "source": "integrations/Kubernetes/dashboards/Scheduler.json"
+        },
+        {
+          "name": "Kubernetes / Statefulset / Container ",
+          "source": "integrations/Kubernetes/dashboards/StatefulsetContainer.json"
+        },
+        {
+          "name": "Kubernetes / CoreDNS",
+          "source": "integrations/Kubernetes/dashboards/coredns.json"
+        },
+        {
+          "name": "Kubernetes / Daemonset",
+          "source": "integrations/Kubernetes/dashboards/daemonset.json"
+        },
+        {
+          "name": "Kubernetes / Deployment",
+          "source": "integrations/Kubernetes/dashboards/deployment.json"
+        },
+        {
+          "name": "Kubernetes / Etcd",
+          "source": "integrations/Kubernetes/dashboards/etcd.json"
+        },
+        {
+          "name": "Kubernetes / Container by categraf",
+          "source": "integrations/Kubernetes/dashboards/kubernetes-container by categraf.json"
+        },
+        {
+          "name": "Kubernetes / Node",
+          "source": "integrations/Kubernetes/dashboards/node.json"
+        },
+        {
+          "name": "Kubernetes / Cluster Overview",
+          "source": "integrations/Kubernetes/dashboards/overview.json"
+        },
+        {
+          "name": "Kubernetes / Proxy",
+          "source": "integrations/Kubernetes/dashboards/proxy.json"
+        },
+        {
+          "name": "Kubernetes / StatefulSet",
+          "source": "integrations/Kubernetes/dashboards/statefulset.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Deployment Pod 可用性不足70%（replica超过9个pod）",
+          "source": "integrations/Kubernetes/alerts/Load.json"
+        },
+        {
+          "name": "Job执行失败",
+          "source": "integrations/Kubernetes/alerts/Load.json"
+        },
+        {
+          "name": "Pod启动超时",
+          "source": "integrations/Kubernetes/alerts/Load.json"
+        },
+        {
+          "name": "Pod状态异常",
+          "source": "integrations/Kubernetes/alerts/Load.json"
+        },
+        {
+          "name": "Pod频繁重启",
+          "source": "integrations/Kubernetes/alerts/Load.json"
+        },
+        {
+          "name": "容器CPU使用率超过80%",
+          "source": "integrations/Kubernetes/alerts/Load.json"
+        },
+        {
+          "name": "容器内存超过80%",
+          "source": "integrations/Kubernetes/alerts/Load.json"
+        },
+        {
+          "name": "Node CPU使用率超过90%",
+          "source": "integrations/Kubernetes/alerts/Node.json"
+        },
+        {
+          "name": "Node内存使用率超过90%",
+          "source": "integrations/Kubernetes/alerts/Node.json"
+        },
+        {
+          "name": "Node状态异常",
+          "source": "integrations/Kubernetes/alerts/Node.json"
+        },
+        {
+          "name": "Node磁盘使用率超过90%",
+          "source": "integrations/Kubernetes/alerts/Node.json"
+        },
+        {
+          "name": "KubeClientCertificateExpiration-S2",
+          "source": "integrations/Kubernetes/alerts/apiserver.json"
+        },
+        {
+          "name": "KubeClientCertificateExpiration-S1",
+          "source": "integrations/Kubernetes/alerts/apiserver.json"
+        },
+        {
+          "name": "AggregatedAPIErrors",
+          "source": "integrations/Kubernetes/alerts/apiserver.json"
+        },
+        {
+          "name": "AggregatedAPIDown",
+          "source": "integrations/Kubernetes/alerts/apiserver.json"
+        },
+        {
+          "name": "KubeAPIDown",
+          "source": "integrations/Kubernetes/alerts/apiserver.json"
+        },
+        {
+          "name": "KubeAPIErrorBudgetBurn-S1-120秒",
+          "source": "integrations/Kubernetes/alerts/apiserver.json"
+        },
+        {
+          "name": "KubeAPIErrorBudgetBurn-S1-900秒",
+          "source": "integrations/Kubernetes/alerts/apiserver.json"
+        },
+        {
+          "name": "KubeAPIErrorBudgetBurn-S2-3600秒",
+          "source": "integrations/Kubernetes/alerts/apiserver.json"
+        },
+        {
+          "name": "KubeAPIErrorBudgetBurn-S2-10800秒",
+          "source": "integrations/Kubernetes/alerts/apiserver.json"
+        },
+        {
+          "name": "Deployment副本异常",
+          "source": "integrations/Kubernetes/alerts/k8s-workloads.json"
+        },
+        {
+          "name": "StatefulSet副本异常",
+          "source": "integrations/Kubernetes/alerts/k8s-workloads.json"
+        },
+        {
+          "name": "DaemonSet未就绪Pod",
+          "source": "integrations/Kubernetes/alerts/k8s-workloads.json"
+        },
+        {
+          "name": "HPA扩容失败",
+          "source": "integrations/Kubernetes/alerts/k8s-workloads.json"
+        },
+        {
+          "name": "Pod处于Failed状态",
+          "source": "integrations/Kubernetes/alerts/k8s-workloads.json"
+        },
+        {
+          "name": "Job执行失败",
+          "source": "integrations/Kubernetes/alerts/k8s-workloads.json"
+        },
+        {
+          "name": "CPUThrottlingHigh",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeAggregatedAPIDown",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeAggregatedAPIErrors",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeAPIDown",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeAPIErrorBudgetBurn",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeAPITerminatedRequests",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeClientCertificateExpiration",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeClientErrors",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeContainerWaiting",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeControllerManagerDown",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeCPUOvercommit",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeCPUQuotaOvercommit",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeDaemonSetMisScheduled",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeDaemonSetNotScheduled",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeDaemonSetRolloutStuck",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeDeploymentGenerationMismatch",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeDeploymentReplicasMismatch",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeDeploymentRolloutStuck",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeHpaMaxedOut",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeHpaReplicasMismatch",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeJobFailed",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeJobNotCompleted",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeletClientCertificateExpiration",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeletClientCertificateRenewalErrors",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeletDown",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeletPlegDurationHigh",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeletPodStartUpLatencyHigh",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeletServerCertificateExpiration",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeletServerCertificateRenewalErrors",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeletTooManyPods",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeMemoryOvercommit",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeMemoryQuotaOvercommit",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeNodeNotReady",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeNodeReadinessFlapping",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeNodeUnreachable",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubePersistentVolumeErrors",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubePersistentVolumeFillingUp",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubePersistentVolumeInodesFillingUp",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubePodCrashLooping",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubePodNotReady",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeQuotaAlmostFull",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeQuotaExceeded",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeQuotaFullyUsed",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeSchedulerDown",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeStatefulSetGenerationMismatch",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeStatefulSetReplicasMismatch",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeStatefulSetUpdateNotRolledOut",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "KubeVersionMismatch",
+          "source": "integrations/Kubernetes/alerts/kube-controller-plane.json"
+        },
+        {
+          "name": "Node状态异常",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "Node不可达",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "Node运行太多Pod",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "Node状态抖动",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "PLEG耗时高",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "Pod启动耗时高",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "客户端证书过期-S2",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "客户端证书过期-S1",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "服务端证书过期-S2",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "服务端证书过期-S1",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "客户端证书续签错误",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "服务证书续签错误",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "kubelet故障",
+          "source": "integrations/Kubernetes/alerts/kubelet.json"
+        },
+        {
+          "name": "主机内存不足",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机内存有压力",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机入口网络吞吐量异常",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机出口网络吞吐量异常",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机磁盘读取速率异常",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机磁盘写入速率异常",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机磁盘空间不足",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机磁盘将在 24 小时内填满",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "文件系统inode使用率高",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "文件系统inode将在24小时内填满",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机磁盘读取延迟异常",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机磁盘写入延迟异常",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "节点cpu负载高",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "有其他云主机窃取cpu",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机上下文切换异常",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机交换内存快满了",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机系统服务崩溃",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机内核版本偏差",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "检测到 HostOomKill",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机网络接收错误",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机网络出口错误",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机网络接口饱和",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "conntrack数量接近极限",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机时钟偏差",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "主机时钟不同步",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "节点文件系统空间填满-S2",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "节点文件系统空间填满-S1",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "节点磁盘快满了-S2-space-5",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "节点磁盘快满了-S1-space-3",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "节点磁盘快满了-S2-inodes-40",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "节点磁盘快满了-S1-inodes-20",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "节点磁盘快满了-S2-inodes-5",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "节点磁盘快满了-S1-inodes-3",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "使用的节点Conntrack条目数量高",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "节点文本文件收集器抓取错误",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "节点网络接口抖动",
+          "source": "integrations/Kubernetes/alerts/node-exporter.json"
+        },
+        {
+          "name": "ConfigReloaderSidecarErrors",
+          "source": "integrations/Kubernetes/alerts/prometheus-operator.json"
+        },
+        {
+          "name": "PrometheusOperatorListErrors",
+          "source": "integrations/Kubernetes/alerts/prometheus-operator.json"
+        },
+        {
+          "name": "PrometheusOperatorNodeLookupErrors",
+          "source": "integrations/Kubernetes/alerts/prometheus-operator.json"
+        },
+        {
+          "name": "PrometheusOperatorNotReady",
+          "source": "integrations/Kubernetes/alerts/prometheus-operator.json"
+        },
+        {
+          "name": "PrometheusOperatorReconcileErrors",
+          "source": "integrations/Kubernetes/alerts/prometheus-operator.json"
+        },
+        {
+          "name": "PrometheusOperatorRejectedResources",
+          "source": "integrations/Kubernetes/alerts/prometheus-operator.json"
+        },
+        {
+          "name": "PrometheusOperatorSyncFailed",
+          "source": "integrations/Kubernetes/alerts/prometheus-operator.json"
+        },
+        {
+          "name": "PrometheusOperatorWatchErrors",
+          "source": "integrations/Kubernetes/alerts/prometheus-operator.json"
+        },
+        {
+          "name": "ConfigReloaderSidecarErrors",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusBadConfig",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusDuplicateTimestamps",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusErrorSendingAlertsToAnyAlertmanager",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusErrorSendingAlertsToSomeAlertmanagers",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusHighQueryLoad",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusLabelLimitHit",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusMissingRuleEvaluations",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusNotConnectedToAlertmanagers",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusNotificationQueueRunningFull",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusNotIngestingSamples",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusOutOfOrderTimestamps",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusRemoteStorageFailures",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusRemoteWriteBehind",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusRemoteWriteDesiredShards",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusRuleFailures",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusScrapeBodySizeLimitHit",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusScrapeSampleLimitHit",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusSDRefreshFailure",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusTargetLimitHit",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusTargetSyncFailure",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusTSDBCompactionsFailing",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        },
+        {
+          "name": "PrometheusTSDBReloadsFailing",
+          "source": "integrations/Kubernetes/alerts/prometheus.json"
+        }
+      ],
+      "metricCount": 305,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "LLM",
+      "category": "observability",
+      "id": 40,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/LLM/markdown/README.md",
+      "collectionEvidence": false,
+      "collect": [],
+      "boards": [
+        {
+          "name": "LLM-OpenLIT-Dashboard",
+          "source": "integrations/LLM/dashboards/LLM-OpenLIT.json"
+        },
+        {
+          "name": "LLM-OpenLLMetry-Dashboard",
+          "source": "integrations/LLM/dashboards/LLM-OpenLLMetry.json"
+        }
+      ],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "需补结构化采集定义",
+        "缺独立指标说明",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Ldap",
+      "category": "infra",
+      "id": 41,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Ldap/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Ldap/collect/ldap/ldap.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "OpenLDAP 连接数逼近文件描述符上限",
+          "source": "integrations/Ldap/alerts/openldap_by_categraf.json"
+        },
+        {
+          "name": "OpenLDAP 请求积压",
+          "source": "integrations/Ldap/alerts/openldap_by_categraf.json"
+        },
+        {
+          "name": "OpenLDAP 线程池饱和",
+          "source": "integrations/Ldap/alerts/openldap_by_categraf.json"
+        },
+        {
+          "name": "OpenLDAP 操作完成数落后于发起数",
+          "source": "integrations/Ldap/alerts/openldap_by_categraf.json"
+        },
+        {
+          "name": "OpenLDAP 近期发生过重启",
+          "source": "integrations/Ldap/alerts/openldap_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Linux",
+      "category": "host",
+      "id": 42,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Linux/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Linux/collect/sshd/sshd.toml",
+        "integrations/Linux/collect/netstat/netstat.toml",
+        "integrations/Linux/collect/processes/processes.toml",
+        "integrations/Linux/collect/supervisor/supervisor.toml",
+        "integrations/Linux/collect/kernel_vmstat/kernel_vmstat.toml",
+        "integrations/Linux/collect/logs-agent/logs-agent.toml",
+        "integrations/Linux/collect/arp_packet/arp_packet.toml",
+        "integrations/Linux/collect/ntp/ntp.toml",
+        "integrations/Linux/collect/node_exporter/node_exporter.toml"
+      ],
+      "boards": [
+        {
+          "name": "机器常用指标（如果只想看当前业务组内的机器修改大盘变量 ident 的变量类型为机器标识即可）",
+          "source": "integrations/Linux/dashboards/categraf-detail.json"
+        },
+        {
+          "name": "机器台账表格视图（使用 Categraf 作为采集器）",
+          "source": "integrations/Linux/dashboards/categraf-overview.json"
+        },
+        {
+          "name": "机器进程数量统计（使用 Categraf 作为采集器）",
+          "source": "integrations/Linux/dashboards/categraf-processes.json"
+        },
+        {
+          "name": "Host Table NG",
+          "source": "integrations/Linux/dashboards/categraf-table-ng.json"
+        },
+        {
+          "name": "机器常用指标（使用 NodeExporter 作为采集器）",
+          "source": "integrations/Linux/dashboards/exporter-detail.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Conntrack表的使用率超过80%",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "CPU利用率较高",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "HTTP地址探测失败",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "IO比较繁忙",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "NTP时间偏移太大",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "PING地址探测失败",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "TME_WAIT状态的连接超过2万，可能需要关注",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "内存利用率比较高",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "文件句柄使用率超过90%",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "机器监控 - agent失联超过60秒",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "机器监控 - 时间偏移超过3秒，请注意",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "每个CPU Core的平均负载任务超过3",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "硬盘监控 - inode使用率超过90%",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "硬盘监控 - 大于200G的盘，空间不足了",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "硬盘监控 - 小于200G的盘，空间不足了",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "硬盘监控 - 设备有报错",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "硬盘监控 - 预测硬盘会在未来4小时内写满",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "系统有OOM产生",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "网卡监控 - 入方向有丢包",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "网卡监控 - 入方向有错包",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "网卡监控 - 出方向有丢包",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "网卡监控 - 出方向有错包",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "网络地址探活失败",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "进程监控-有进程数为0，某进程可能挂了",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "进程监控-进程句柄限制过小",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "进程监控-进程总量超过600",
+          "source": "integrations/Linux/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Hard disk - expected to be written full in 4 hours - categraf",
+          "source": "integrations/Linux/alerts/linux_by_categraf.json"
+        },
+        {
+          "name": "Hard disk - IO is a bit busy - categraf",
+          "source": "integrations/Linux/alerts/linux_by_categraf.json"
+        },
+        {
+          "name": "Lost connection with monitoring target - categraf",
+          "source": "integrations/Linux/alerts/linux_by_categraf.json"
+        },
+        {
+          "name": "Machine load - high memory, please pay attention - categraf",
+          "source": "integrations/Linux/alerts/linux_by_categraf.json"
+        },
+        {
+          "name": "number of TME_WAIT exceeds 20,000 - categraf",
+          "source": "integrations/Linux/alerts/linux_by_categraf.json"
+        },
+        {
+          "name": "packet loss in the inbound direction - categraf",
+          "source": "integrations/Linux/alerts/linux_by_categraf.json"
+        },
+        {
+          "name": "packet loss in the outbound direction - categraf",
+          "source": "integrations/Linux/alerts/linux_by_categraf.json"
+        },
+        {
+          "name": "大于200G的盘，空间不足了",
+          "source": "integrations/Linux/alerts/linux_by_categraf.json"
+        },
+        {
+          "name": "小于200G的盘，空间不足了",
+          "source": "integrations/Linux/alerts/linux_by_categraf.json"
+        },
+        {
+          "name": "A certain disk is unable to read/write normally",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "Disk needs to be cleaned - utilization has reached 92% - node exporter",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "Insufficient computational resources - average load per core of the machine is greater than 10 - node exporter",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "Insufficient file handles - usage exceeds 90% - node exporter",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "Insufficient inode resources - usage exceeds 90% - node exporter",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "Insufficient memory resources - utilization is greater than 75% - node exporter",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "Insufficient memory resources - utilization is greater than 95% - node exporter",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "Packet loss in the inbound direction of the network card - node exporter",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "Packet loss in the outbound direction of the network card - node exporter",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "System conntrack needs to be adjusted - usage exceeds 80% - node exporter",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "System experiences OOM - node exporter",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "Too many running processes - exceeding 3000 - node exporter",
+          "source": "integrations/Linux/alerts/linux_by_exporter.json"
+        },
+        {
+          "name": "Address is unreachable by PING, please pay attention - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "Hard disk - expected to be written full in 4 hours - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "Hard disk - IO is very busy - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "Lost connection with monitoring target - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "Machine load - high CPU, please pay attention - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "Machine load - high memory, please pay attention - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "Network connection - number of TME_WAIT exceeds 20,000 - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "packet loss in the inbound direction - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "packet loss in the outbound direction - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "Port detection failed, please pay attention - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "process handle limit is too small - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "Process monitoring - lookup failure - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        },
+        {
+          "name": "there are processes with 0 count, a certain process may have crashed - telegraf",
+          "source": "integrations/Linux/alerts/linux_by_telegraf.json"
+        }
+      ],
+      "metricCount": 132,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Linux_SNMP",
+      "category": "host",
+      "id": 90,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Linux_SNMP/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "Linux SNMP overview",
+          "source": "integrations/Linux_SNMP/dashboards/overview.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "CPU usage above 90%",
+          "source": "integrations/Linux_SNMP/alerts/default.json"
+        },
+        {
+          "name": "Memory usage above 90%",
+          "source": "integrations/Linux_SNMP/alerts/default.json"
+        },
+        {
+          "name": "Disk usage above 90%",
+          "source": "integrations/Linux_SNMP/alerts/default.json"
+        },
+        {
+          "name": "SNMP collection interrupted",
+          "source": "integrations/Linux_SNMP/alerts/default.json"
+        }
+      ],
+      "metricCount": 6,
+      "gaps": [],
+      "state": "现有 SNMP 接入"
+    },
+    {
+      "name": "Logstash",
+      "category": "observability",
+      "id": 43,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Logstash/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Logstash/collect/logstash/logstash.toml"
+      ],
+      "boards": [
+        {
+          "name": "logstash",
+          "source": "integrations/Logstash/dashboards/logstash-dash.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Logstash 管道停止输出",
+          "source": "integrations/Logstash/alerts/logstash_by_categraf.json"
+        },
+        {
+          "name": "Logstash JVM 堆内存使用率过高",
+          "source": "integrations/Logstash/alerts/logstash_by_categraf.json"
+        },
+        {
+          "name": "Logstash 老年代 GC 频繁",
+          "source": "integrations/Logstash/alerts/logstash_by_categraf.json"
+        },
+        {
+          "name": "Logstash 入队等待时间过长",
+          "source": "integrations/Logstash/alerts/logstash_by_categraf.json"
+        },
+        {
+          "name": "Logstash 单事件处理耗时过长",
+          "source": "integrations/Logstash/alerts/logstash_by_categraf.json"
+        },
+        {
+          "name": "Logstash 进程 CPU 使用率过高",
+          "source": "integrations/Logstash/alerts/logstash_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Meraki",
+      "category": "cloud",
+      "id": 44,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Meraki/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Meraki/collect/meraki/meraki.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "MinIO",
+      "category": "storage",
+      "id": 45,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/MinIO/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "MinIO Dashboard",
+          "source": "integrations/MinIO/dashboards/minio_by_categraf.json"
+        },
+        {
+          "name": "MinIO Dashboard New Version",
+          "source": "integrations/MinIO/dashboards/new-version.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "DisksOffline",
+          "source": "integrations/MinIO/alerts/minio_by_categraf.json"
+        },
+        {
+          "name": "NodesOffline",
+          "source": "integrations/MinIO/alerts/minio_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "MongoDB",
+      "category": "data-services",
+      "id": 46,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/MongoDB/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/MongoDB/collect/mongodb_cluster/mongodb_cluster.toml",
+        "integrations/MongoDB/collect/mongodb/mongodb.toml"
+      ],
+      "boards": [
+        {
+          "name": "MongoDB Overview by exporter",
+          "source": "integrations/MongoDB/dashboards/mongo_by_exporter.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "MongoDB average operation latency exceeds 250ms - exporter",
+          "source": "integrations/MongoDB/alerts/mongo_by_exporter.json"
+        },
+        {
+          "name": "Mongo connection number has exceeded 80% - exporter",
+          "source": "integrations/MongoDB/alerts/mongo_by_exporter.json"
+        },
+        {
+          "name": "Mongo has encountered an Assert error - exporter",
+          "source": "integrations/MongoDB/alerts/mongo_by_exporter.json"
+        },
+        {
+          "name": "Mongo has encountered cursor timeout - exporter",
+          "source": "integrations/MongoDB/alerts/mongo_by_exporter.json"
+        },
+        {
+          "name": "Mongo has encountered page fault interrupt - exporter",
+          "source": "integrations/MongoDB/alerts/mongo_by_exporter.json"
+        },
+        {
+          "name": "Mongo has just restarted, please pay attention - exporter",
+          "source": "integrations/MongoDB/alerts/mongo_by_exporter.json"
+        },
+        {
+          "name": "Mongo instance has crashed - exporter",
+          "source": "integrations/MongoDB/alerts/mongo_by_exporter.json"
+        },
+        {
+          "name": "Mongo replica set master-slave delay exceeds 30 seconds - exporter",
+          "source": "integrations/MongoDB/alerts/mongo_by_exporter.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Mtail",
+      "category": "local",
+      "id": 47,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Mtail/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Mtail/collect/mtail/mtail.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "MySQL",
+      "category": "database",
+      "id": 48,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/MySQL/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/MySQL/collect/mysql/mysql.toml"
+      ],
+      "boards": [
+        {
+          "name": "MySQL 仪表盘（使用 address 筛选，用于中心端 Categraf 采集远端多个 mysql 实例的场景）",
+          "source": "integrations/MySQL/dashboards/MySQL-by-address.json"
+        },
+        {
+          "name": "MySQL 仪表盘（使用 instance 筛选，需要采集时自行打上 instance 标签）",
+          "source": "integrations/MySQL/dashboards/MySQL仪表盘-远端.json"
+        },
+        {
+          "name": "MySQL 仪表盘，适用于 Categraf 采集本机 MySQL 的场景",
+          "source": "integrations/MySQL/dashboards/MySQL仪表盘.json"
+        },
+        {
+          "name": "MySQL Overview by categraf",
+          "source": "integrations/MySQL/dashboards/mysql_by_categraf.json"
+        },
+        {
+          "name": "MySQL Overview by categraf, group by ident",
+          "source": "integrations/MySQL/dashboards/mysql_by_categraf_ident.json"
+        },
+        {
+          "name": "MySQL Overview by categraf, group by instance",
+          "source": "integrations/MySQL/dashboards/mysql_by_categraf_instance.json"
+        },
+        {
+          "name": "MySQL Overview by exporter",
+          "source": "integrations/MySQL/dashboards/mysql_by_exporter.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "MySQL slow queries are piling up - categraf",
+          "source": "integrations/MySQL/alerts/mysql_by_categraf.json"
+        },
+        {
+          "name": "More than 60% of the connections in Mysql are in a running state - categraf",
+          "source": "integrations/MySQL/alerts/mysql_by_categraf.json"
+        },
+        {
+          "name": "Mysql has just restarted. Please be advised - categraf",
+          "source": "integrations/MySQL/alerts/mysql_by_categraf.json"
+        },
+        {
+          "name": "Mysql has opened a large number of file handles. Please be aware - categraf",
+          "source": "integrations/MySQL/alerts/mysql_by_categraf.json"
+        },
+        {
+          "name": "Mysql instance has crashed - categraf",
+          "source": "integrations/MySQL/alerts/mysql_by_categraf.json"
+        },
+        {
+          "name": "MysqlInnodbLogWaits - categraf",
+          "source": "integrations/MySQL/alerts/mysql_by_categraf.json"
+        },
+        {
+          "name": "MysqlSlaveIoThreadNotRunning - categraf",
+          "source": "integrations/MySQL/alerts/mysql_by_categraf.json"
+        },
+        {
+          "name": "MysqlSlaveReplicationLag - categraf",
+          "source": "integrations/MySQL/alerts/mysql_by_categraf.json"
+        },
+        {
+          "name": "MysqlSlaveSqlThreadNotRunning - categraf",
+          "source": "integrations/MySQL/alerts/mysql_by_categraf.json"
+        },
+        {
+          "name": "The number of connections in Mysql has exceeded 80% - categraf",
+          "source": "integrations/MySQL/alerts/mysql_by_categraf.json"
+        },
+        {
+          "name": "More than 60% of the connections in MySQL are in a running state",
+          "source": "integrations/MySQL/alerts/mysql_by_exporter.json"
+        },
+        {
+          "name": "More than 80% of MySQL files open",
+          "source": "integrations/MySQL/alerts/mysql_by_exporter.json"
+        },
+        {
+          "name": "MySQL connection count has exceeded 80%",
+          "source": "integrations/MySQL/alerts/mysql_by_exporter.json"
+        },
+        {
+          "name": "Mysql has just restarted. Please be advised - exporter",
+          "source": "integrations/MySQL/alerts/mysql_by_exporter.json"
+        },
+        {
+          "name": "MySQL slow queries are piling up",
+          "source": "integrations/MySQL/alerts/mysql_by_exporter.json"
+        },
+        {
+          "name": "MysqlInnodbLogWaits - exporter",
+          "source": "integrations/MySQL/alerts/mysql_by_exporter.json"
+        },
+        {
+          "name": "MysqlSlaveIoThreadNotRunning - exporter",
+          "source": "integrations/MySQL/alerts/mysql_by_exporter.json"
+        },
+        {
+          "name": "MysqlSlaveReplicationLag - exporter",
+          "source": "integrations/MySQL/alerts/mysql_by_exporter.json"
+        },
+        {
+          "name": "MysqlSlaveSqlThreadNotRunning - exporter",
+          "source": "integrations/MySQL/alerts/mysql_by_exporter.json"
+        },
+        {
+          "name": "The MySQL instance is down",
+          "source": "integrations/MySQL/alerts/mysql_by_exporter.json"
+        }
+      ],
+      "metricCount": 31,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "N9E",
+      "category": "observability",
+      "id": 49,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/N9E/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "nightingale",
+          "source": "integrations/N9E/dashboards/n9e_server.json"
+        },
+        {
+          "name": "nightingale v6",
+          "source": "integrations/N9E/dashboards/n9e_v6.json"
+        },
+        {
+          "name": "nightingale v8",
+          "source": "integrations/N9E/dashboards/n9e_v8.json"
+        }
+      ],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "NFSClient",
+      "category": "local",
+      "id": 50,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/NFSClient/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/NFSClient/collect/nfsclient/nfsclient.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "NFS 请求重传率过高",
+          "source": "integrations/NFSClient/alerts/nfsclient_by_categraf.json"
+        },
+        {
+          "name": "NFS 请求平均往返时延过高",
+          "source": "integrations/NFSClient/alerts/nfsclient_by_categraf.json"
+        },
+        {
+          "name": "NFS 请求平均执行耗时过高",
+          "source": "integrations/NFSClient/alerts/nfsclient_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "NSQ",
+      "category": "messaging",
+      "id": 51,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/NSQ/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/NSQ/collect/nsq/nsq.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "NSQ Channel 消息积压",
+          "source": "integrations/NSQ/alerts/nsq_by_categraf.json"
+        },
+        {
+          "name": "NSQ Channel 消息溢出到磁盘",
+          "source": "integrations/NSQ/alerts/nsq_by_categraf.json"
+        },
+        {
+          "name": "NSQ Channel 无消费者但有积压",
+          "source": "integrations/NSQ/alerts/nsq_by_categraf.json"
+        },
+        {
+          "name": "NSQ 消息处理超时激增",
+          "source": "integrations/NSQ/alerts/nsq_by_categraf.json"
+        },
+        {
+          "name": "NSQ 消息重新入队激增",
+          "source": "integrations/NSQ/alerts/nsq_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "NVIDIA",
+      "category": "local",
+      "id": 52,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/NVIDIA/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/NVIDIA/collect/nvidia_smi/nvidia_smi.toml",
+        "integrations/NVIDIA/collect/dcgm/dcgm.toml"
+      ],
+      "boards": [
+        {
+          "name": "GPU-Jobs",
+          "source": "integrations/NVIDIA/dashboards/GPU-Jobs-dcgm.json"
+        },
+        {
+          "name": "GPU Overview ",
+          "source": "integrations/NVIDIA/dashboards/GPU-Overview-dcgm.json"
+        },
+        {
+          "name": "Nvidia GPU Metrics by nvidia-smi",
+          "source": "integrations/NVIDIA/dashboards/nvidia-gpu-metrics-by-categraf.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "GPU XID 错误",
+          "source": "integrations/NVIDIA/alerts/gpu_alert.json"
+        },
+        {
+          "name": "GPU 温度过高",
+          "source": "integrations/NVIDIA/alerts/gpu_alert.json"
+        }
+      ],
+      "metricCount": 38,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Net_Response",
+      "category": "probes",
+      "id": 53,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Net_Response/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Net_Response/collect/net_response/net_response.toml"
+      ],
+      "boards": [
+        {
+          "name": "Net Response Dashboard",
+          "source": "integrations/Net_Response/dashboards/dashboard-by-ziv.json"
+        },
+        {
+          "name": "TCP detection by UlricQin",
+          "source": "integrations/Net_Response/dashboards/net_response_by_categraf.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Network address probe failed",
+          "source": "integrations/Net_Response/alerts/net_response_by_categraf.json"
+        }
+      ],
+      "metricCount": 2,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Netstat_Filter",
+      "category": "local",
+      "id": 54,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Netstat_Filter/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Netstat_Filter/collect/netstat_filter/netstat_filter.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "过滤条件下 CLOSE_WAIT 连接堆积",
+          "source": "integrations/Netstat_Filter/alerts/netstat_filter_by_categraf.json"
+        },
+        {
+          "name": "过滤条件下 SYN_RECV 连接堆积",
+          "source": "integrations/Netstat_Filter/alerts/netstat_filter_by_categraf.json"
+        },
+        {
+          "name": "过滤条件下 TIME_WAIT 连接过多",
+          "source": "integrations/Netstat_Filter/alerts/netstat_filter_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Nginx",
+      "category": "web",
+      "id": 55,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Nginx/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Nginx/collect/nginx/nginx.toml",
+        "integrations/Nginx/collect/nginx_upstream_check/nginx_upstream_check.toml"
+      ],
+      "boards": [
+        {
+          "name": "Nginx Stub",
+          "source": "integrations/Nginx/dashboards/nginx_stub_status.json"
+        },
+        {
+          "name": "Nginx Upstream",
+          "source": "integrations/Nginx/dashboards/nginx_upstream_check.json"
+        },
+        {
+          "name": "Nginx VTS",
+          "source": "integrations/Nginx/dashboards/nginx_vts.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Nginx 实例不可达",
+          "source": "integrations/Nginx/alerts/nginx_stub_status_by_categraf.json"
+        },
+        {
+          "name": "Nginx 出现连接丢弃",
+          "source": "integrations/Nginx/alerts/nginx_stub_status_by_categraf.json"
+        },
+        {
+          "name": "Nginx upstream 后端节点不可用",
+          "source": "integrations/Nginx/alerts/nginx_upstream_check_by_categraf.json"
+        }
+      ],
+      "metricCount": 7,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "OpenStack",
+      "category": "cloud",
+      "id": 56,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/OpenStack/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/OpenStack/collect/openstack/openstack.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "OpenStack Neutron Agent 离线",
+          "source": "integrations/OpenStack/alerts/openstack_by_categraf.json"
+        },
+        {
+          "name": "OpenStack Nova 服务被强制下线",
+          "source": "integrations/OpenStack/alerts/openstack_by_categraf.json"
+        },
+        {
+          "name": "Hypervisor vCPU 分配率过高",
+          "source": "integrations/OpenStack/alerts/openstack_by_categraf.json"
+        },
+        {
+          "name": "Hypervisor 内存分配率过高",
+          "source": "integrations/OpenStack/alerts/openstack_by_categraf.json"
+        },
+        {
+          "name": "Hypervisor 本地磁盘分配率过高",
+          "source": "integrations/OpenStack/alerts/openstack_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Oracle",
+      "category": "database",
+      "id": 57,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Oracle/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Oracle/collect/oracle/metric.toml",
+        "integrations/Oracle/collect/oracle/oracle.toml"
+      ],
+      "boards": [
+        {
+          "name": "Oracle by categraf",
+          "source": "integrations/Oracle/dashboards/oracle_by_categraf.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Oracle: 数据库归档日志量大于100",
+          "source": "integrations/Oracle/alerts/oracle_alert.json"
+        },
+        {
+          "name": "Oracle: 数据库总连接数大于500",
+          "source": "integrations/Oracle/alerts/oracle_alert.json"
+        },
+        {
+          "name": "Oracle: 数据库活跃连接数大于100",
+          "source": "integrations/Oracle/alerts/oracle_alert.json"
+        },
+        {
+          "name": "Oracle: 监控数据采集失败，可能已经挂了",
+          "source": "integrations/Oracle/alerts/oracle_alert.json"
+        },
+        {
+          "name": "Oracle: 表空间使用率大于95%",
+          "source": "integrations/Oracle/alerts/oracle_alert.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "PHP",
+      "category": "web",
+      "id": 58,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/PHP/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/PHP/collect/phpfpm/phpfpm.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "PHP-FPM 触达 max_children 上限",
+          "source": "integrations/PHP/alerts/phpfpm_by_categraf.json"
+        },
+        {
+          "name": "PHP-FPM 等待队列积压",
+          "source": "integrations/PHP/alerts/phpfpm_by_categraf.json"
+        },
+        {
+          "name": "PHP-FPM 空闲进程耗尽",
+          "source": "integrations/PHP/alerts/phpfpm_by_categraf.json"
+        },
+        {
+          "name": "PHP-FPM 慢请求增多",
+          "source": "integrations/PHP/alerts/phpfpm_by_categraf.json"
+        },
+        {
+          "name": "PHP-FPM 近期发生过重启",
+          "source": "integrations/PHP/alerts/phpfpm_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Ping",
+      "category": "probes",
+      "id": 59,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Ping/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Ping/collect/ping/ping.toml"
+      ],
+      "boards": [
+        {
+          "name": "PING detection by UlricQin",
+          "source": "integrations/Ping/dashboards/ping_by_categraf_a.json"
+        },
+        {
+          "name": "PING大盘2.0",
+          "source": "integrations/Ping/dashboards/ping_by_categraf_b.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "PING address detection failed",
+          "source": "integrations/Ping/alerts/ping_by_categraf.json"
+        }
+      ],
+      "metricCount": 6,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "PostgreSQL",
+      "category": "database",
+      "id": 60,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/PostgreSQL/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/PostgreSQL/collect/postgresql/postgresql.toml"
+      ],
+      "boards": [
+        {
+          "name": "postgresql by categraf",
+          "source": "integrations/PostgreSQL/dashboards/postgresql_by_categraf.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "posgresql读取时间过高",
+          "source": "integrations/PostgreSQL/alerts/postgresql_by_categraf.json"
+        },
+        {
+          "name": "Postgresql down",
+          "source": "integrations/PostgreSQL/alerts/postgresql_by_categraf.json"
+        },
+        {
+          "name": "postgresql写入时间过高",
+          "source": "integrations/PostgreSQL/alerts/postgresql_by_categraf.json"
+        },
+        {
+          "name": "postgresql有死锁",
+          "source": "integrations/PostgreSQL/alerts/postgresql_by_categraf.json"
+        },
+        {
+          "name": "Postgresql缓存命中率低于50%",
+          "source": "integrations/PostgreSQL/alerts/postgresql_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Procstat",
+      "category": "local",
+      "id": 61,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Procstat/markdown/readme.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Procstat/collect/procstat/procstat.toml",
+        "integrations/Procstat/collect/procstat/procstat-ent.toml"
+      ],
+      "boards": [
+        {
+          "name": "Procstat",
+          "source": "integrations/Procstat/dashboards/categraf-procstat.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "process handle limit is too low",
+          "source": "integrations/Procstat/alerts/categraf-procstat.json"
+        },
+        {
+          "name": "there is a process count of 0, indicating that a certain process may have crashed",
+          "source": "integrations/Procstat/alerts/categraf-procstat.json"
+        }
+      ],
+      "metricCount": 21,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Prometheus",
+      "category": "observability",
+      "id": 62,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Prometheus/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Prometheus/collect/prometheus/prometheus.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "RabbitMQ",
+      "category": "messaging",
+      "id": 63,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/RabbitMQ/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/RabbitMQ/collect/rabbitmq_exporter/rabbitmq_exporter.toml",
+        "integrations/RabbitMQ/collect/rabbitmq/rabbitmq.toml"
+      ],
+      "boards": [
+        {
+          "name": "RabbitMQ 3.8+ 中文版",
+          "source": "integrations/RabbitMQ/dashboards/rabbitmq_CN_v3.8_gt.json"
+        },
+        {
+          "name": "RabbitMQ 3.8",
+          "source": "integrations/RabbitMQ/dashboards/rabbitmq_by_categraf.json"
+        },
+        {
+          "name": "RabbitMQ 3.8+",
+          "source": "integrations/RabbitMQ/dashboards/rabbitmq_v3.8_gt.json"
+        },
+        {
+          "name": "RabbitMQ 3.8-",
+          "source": "integrations/RabbitMQ/dashboards/rabbitmq_v3.8_lt.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "[RabbitMQ] File Descriptors Near Limit",
+          "source": "integrations/RabbitMQ/alerts/alerts.json"
+        },
+        {
+          "name": "[RabbitMQ] High Connection Churn",
+          "source": "integrations/RabbitMQ/alerts/alerts.json"
+        },
+        {
+          "name": "[RabbitMQ] Insufficient Established Erlang Distribution Links",
+          "source": "integrations/RabbitMQ/alerts/alerts.json"
+        },
+        {
+          "name": "[RabbitMQ] Low Disk Watermark Predicted",
+          "source": "integrations/RabbitMQ/alerts/alerts.json"
+        },
+        {
+          "name": "[RabbitMQ] TCP Sockets Near Limit",
+          "source": "integrations/RabbitMQ/alerts/alerts.json"
+        },
+        {
+          "name": "[RabbitMQ] Unroutable Messages",
+          "source": "integrations/RabbitMQ/alerts/alerts.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Radius",
+      "category": "infra",
+      "id": 64,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Radius/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Radius/collect/radius/radius.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Redfish",
+      "category": "network",
+      "id": 65,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Redfish/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Redfish/collect/redfish/redfish.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Redis",
+      "category": "data-services",
+      "id": 66,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Redis/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Redis/collect/redis_sentinel/redis_sentinel.toml",
+        "integrations/Redis/collect/redis/redis.toml"
+      ],
+      "boards": [
+        {
+          "name": "Redis by address",
+          "source": "integrations/Redis/dashboards/FilterByAddress.json"
+        },
+        {
+          "name": "Redis by instance",
+          "source": "integrations/Redis/dashboards/redis_by_categraf.json"
+        },
+        {
+          "name": "Redis Overview - exporter",
+          "source": "integrations/Redis/dashboards/redis_by_exporter.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "High Redis eviction rate",
+          "source": "integrations/Redis/alerts/redis_by_categraf.json"
+        },
+        {
+          "name": "High Redis memory usage rate",
+          "source": "integrations/Redis/alerts/redis_by_categraf.json"
+        },
+        {
+          "name": "High Redis Ping latency (above 100 milliseconds)",
+          "source": "integrations/Redis/alerts/redis_by_categraf.json"
+        },
+        {
+          "name": "Low Redis hit rate",
+          "source": "integrations/Redis/alerts/redis_by_categraf.json"
+        },
+        {
+          "name": "Redis connection refused",
+          "source": "integrations/Redis/alerts/redis_by_categraf.json"
+        },
+        {
+          "name": "Redis has just been restarted, please be aware",
+          "source": "integrations/Redis/alerts/redis_by_categraf.json"
+        },
+        {
+          "name": "High Redis client connection count - exporter",
+          "source": "integrations/Redis/alerts/redis_by_exporter.json"
+        },
+        {
+          "name": "High Redis eviction rate - exporter",
+          "source": "integrations/Redis/alerts/redis_by_exporter.json"
+        },
+        {
+          "name": "High Redis latency - exporter",
+          "source": "integrations/Redis/alerts/redis_by_exporter.json"
+        },
+        {
+          "name": "High Redis memory usage rate - exporter",
+          "source": "integrations/Redis/alerts/redis_by_exporter.json"
+        },
+        {
+          "name": "Low Redis hit rate - exporter",
+          "source": "integrations/Redis/alerts/redis_by_exporter.json"
+        },
+        {
+          "name": "Redis connection refused - exporter",
+          "source": "integrations/Redis/alerts/redis_by_exporter.json"
+        },
+        {
+          "name": "Redis has just been restarted, please be aware - exporter",
+          "source": "integrations/Redis/alerts/redis_by_exporter.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "RocketMQ",
+      "category": "observability",
+      "id": 67,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/RocketMQ/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/RocketMQ/collect/rocketmq/rocketmq.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "SMART",
+      "category": "local",
+      "id": 68,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/SMART/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/SMART/collect/smart/smart.toml"
+      ],
+      "boards": [
+        {
+          "name": "S.M.A.R.T Dashboard",
+          "source": "integrations/SMART/dashboards/smart.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "SMART设备健康状态异常",
+          "source": "integrations/SMART/alerts/smart_alerts.json"
+        },
+        {
+          "name": "SSD介质磨损百分比≥90%",
+          "source": "integrations/SMART/alerts/smart_alerts.json"
+        },
+        {
+          "name": "硬盘温度超过65℃",
+          "source": "integrations/SMART/alerts/smart_alerts.json"
+        },
+        {
+          "name": "CRC错误计数1小时内持续增长",
+          "source": "integrations/SMART/alerts/smart_alerts.json"
+        },
+        {
+          "name": "SSD擦除失败计数增长",
+          "source": "integrations/SMART/alerts/smart_alerts.json"
+        },
+        {
+          "name": "SSD编程失败计数增长",
+          "source": "integrations/SMART/alerts/smart_alerts.json"
+        }
+      ],
+      "metricCount": 14,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "SNMP",
+      "category": "network",
+      "id": 69,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/SNMP/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/SNMP/collect/snmp/Cisco.toml",
+        "integrations/SNMP/collect/snmp/snmp.toml",
+        "integrations/SNMP/collect/snmp/snmp.toml.example"
+      ],
+      "boards": [
+        {
+          "name": "Device Traffic View",
+          "source": "integrations/SNMP/dashboards/Device Traffic View.json"
+        },
+        {
+          "name": "Juniper网络设备详情",
+          "source": "integrations/SNMP/dashboards/Juniper网络设备详情.json"
+        },
+        {
+          "name": "SNMP 网络设备状态汇总",
+          "source": "integrations/SNMP/dashboards/SNMP 网络设备状态汇总.json"
+        },
+        {
+          "name": "SNMP Stats",
+          "source": "integrations/SNMP/dashboards/dashboards.json"
+        },
+        {
+          "name": "各个接入交换机",
+          "source": "integrations/SNMP/dashboards/switch branch.json"
+        },
+        {
+          "name": "网络交换机监控大盘",
+          "source": "integrations/SNMP/dashboards/switch main.json"
+        },
+        {
+          "name": "华为网络设备详情",
+          "source": "integrations/SNMP/dashboards/华为网络设备详情.json"
+        },
+        {
+          "name": "网络设备端口流量视图",
+          "source": "integrations/SNMP/dashboards/网络设备端口流量视图.json"
+        },
+        {
+          "name": "网络设备详情通用仪表盘",
+          "source": "integrations/SNMP/dashboards/网络设备详情通用仪表盘.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "H3C 电源状态异常",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "H3C设备 CPU使用率大于70%",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "H3C设备 内存使用率大于70%",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "H3C设备 风扇状态异常",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "ICMP 超时",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Incoming 带宽使用率高",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Interface Down",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Juniper设备 CPU使用率大于70%",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Juniper设备 内存使用率大于70%",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Juniper设备 电源状态异常",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Juniper设备 风扇状态异常",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Outgoing 带宽使用率高",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Ruijie设备 电源状态异常",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Ruijie设备 风扇状态异常",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Ruijie设备CPU使用率大于70%",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Ruijie设备内存使用率大于70%",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "入方向 CRC 错误",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "出方向 CRC 错误",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "华为设备CPU使用率大于70%",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "华为设备内存使用率大于70%",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "华为设备电源状态异常",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "华为设备风扇状态异常",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "设备中断",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "设备失去连接",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "设备重启",
+          "source": "integrations/SNMP/alerts/Common Alert Rules - Categraf.json"
+        },
+        {
+          "name": "Abnormal fan status",
+          "source": "integrations/SNMP/alerts/HUAWEI CE DEVICE.json"
+        },
+        {
+          "name": "Abnormal power status",
+          "source": "integrations/SNMP/alerts/HUAWEI CE DEVICE.json"
+        },
+        {
+          "name": "Abnormal temperature",
+          "source": "integrations/SNMP/alerts/HUAWEI CE DEVICE.json"
+        },
+        {
+          "name": "CPU Usage Over 70%",
+          "source": "integrations/SNMP/alerts/HUAWEI CE DEVICE.json"
+        },
+        {
+          "name": "Memory Usage Over 70%",
+          "source": "integrations/SNMP/alerts/HUAWEI CE DEVICE.json"
+        },
+        {
+          "name": "Bgp Down",
+          "source": "integrations/SNMP/alerts/JUNIPER DEVICE Bgp.json"
+        },
+        {
+          "name": "Bgp peer flap",
+          "source": "integrations/SNMP/alerts/JUNIPER DEVICE Bgp.json"
+        },
+        {
+          "name": "SNMP 探测失败（设备在线）",
+          "source": "integrations/SNMP/alerts/Network Device Health.json"
+        },
+        {
+          "name": "SNMP 采集中断（曾有数据）",
+          "source": "integrations/SNMP/alerts/Network Device Health.json"
+        },
+        {
+          "name": "Bandwidth Usage Too High",
+          "source": "integrations/SNMP/alerts/SNMP Network.json"
+        },
+        {
+          "name": "CRC Error ",
+          "source": "integrations/SNMP/alerts/SNMP Network.json"
+        },
+        {
+          "name": "Interface Down",
+          "source": "integrations/SNMP/alerts/SNMP Network.json"
+        }
+      ],
+      "metricCount": 5,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "SQLServer",
+      "category": "database",
+      "id": 70,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/SQLServer/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/SQLServer/collect/sqlserver/sqlserver.toml"
+      ],
+      "boards": [
+        {
+          "name": "SQLServer",
+          "source": "integrations/SQLServer/dashboards/sqlserver.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "SQL Server 实例不可达",
+          "source": "integrations/SQLServer/alerts/sqlserver_by_categraf.json"
+        },
+        {
+          "name": "SQL Server 存在 SUSPECT 状态的数据库",
+          "source": "integrations/SQLServer/alerts/sqlserver_by_categraf.json"
+        },
+        {
+          "name": "SQL Server 存在 OFFLINE 状态的数据库",
+          "source": "integrations/SQLServer/alerts/sqlserver_by_categraf.json"
+        },
+        {
+          "name": "SQL Server 数据卷剩余空间不足",
+          "source": "integrations/SQLServer/alerts/sqlserver_by_categraf.json"
+        },
+        {
+          "name": "SQL Server 事务日志使用率过高",
+          "source": "integrations/SQLServer/alerts/sqlserver_by_categraf.json"
+        },
+        {
+          "name": "SQL Server 页面生命周期过短",
+          "source": "integrations/SQLServer/alerts/sqlserver_by_categraf.json"
+        },
+        {
+          "name": "SQL Server 存在等待内存授予的查询",
+          "source": "integrations/SQLServer/alerts/sqlserver_by_categraf.json"
+        },
+        {
+          "name": "SQL Server 阻塞进程数过高",
+          "source": "integrations/SQLServer/alerts/sqlserver_by_categraf.json"
+        },
+        {
+          "name": "SQL Server 发生死锁",
+          "source": "integrations/SQLServer/alerts/sqlserver_by_categraf.json"
+        },
+        {
+          "name": "SQL Server 数据文件读延迟过高",
+          "source": "integrations/SQLServer/alerts/sqlserver_by_categraf.json"
+        },
+        {
+          "name": "SQL Server 数据文件写延迟过高",
+          "source": "integrations/SQLServer/alerts/sqlserver_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Skywalking",
+      "category": "observability",
+      "id": 71,
+      "origin": "default",
+      "instructions": false,
+      "readme": null,
+      "collectionEvidence": false,
+      "collect": [],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺采集说明",
+        "需补结构化采集定义",
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "空组件，待补模板"
+    },
+    {
+      "name": "SpringBoot",
+      "category": "java",
+      "id": 72,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/SpringBoot/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "JVM (Actuator) with application name",
+          "source": "integrations/SpringBoot/dashboards/JVM(Actuator)withapplicationname.json"
+        },
+        {
+          "name": "JVM仪表盘",
+          "source": "integrations/SpringBoot/dashboards/JVM.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "springboot HEAP内存使用率大于85%",
+          "source": "integrations/SpringBoot/alerts/alerts.json"
+        },
+        {
+          "name": "springboot HTTP请求延迟大于10s",
+          "source": "integrations/SpringBoot/alerts/alerts.json"
+        },
+        {
+          "name": "springboot HTTP错误数",
+          "source": "integrations/SpringBoot/alerts/alerts.json"
+        },
+        {
+          "name": "springboot 非堆内存使用率大于85%",
+          "source": "integrations/SpringBoot/alerts/alerts.json"
+        },
+        {
+          "name": "springboot 事件错误数",
+          "source": "integrations/SpringBoot/alerts/alerts.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Switch_Legacy",
+      "category": "network",
+      "id": 73,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Switch_Legacy/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Switch_Legacy/collect/switch_legacy/switch_legacy.toml"
+      ],
+      "boards": [
+        {
+          "name": "网络交换机",
+          "source": "integrations/Switch_Legacy/dashboards/dashboard.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "交换机不可达",
+          "source": "integrations/Switch_Legacy/alerts/switch_legacy_by_categraf.json"
+        },
+        {
+          "name": "交换机 CPU 使用率过高",
+          "source": "integrations/Switch_Legacy/alerts/switch_legacy_by_categraf.json"
+        },
+        {
+          "name": "交换机内存使用率过高",
+          "source": "integrations/Switch_Legacy/alerts/switch_legacy_by_categraf.json"
+        },
+        {
+          "name": "交换机端口状态频繁翻转",
+          "source": "integrations/Switch_Legacy/alerts/switch_legacy_by_categraf.json"
+        },
+        {
+          "name": "交换机端口入向错包",
+          "source": "integrations/Switch_Legacy/alerts/switch_legacy_by_categraf.json"
+        },
+        {
+          "name": "交换机端口入向带宽利用率过高",
+          "source": "integrations/Switch_Legacy/alerts/switch_legacy_by_categraf.json"
+        },
+        {
+          "name": "交换机端口出向带宽利用率过高",
+          "source": "integrations/Switch_Legacy/alerts/switch_legacy_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Systemd",
+      "category": "local",
+      "id": 74,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Systemd/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Systemd/collect/systemd/systemd.toml"
+      ],
+      "boards": [
+        {
+          "name": "Sytemd 监控仪表盘",
+          "source": "integrations/Systemd/dashboards/system_by_categraf.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "服务状态异常",
+          "source": "integrations/Systemd/alerts/system.json"
+        },
+        {
+          "name": "服务频繁重启",
+          "source": "integrations/Systemd/alerts/system.json"
+        },
+        {
+          "name": "系统状态异常",
+          "source": "integrations/Systemd/alerts/system.json"
+        }
+      ],
+      "metricCount": 12,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "TDEngine",
+      "category": "analytics",
+      "id": 75,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/TDEngine/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "TaosKeeper 3.x Prometheus Dashboard",
+          "source": "integrations/TDEngine/dashboards/tasokeeper3.x.json"
+        }
+      ],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Tencent",
+      "category": "cloud",
+      "id": 76,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Tencent/markdown/readme.md",
+      "collectionEvidence": false,
+      "collect": [],
+      "boards": [
+        {
+          "name": "CVM",
+          "source": "integrations/Tencent/dashboards/CVM.json"
+        },
+        {
+          "name": "Ckafka",
+          "source": "integrations/Tencent/dashboards/Ckafka.json"
+        },
+        {
+          "name": "Postgres",
+          "source": "integrations/Tencent/dashboards/Postgres.json"
+        },
+        {
+          "name": "Redis-内存版",
+          "source": "integrations/Tencent/dashboards/Redis_内存版.json"
+        },
+        {
+          "name": "TDSQL-C(Mysql)",
+          "source": "integrations/Tencent/dashboards/TDSQL-C-Mysql.json"
+        },
+        {
+          "name": "负载均衡【公网】",
+          "source": "integrations/Tencent/dashboards/负载均衡-公网.json"
+        },
+        {
+          "name": "负载均衡【内网】",
+          "source": "integrations/Tencent/dashboards/负载均衡-内网.json"
+        }
+      ],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "需补结构化采集定义",
+        "缺独立指标说明",
+        "无告警规则",
+        "需补云监控采集凭据与调用定义"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "TiDB",
+      "category": "analytics",
+      "id": 77,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/TiDB/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "tidb-Overview",
+          "source": "integrations/TiDB/dashboards/tidb-dashboard.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "TiDB-CPU 使用率大于 80%",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-Node_exporter_is_down",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-PD 写盘延迟大于 1s ，leader 写盘慢会导致 leader 切换",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-PD 无 leader ",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-PD 节点之间网络延迟大于 1s",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-TCP 连接数大于 50000 ",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-TiDB_server_is_down",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-blackbox_is_down",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-drainer_server_is_down",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-grafana_is_down",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-pd_server_is_down",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-pump_server_is_down",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-tidb CPU 使用率超过可用 CPU的 80%",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-tidb 最近 15 分钟加载 schema 出现错误",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-tidb 最近五分钟出现跳过 binlog",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-tidb 最近十分钟加载 schema 失败大于 10 次",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-tiflash_server_is_down",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-tikv 5分钟内内存增长大于 5G",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-tikv 发生重启",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-tikv 可用空间低于 20%",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-tikv_server_is_down",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-内存使用大于 80%",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-挂载点状态变为只读",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-文件系统 inode 使用率大于 80%",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-磁盘使用率大于 80%",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-网卡-入向有丢包",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-网卡-出向有丢包",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        },
+        {
+          "name": "TiDB-集群中出现状态为 down 的 tikv 数量大于 0",
+          "source": "integrations/TiDB/alerts/tidb-alerts.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Tomcat",
+      "category": "web",
+      "id": 78,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Tomcat/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Tomcat/collect/tomcat/tomcat.toml"
+      ],
+      "boards": [
+        {
+          "name": "Tomcat - categraf",
+          "source": "integrations/Tomcat/dashboards/tomcat_by_categraf.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Tomcat 实例不可达",
+          "source": "integrations/Tomcat/alerts/tomcat_by_categraf.json"
+        },
+        {
+          "name": "Tomcat 线程池接近打满",
+          "source": "integrations/Tomcat/alerts/tomcat_by_categraf.json"
+        },
+        {
+          "name": "Tomcat 请求错误率过高",
+          "source": "integrations/Tomcat/alerts/tomcat_by_categraf.json"
+        },
+        {
+          "name": "Tomcat 平均请求处理耗时过长",
+          "source": "integrations/Tomcat/alerts/tomcat_by_categraf.json"
+        },
+        {
+          "name": "Tomcat JVM 堆内存使用率过高",
+          "source": "integrations/Tomcat/alerts/tomcat_by_categraf.json"
+        },
+        {
+          "name": "Tomcat 老年代内存使用率过高",
+          "source": "integrations/Tomcat/alerts/tomcat_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "VictoriaMetrics",
+      "category": "observability",
+      "id": 79,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/VictoriaMetrics/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "VictoriaMetrics - Cluster",
+          "source": "integrations/VictoriaMetrics/dashboards/victoriametrics-cluster.json"
+        },
+        {
+          "name": "VictoriaMetrics - Single",
+          "source": "integrations/VictoriaMetrics/dashboards/victoriametrics-single.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "vm error logging rate 大于0",
+          "source": "integrations/VictoriaMetrics/alerts/alerts.json"
+        },
+        {
+          "name": "vm-insert 和 vm-storage 组件之间连接的饱和度大于9",
+          "source": "integrations/VictoriaMetrics/alerts/alerts.json"
+        },
+        {
+          "name": "vm-insert 实例端口异常",
+          "source": "integrations/VictoriaMetrics/alerts/alerts.json"
+        },
+        {
+          "name": "vm-select 实例端口异常",
+          "source": "integrations/VictoriaMetrics/alerts/alerts.json"
+        },
+        {
+          "name": "vm-select请求查询延迟超过15s",
+          "source": "integrations/VictoriaMetrics/alerts/alerts.json"
+        },
+        {
+          "name": "vm-storage 实例端口异常",
+          "source": "integrations/VictoriaMetrics/alerts/alerts.json"
+        },
+        {
+          "name": "vminsert服务宕机",
+          "source": "integrations/VictoriaMetrics/alerts/alerts.json"
+        },
+        {
+          "name": "vmselect服务宕机",
+          "source": "integrations/VictoriaMetrics/alerts/alerts.json"
+        },
+        {
+          "name": "vmstorage服务宕机",
+          "source": "integrations/VictoriaMetrics/alerts/alerts.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Whois",
+      "category": "probes",
+      "id": 80,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Whois/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Whois/collect/whois/whois.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "域名 30 天内到期",
+          "source": "integrations/Whois/alerts/whois_by_categraf.json"
+        },
+        {
+          "name": "域名 7 天内到期",
+          "source": "integrations/Whois/alerts/whois_by_categraf.json"
+        },
+        {
+          "name": "域名注册信息发生变更",
+          "source": "integrations/Whois/alerts/whois_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Windows",
+      "category": "host",
+      "id": 81,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Windows/markdown/README.md",
+      "collectionEvidence": false,
+      "collect": [],
+      "boards": [
+        {
+          "name": "Active Directory Federation Services",
+          "source": "integrations/Windows/dashboards/Active Directory Federation Services.json"
+        },
+        {
+          "name": "Active Directory",
+          "source": "integrations/Windows/dashboards/Active Directory.json"
+        },
+        {
+          "name": "DNS",
+          "source": "integrations/Windows/dashboards/DNS.json"
+        },
+        {
+          "name": "Windows Server",
+          "source": "integrations/Windows/dashboards/Windows Server.json"
+        },
+        {
+          "name": "Windows Host by Categraf",
+          "source": "integrations/Windows/dashboards/windows_by_categraf.json"
+        },
+        {
+          "name": "Windows - exporter",
+          "source": "integrations/Windows/dashboards/windows_by_exporter.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "Hard disk - expected to be written full in 4 hours - categraf [Windows]",
+          "source": "integrations/Windows/alerts/windows_by_categraf.json"
+        },
+        {
+          "name": "Hard disk - IO is a bit busy - categraf [Windows]",
+          "source": "integrations/Windows/alerts/windows_by_categraf.json"
+        },
+        {
+          "name": "Lost connection with monitoring target - categraf [Windows]",
+          "source": "integrations/Windows/alerts/windows_by_categraf.json"
+        },
+        {
+          "name": "Machine load - high memory, please pay attention - categraf[Windows]",
+          "source": "integrations/Windows/alerts/windows_by_categraf.json"
+        },
+        {
+          "name": "packet loss in the inbound direction - categraf[Windows]",
+          "source": "integrations/Windows/alerts/windows_by_categraf.json"
+        },
+        {
+          "name": "packet loss in the outbound direction - categraf [Windows]",
+          "source": "integrations/Windows/alerts/windows_by_categraf.json"
+        },
+        {
+          "name": "大于200G的盘，空间不足了[Windows]",
+          "source": "integrations/Windows/alerts/windows_by_categraf.json"
+        },
+        {
+          "name": "小于200G的盘，空间不足了[Windows]",
+          "source": "integrations/Windows/alerts/windows_by_categraf.json"
+        },
+        {
+          "name": "High CPU utilization - exporter",
+          "source": "integrations/Windows/alerts/windows_by_exporter.json"
+        },
+        {
+          "name": "High memory usage rate - exporter",
+          "source": "integrations/Windows/alerts/windows_by_exporter.json"
+        },
+        {
+          "name": "machine reboot in the last 15 minutes - exporter",
+          "source": "integrations/Windows/alerts/windows_by_exporter.json"
+        },
+        {
+          "name": "packet loss issue in the inbound direction - exporter",
+          "source": "integrations/Windows/alerts/windows_by_exporter.json"
+        },
+        {
+          "name": "packet loss issue in the outbound direction - exporter",
+          "source": "integrations/Windows/alerts/windows_by_exporter.json"
+        },
+        {
+          "name": "The hard disk is almost full - exporter",
+          "source": "integrations/Windows/alerts/windows_by_exporter.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "需补结构化采集定义",
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Windows_SNMP",
+      "category": "host",
+      "id": 91,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Windows_SNMP/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [],
+      "boards": [
+        {
+          "name": "Windows SNMP overview",
+          "source": "integrations/Windows_SNMP/dashboards/overview.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "CPU usage above 90%",
+          "source": "integrations/Windows_SNMP/alerts/default.json"
+        },
+        {
+          "name": "Memory usage above 90%",
+          "source": "integrations/Windows_SNMP/alerts/default.json"
+        },
+        {
+          "name": "Disk usage above 90%",
+          "source": "integrations/Windows_SNMP/alerts/default.json"
+        },
+        {
+          "name": "SNMP collection interrupted",
+          "source": "integrations/Windows_SNMP/alerts/default.json"
+        }
+      ],
+      "metricCount": 6,
+      "gaps": [],
+      "state": "现有 SNMP 接入"
+    },
+    {
+      "name": "X509_Cert",
+      "category": "probes",
+      "id": 82,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/X509_Cert/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/X509_Cert/collect/x509_cert/x509_cert.toml"
+      ],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "XSKYApi",
+      "category": "storage",
+      "id": 83,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/XSKYApi/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/XSKYApi/collect/xskyapi/xskyapi.toml"
+      ],
+      "boards": [],
+      "alerts": [
+        {
+          "name": "XSKY 对象存储用户配额使用率过高",
+          "source": "integrations/XSKYApi/alerts/xskyapi_by_categraf.json"
+        },
+        {
+          "name": "XSKY 存储桶配额使用率过高",
+          "source": "integrations/XSKYApi/alerts/xskyapi_by_categraf.json"
+        },
+        {
+          "name": "XSKY 块存储卷使用率过高",
+          "source": "integrations/XSKYApi/alerts/xskyapi_by_categraf.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无仪表盘"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "Zabbix",
+      "category": "observability",
+      "id": 84,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/Zabbix/markdown/zabbix.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/Zabbix/collect/zabbix/zabbix.toml"
+      ],
+      "boards": [
+        {
+          "name": "Zabbix主机详情仪表盘-增强版",
+          "source": "integrations/Zabbix/dashboards/zabbix-host-detail-enhanced.json"
+        }
+      ],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明",
+        "无告警规则"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "ZooKeeper",
+      "category": "infra",
+      "id": 85,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/ZooKeeper/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/ZooKeeper/collect/zookeeper/zookeeper.toml"
+      ],
+      "boards": [
+        {
+          "name": "Zookeeper - exporter",
+          "source": "integrations/ZooKeeper/dashboards/zookeeper_by_exporter.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "More than 1 Zookeeper leader - exporter",
+          "source": "integrations/ZooKeeper/alerts/zookeeper_by_exporter.json"
+        },
+        {
+          "name": "There is no Zookeeper leader available - exporter",
+          "source": "integrations/ZooKeeper/alerts/zookeeper_by_exporter.json"
+        },
+        {
+          "name": "Zookeeper has crashed - exporter",
+          "source": "integrations/ZooKeeper/alerts/zookeeper_by_exporter.json"
+        },
+        {
+          "name": "Zookeeper instance is running abnormally - exporter",
+          "source": "integrations/ZooKeeper/alerts/zookeeper_by_exporter.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "cAdvisor",
+      "category": "container",
+      "id": 86,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/cAdvisor/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/cAdvisor/collect/cadvisor/cadvisor.toml"
+      ],
+      "boards": [
+        {
+          "name": "cAdvisor",
+          "source": "integrations/cAdvisor/dashboards/dashboard.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "容器内存使用率接近上限",
+          "source": "integrations/cAdvisor/alerts/cadvisor_by_categraf.json"
+        },
+        {
+          "name": "容器发生 OOM",
+          "source": "integrations/cAdvisor/alerts/cadvisor_by_categraf.json"
+        },
+        {
+          "name": "容器 CPU 被严重限流",
+          "source": "integrations/cAdvisor/alerts/cadvisor_by_categraf.json"
+        },
+        {
+          "name": "容器文件系统使用率过高",
+          "source": "integrations/cAdvisor/alerts/cadvisor_by_categraf.json"
+        },
+        {
+          "name": "容器频繁重启",
+          "source": "integrations/cAdvisor/alerts/cadvisor_by_categraf.json"
+        },
+        {
+          "name": "容器网络接收丢包",
+          "source": "integrations/cAdvisor/alerts/cadvisor_by_categraf.json"
+        }
+      ],
+      "metricCount": 45,
+      "gaps": [],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "vSphere",
+      "category": "storage",
+      "id": 87,
+      "origin": "default",
+      "instructions": true,
+      "readme": "integrations/vSphere/markdown/README.md",
+      "collectionEvidence": true,
+      "collect": [
+        "integrations/vSphere/collect/vsphere/vsphere.toml"
+      ],
+      "boards": [
+        {
+          "name": "VMware by vSphere-monitor",
+          "source": "integrations/vSphere/dashboards/vmware_by_vsphere-monitor.json"
+        },
+        {
+          "name": "Vsphere",
+          "source": "integrations/vSphere/dashboards/vsphere.json"
+        }
+      ],
+      "alerts": [
+        {
+          "name": "ESXi实例CPU使用率大于70%",
+          "source": "integrations/vSphere/alerts/alerts.json"
+        },
+        {
+          "name": "ESXi实例内存使用率大于70%",
+          "source": "integrations/vSphere/alerts/alerts.json"
+        },
+        {
+          "name": "VM虚拟机CPU使用率大于70%",
+          "source": "integrations/vSphere/alerts/alerts.json"
+        },
+        {
+          "name": "VM虚拟机内存使用率大于70%",
+          "source": "integrations/vSphere/alerts/alerts.json"
+        },
+        {
+          "name": "VSphere磁盘使用率大于70%",
+          "source": "integrations/vSphere/alerts/alerts.json"
+        }
+      ],
+      "metricCount": 0,
+      "gaps": [
+        "缺独立指标说明"
+      ],
+      "state": "拟扩展接入"
+    },
+    {
+      "name": "jjj",
+      "category": "custom",
+      "id": 89,
+      "origin": "custom",
+      "instructions": false,
+      "readme": null,
+      "collectionEvidence": false,
+      "collect": [],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "自建内容待单独核对",
+        "未定义通用添加参数映射"
+      ],
+      "state": "待映射；保留原内容"
+    },
+    {
+      "name": "Windows (snmp)",
+      "category": "custom",
+      "id": 88,
+      "origin": "custom",
+      "instructions": false,
+      "readme": null,
+      "collectionEvidence": false,
+      "collect": [],
+      "boards": [],
+      "alerts": [],
+      "metricCount": 0,
+      "gaps": [
+        "自建内容待单独核对",
+        "未定义通用添加参数映射"
+      ],
+      "state": "待映射；保留原内容"
+    }
+  ]
+}

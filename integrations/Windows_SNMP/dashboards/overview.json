@@ -1,0 +1,1080 @@
+{
+  "name": "Windows SNMP overview",
+  "uuid": 1800000000100000,
+  "tags": "SNMP",
+  "configs": {
+    "version": "3.1.0",
+    "panels": [
+      {
+        "type": "timeseries",
+        "id": "a3ed2879-b71e-5ce7-847a-1b0391749cfd",
+        "layout": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0,
+          "i": "a3ed2879-b71e-5ce7-847a-1b0391749cfd",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "avg by (collection_device_id, collection_revision) (snmp_cpu_load{collection_mode=\"managed\"})",
+            "refId": "A",
+            "legend": "{{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "CPU usage",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "percent",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "95e32485-c05f-5abc-9ca5-edf89eab1ffb",
+        "layout": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0,
+          "i": "95e32485-c05f-5abc-9ca5-edf89eab1ffb",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "100 * snmp_storage_used{type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.2\",collection_mode=\"managed\"} / (snmp_storage_size{type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.2\",collection_mode=\"managed\"} > 0)",
+            "refId": "A",
+            "legend": "{{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Memory usage",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "percent",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "fb35376f-0b30-5ae2-a359-fbe61582c463",
+        "layout": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8,
+          "i": "fb35376f-0b30-5ae2-a359-fbe61582c463",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "100 * snmp_storage_used{type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.4\",collection_mode=\"managed\"} / (snmp_storage_size{type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.4\",collection_mode=\"managed\"} > 0)",
+            "refId": "A",
+            "legend": "{{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Disk usage",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "percent",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "8b3dceac-5f83-5e7d-8865-6b0e3de6176d",
+        "layout": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8,
+          "i": "8b3dceac-5f83-5e7d-8865-6b0e3de6176d",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "8 * rate(snmp_traffic32_in_octets{collection_mode=\"managed\"}[5m])",
+            "refId": "A",
+            "legend": "{{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Network inbound",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bits/sec",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "09a56010-1a86-54b7-83bd-96a51d244324",
+        "layout": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16,
+          "i": "09a56010-1a86-54b7-83bd-96a51d244324",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "8 * rate(snmp_traffic32_out_octets{collection_mode=\"managed\"}[5m])",
+            "refId": "A",
+            "legend": "{{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Network outbound",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bits/sec",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "612c9f82-c83c-58f3-ac12-b2654e129573",
+        "layout": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16,
+          "i": "612c9f82-c83c-58f3-ac12-b2654e129573",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_uptime{collection_mode=\"managed\"} / 100",
+            "refId": "A",
+            "legend": "{{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "SNMP uptime",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "seconds",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "9e773262-f6fb-5a5c-9edb-9209282e4573",
+        "layout": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24,
+          "i": "9e773262-f6fb-5a5c-9edb-9209282e4573",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_interface_oper_status{collection_mode=\"managed\"}",
+            "refId": "A",
+            "legend": "{{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Interface oper status",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 0
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "b1ccfd91-ec82-5b0d-8dd9-4d670f3d42f1",
+        "layout": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24,
+          "i": "b1ccfd91-ec82-5b0d-8dd9-4d670f3d42f1",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_interface_admin_status{collection_mode=\"managed\"}",
+            "refId": "A",
+            "legend": "{{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Interface admin status",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 0
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "3181e1a7-ff94-5681-a5bf-71c9ab318e51",
+        "layout": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 32,
+          "i": "3181e1a7-ff94-5681-a5bf-71c9ab318e51",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_interface_speed{collection_mode=\"managed\"}",
+            "refId": "A",
+            "legend": "{{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Interface speed",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "Mbps",
+            "min": null,
+            "max": null,
+            "decimals": 0
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "d5fcf4b1-82f7-504b-b810-fc865dda7c80",
+        "layout": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 32,
+          "i": "d5fcf4b1-82f7-504b-b810-fc865dda7c80",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "rate(snmp_interface_in_errors{collection_mode=\"managed\"}[5m]) + rate(snmp_interface_out_errors{collection_mode=\"managed\"}[5m])",
+            "refId": "A",
+            "legend": "{{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Interface error rate",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "pps",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ]
+      },
+      {
+        "type": "timeseries",
+        "id": "8b803eaa-b841-585e-84ea-34b1ac98539d",
+        "layout": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 40,
+          "i": "8b803eaa-b841-585e-84ea-34b1ac98539d",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "rate(snmp_interface_in_discards{collection_mode=\"managed\"}[5m]) + rate(snmp_interface_out_discards{collection_mode=\"managed\"}[5m])",
+            "refId": "A",
+            "legend": "{{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Interface discard rate",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "hidden",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "pps",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ]
+      }
+    ],
+    "var": [],
+    "links": [],
+    "graphTooltip": 1
+  }
+}

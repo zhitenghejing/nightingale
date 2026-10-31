@@ -1,0 +1,14 @@
+flowchart TB
+  template["原生模板四部分<br/>采集说明 / 指标说明 / 仪表盘 / 告警规则"] --> form["设备表单<br/>IPv4、团体字、采集器、模板、ident、间隔"]
+  form --> tx["事务保存<br/>加密凭据、设备、Target、不可变快照与发布"]
+  tx --> instances["独立仪表盘 / 规则<br/>可编辑；普通保存保留定制"]
+  tx -.-> provider["Center HTTP Provider<br/>认证、配置版本、发布与撤回"]
+  provider -. "Categraf 主动拉取" .-> categraf["Categraf 受管任务<br/>一采集器可监控多台 Agent"]
+  categraf <-->|"UDP SNMP v2c"| agent["Windows / Linux SNMP Agent<br/>CPU、内存、磁盘、接口、uptime"]
+  categraf -->|"Remote Write"| push["Pushgw<br/>设备 / 采集器 / 版本归属校验"]
+  push -->|"Writers"| prom["Prometheus<br/>真实时间序列"]
+  prom --> health["当前修订健康<br/>新鲜度、缺失、时钟与查询错误"]
+  prom --> query["设备详情 / 查询 / 仪表盘<br/>按 ident 或设备 UUID 定位"]
+  prom --> eval["原生告警引擎<br/>CPU / 内存 / 磁盘 >90% 持续5分钟、SNMP中断"]
+  instances -.-> query & eval
+  eval --> notify["事件 / 通知规则 / 订阅 / 媒介<br/>接收人和渠道另行配置"]

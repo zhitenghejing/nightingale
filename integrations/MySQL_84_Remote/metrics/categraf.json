@@ -1,0 +1,170 @@
+[
+  {
+    "typ": "MySQL_84_Remote",
+    "name": "mysql_up",
+    "expression": "mysql_up",
+    "unit": "none",
+    "note": "Categraf MySQL remote collection metric",
+    "uuid": 1800000000300200,
+    "collector": "categraf",
+    "lang": "en_US",
+    "expression_type": "promql",
+    "metric_type": "gauge",
+    "translation": [
+      {
+        "lang": "en_US",
+        "name": "mysql_up",
+        "note": "Categraf MySQL remote collection metric"
+      },
+      {
+        "lang": "zh_CN",
+        "name": "mysql_up",
+        "note": "当前设备的 MySQL 受管采集指标。"
+      }
+    ]
+  },
+  {
+    "typ": "MySQL_84_Remote",
+    "name": "mysql_global_status_threads_connected",
+    "expression": "mysql_global_status_threads_connected",
+    "unit": "none",
+    "note": "Categraf MySQL remote collection metric",
+    "uuid": 1800000000300201,
+    "collector": "categraf",
+    "lang": "en_US",
+    "expression_type": "promql",
+    "metric_type": "gauge",
+    "translation": [
+      {
+        "lang": "en_US",
+        "name": "mysql_global_status_threads_connected",
+        "note": "Categraf MySQL remote collection metric"
+      },
+      {
+        "lang": "zh_CN",
+        "name": "mysql_global_status_threads_connected",
+        "note": "当前设备的 MySQL 受管采集指标。"
+      }
+    ]
+  },
+  {
+    "typ": "MySQL_84_Remote",
+    "name": "mysql_global_status_threads_running",
+    "expression": "mysql_global_status_threads_running",
+    "unit": "none",
+    "note": "Categraf MySQL remote collection metric",
+    "uuid": 1800000000300202,
+    "collector": "categraf",
+    "lang": "en_US",
+    "expression_type": "promql",
+    "metric_type": "gauge",
+    "translation": [
+      {
+        "lang": "en_US",
+        "name": "mysql_global_status_threads_running",
+        "note": "Categraf MySQL remote collection metric"
+      },
+      {
+        "lang": "zh_CN",
+        "name": "mysql_global_status_threads_running",
+        "note": "当前设备的 MySQL 受管采集指标。"
+      }
+    ]
+  },
+  {
+    "typ": "MySQL_84_Remote",
+    "name": "mysql_global_status_questions",
+    "expression": "mysql_global_status_questions",
+    "unit": "none",
+    "note": "Categraf MySQL remote collection metric",
+    "uuid": 1800000000300203,
+    "collector": "categraf",
+    "lang": "en_US",
+    "expression_type": "promql",
+    "metric_type": "counter",
+    "translation": [
+      {
+        "lang": "en_US",
+        "name": "mysql_global_status_questions",
+        "note": "Categraf MySQL remote collection metric"
+      },
+      {
+        "lang": "zh_CN",
+        "name": "mysql_global_status_questions",
+        "note": "当前设备的 MySQL 受管采集指标。"
+      }
+    ]
+  },
+  {
+    "typ": "MySQL_84_Remote",
+    "name": "mysql_global_status_slow_queries",
+    "expression": "mysql_global_status_slow_queries",
+    "unit": "none",
+    "note": "Categraf MySQL remote collection metric",
+    "uuid": 1800000000300204,
+    "collector": "categraf",
+    "lang": "en_US",
+    "expression_type": "promql",
+    "metric_type": "counter",
+    "translation": [
+      {
+        "lang": "en_US",
+        "name": "mysql_global_status_slow_queries",
+        "note": "Categraf MySQL remote collection metric"
+      },
+      {
+        "lang": "zh_CN",
+        "name": "mysql_global_status_slow_queries",
+        "note": "当前设备的 MySQL 受管采集指标。"
+      }
+    ]
+  },
+  {
+    "typ": "MySQL_84_Remote",
+    "name": "mysql_global_status_uptime",
+    "expression": "mysql_global_status_uptime",
+    "unit": "none",
+    "note": "Categraf MySQL remote collection metric",
+    "uuid": 1800000000300205,
+    "collector": "categraf",
+    "lang": "en_US",
+    "expression_type": "promql",
+    "metric_type": "counter",
+    "translation": [
+      {
+        "lang": "en_US",
+        "name": "mysql_global_status_uptime",
+        "note": "Categraf MySQL remote collection metric"
+      },
+      {
+        "lang": "zh_CN",
+        "name": "mysql_global_status_uptime",
+        "note": "当前设备的 MySQL 受管采集指标。"
+      }
+    ]
+  },
+  {
+    "typ": "MySQL_84_Remote",
+    "name": "mysql_global_variables_max_connections",
+    "expression": "mysql_global_variables_max_connections",
+    "unit": "none",
+    "note": "Categraf MySQL remote collection metric",
+    "uuid": 1800000000300206,
+    "collector": "categraf",
+    "lang": "en_US",
+    "expression_type": "promql",
+    "metric_type": "gauge",
+    "translation": [
+      {
+        "lang": "en_US",
+        "name": "mysql_global_variables_max_connections",
+        "note": "Categraf MySQL remote collection metric"
+      },
+      {
+        "lang": "zh_CN",
+        "name": "mysql_global_variables_max_connections",
+        "note": "当前设备的 MySQL 受管采集指标。"
+      }
+    ]
+  }
+]

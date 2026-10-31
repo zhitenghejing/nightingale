@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Linux worktree previews. Python 3.11+ stdlib; no global package installs."""
 import argparse
+import base64
 import contextlib
 import fcntl
 import hashlib
@@ -361,6 +362,19 @@ def app_config(binding, backend_port):
         if not preview_services.prometheus_write_flags(STATE / "shared"):
             raise ValueError("collector requires the host-owned shared Prometheus remote-write opt-in")
         collector_writer = "[[Pushgw.Writers]]\nUrl = " + json.dumps(resource["prometheusURL"].rstrip("/") + "/api/v1/write")
+    collection_config = ""
+    collection_file = directory / "collection.json"
+    if collection_file.exists():
+        settings = json.loads(collection_file.read_text())
+        if binding.get("role", "development") != "development" or settings != {"enable": True}:
+            raise ValueError("invalid private development collection configuration")
+        key_file = directory / "collection-keys.json"
+        if not key_file.exists():
+            write_json(key_file, {"active": "preview-v1", "keys": {"preview-v1": base64.b64encode(secrets.token_bytes(32)).decode()}})
+        if key_file.stat().st_mode & 0o077:
+            raise ValueError("collection key file must be private")
+        collection_config = ("[Center.Collection]\nEnable = true\nProviderEnable = "
+                             + str(collector is not None).lower() + "\nKeyFile = " + json.dumps(str(key_file)) + "\n")
     return f'''[Global]
 RunMode = "release"
 [Log]
@@ -401,6 +415,7 @@ UseFileAssets = {str(bool(binding.get('frontendDir') or binding.get('inTreeFront
 MetricsYamlFile = {json.dumps(str(ROOT / 'etc/metrics.yaml'))}
 BuiltinIntegrationsDir = {json.dumps(str(ROOT / 'integrations'))}
 I18NHeaderKey = "X-Language"
+{collection_config}
 [Center.AIAgent]
 SkillsPath = "skill"
 [Center.Sandbox]

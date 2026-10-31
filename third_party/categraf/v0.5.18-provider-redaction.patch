@@ -1,0 +1,29 @@
+--- a/inputs/http_provider.go
++++ b/inputs/http_provider.go
+@@ -305,7 +305,7 @@
+ 				}
+ 				if changed {
+ 					if hrp.add.len() > 0 {
+-						log.Println("I! http provider: new or updated inputs:", hrp.add)
++						log.Printf("I! http provider: new or updated input plugins: %d", hrp.add.len())
+ 						for inputKey, cm := range hrp.add.snapshot() {
+ 							hrp.preStop(inputKey)
+ 							for _, conf := range cm {
+@@ -315,7 +315,7 @@
+ 					}
+ 
+ 					if hrp.del.len() > 0 {
+-						log.Println("I! http provider: deleted inputs:", hrp.del)
++						log.Printf("I! http provider: deleted input plugins: %d", hrp.del.len())
+ 						for inputKey, cm := range hrp.del.snapshot() {
+ 							if hrp.serviceInput(inputKey) {
+ 								continue
+@@ -433,7 +433,7 @@
+ 		if err != nil {
+ 			log.Println("E! load http config error:", err)
+ 			if config.Config.DebugMode {
+-				log.Printf("D! config:%+v load error:%s", c, err)
++				log.Printf("D! config sum:%s load failed", c.CheckSum())
+ 			}
+ 			continue
+ 		}

@@ -10,11 +10,13 @@ import { SIZE } from '@/utils/constant';
 
 import { NS, STATS_COLLAPSED_KEY } from '../../constants';
 import { getStats } from '../../services';
+import type { HostFilterValues } from './HostFilters';
 import numberToLocaleString from '../../utils/numberToLocaleString';
 import UsageDistributionChart from './UsageDistributionChart';
 import VersionsDistributionChart from './VersionsDistributionChart';
 
 interface Props {
+  filters?: HostFilterValues;
   gids?: string;
   collapsed: boolean;
   setCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
@@ -23,14 +25,14 @@ interface Props {
 
 export default function StatsCards(props: Props) {
   const { t } = useTranslation(NS);
-  const { gids, collapsed, setCollapsed, refreshFlag } = props;
+  const { gids, collapsed, setCollapsed, refreshFlag, filters } = props;
 
   const { data: stats, loading } = useRequest(
     () => {
-      return getStats({ gids: gids === '-2' ? undefined : gids });
+      return getStats({ gids: gids === '-2' ? undefined : gids, collection_kind: filters?.collection_kind, collector_id: filters?.collector_id });
     },
     {
-      refreshDeps: [gids, refreshFlag],
+      refreshDeps: [gids, refreshFlag, filters?.collection_kind, filters?.collector_id],
     },
   );
 

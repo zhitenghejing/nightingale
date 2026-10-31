@@ -284,3 +284,13 @@ ForceUseServerTS = true
 [Ibex]
 Enable = true
 RPCListen = "0.0.0.0:20090"
+
+# Center-owned SNMP devices. Generate and back up a private AES-256 keyring before enabling.
+[Center.Collection]
+Enable = false
+ProviderEnable = false
+KeyFile = "etc.local/collection-keys.json"
+MaxDevices = 1000
+MaxConfigBytes = 8388608
+StaleSeconds = 90
+FutureSeconds = 30

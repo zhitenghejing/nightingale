@@ -71,6 +71,9 @@ func RecoveryWithWriter(out io.Writer) gin.HandlerFunc {
 				if logger != nil {
 					stack := stack(3)
 					httpRequest, _ := httputil.DumpRequest(c.Request, false)
+					if strings.HasPrefix(c.Request.URL.Path, "/api/n9e/collection/") || c.Request.URL.Path == "/v1/n9e/collection/configs" {
+						httpRequest = []byte(c.Request.Method + " " + c.Request.URL.Path)
+					}
 					headers := strings.Split(string(httpRequest), "\r\n")
 					for idx, header := range headers {
 						current := strings.Split(header, ":")

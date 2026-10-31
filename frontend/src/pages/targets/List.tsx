@@ -8,6 +8,8 @@ import moment from 'moment';
 import { useTranslation, Trans } from 'react-i18next';
 
 import { getMonObjectList } from '@/services/targets';
+import { collectionEnabled, Collector, getCollectors, CollectionState } from '@/services/collection';
+import { CollectionActions, CollectionLink, Health } from '@/pages/collection';
 import { timeFormatter } from '@/pages/dashboard/Renderer/utils/valueFormatter';
 import { CommonStateContext } from '@/App';
 import usePagination from '@/components/usePagination';
@@ -52,6 +54,7 @@ export interface ITargetProps {
   note: string;
   tags: string[];
   beat_time: number;
+  collection?: CollectionState;
 }
 
 interface IProps {
@@ -78,9 +81,25 @@ const Unknown = () => {
 
 export default function List(props: IProps) {
   const { t, i18n } = useTranslation('targets');
+  const { t: ct } = useTranslation('collection');
   const pagination = usePagination({ PAGESIZE_KEY: 'targets' });
   const { darkMode } = useContext(CommonStateContext);
   const { editable = true, explorable = true, gids, selectedRows, setSelectedRows, refreshFlag, setRefreshFlag, setOperateType } = props;
+  const [collectionOn, setCollectionOn] = useState(false);
+  const [collectionKind, setCollectionKind] = useState<string>();
+  const [collectorId, setCollectorId] = useState<string>();
+  const [collectors, setCollectors] = useState<Collector[]>([]);
+  useEffect(() => {
+    collectionEnabled()
+      .then((on) => {
+        setCollectionOn(on);
+        if (on)
+          getCollectors()
+            .then(setCollectors)
+            .catch(() => {});
+      })
+      .catch(() => {});
+  }, []);
   const selectedIdents = _.map(selectedRows, 'ident');
   const isAddTagToQueryInput = useRef(false);
   const [searchVal, setSearchVal] = useState('');
@@ -158,7 +177,8 @@ export default function List(props: IProps) {
       ),
       dataIndex: 'ident',
       className: 'n9e-hosts-table-column-ident',
-      render: (text) => {
+      render: (text, record) => {
+        if (record.collection) return <CollectionLink id={record.collection.device_id} name={record.note || text} onChanged={() => setRefreshFlag(_.uniqueId())} />;
         return (
           <div
             style={{
@@ -185,6 +205,13 @@ export default function List(props: IProps) {
       },
     },
   ];
+
+  if (collectionOn)
+    columns.push(
+      { title: ct('collector'), render: (_, row) => (row.collection ? collectors.find((c) => c.id === row.collection.collector_id)?.name || row.collection.collector_id : '—') },
+      { title: ct('phase'), render: (_, row) => (row.collection ? ct(row.collection.configuration_state) : '—') },
+      { title: ct('health'), render: (_, row) => (row.collection ? <Health state={row.collection.health} /> : '—') },
+    );
 
   _.forEach(columnsConfigs, (item) => {
     if (!item.visible) return;
@@ -245,6 +272,8 @@ export default function List(props: IProps) {
         title: t('mem_util'),
         dataIndex: 'mem_util',
         render(text, reocrd) {
+          if (reocrd.collection?.kind === 'mysql') return ct('not_applicable');
+          if (reocrd.collection) return reocrd.collection.memory_percent == null ? ct('no_sample') : `${_.floor(reocrd.collection.memory_percent, 1)}%`;
           if (reocrd.cpu_num === -1) return <Unknown />;
           let backgroundColor = GREEN_COLOR;
           if (text > 70) {
@@ -275,6 +304,8 @@ export default function List(props: IProps) {
         title: t('cpu_util'),
         dataIndex: 'cpu_util',
         render(text, reocrd) {
+          if (reocrd.collection?.kind === 'mysql') return ct('not_applicable');
+          if (reocrd.collection) return reocrd.collection.cpu_percent == null ? ct('no_sample') : `${_.floor(reocrd.collection.cpu_percent, 1)}%`;
           if (reocrd.cpu_num === -1) return <Unknown />;
           let backgroundColor = GREEN_COLOR;
           if (text > 70) {
@@ -304,6 +335,7 @@ export default function List(props: IProps) {
         title: t('cpu_num'),
         dataIndex: 'cpu_num',
         render: (val, reocrd) => {
+          if (reocrd.collection) return ct('not_applicable');
           if (reocrd.cpu_num === -1) return <Unknown />;
           return val;
         },
@@ -350,6 +382,7 @@ export default function List(props: IProps) {
         title: t('os'),
         dataIndex: 'os',
         render: (val, reocrd) => {
+          if (reocrd.collection) return ct('not_applicable');
           if (reocrd.cpu_num === -1) return <Unknown />;
           return val;
         },
@@ -360,6 +393,7 @@ export default function List(props: IProps) {
         title: t('arch'),
         dataIndex: 'arch',
         render: (val, reocrd) => {
+          if (reocrd.collection) return ct('not_applicable');
           if (reocrd.cpu_num === -1) return <Unknown />;
           return val;
         },
@@ -377,6 +411,7 @@ export default function List(props: IProps) {
         ),
         dataIndex: 'beat_time',
         render: (val, reocrd) => {
+          if (reocrd.collection) return reocrd.collection.last_sample_at ? moment.unix(reocrd.collection.last_sample_at).format('YYYY-MM-DD HH:mm:ss') : ct('no_sample');
           let result = moment.unix(val).format('YYYY-MM-DD HH:mm:ss');
           let backgroundColor = GREEN_COLOR;
           if (reocrd.target_up === 0) {
@@ -409,6 +444,7 @@ export default function List(props: IProps) {
         ),
         dataIndex: 'remote_addr',
         render: (val, reocrd) => {
+          if (reocrd.collection) return ct('not_applicable');
           if (reocrd.cpu_num === -1) return <Unknown />;
           return val;
         },
@@ -436,6 +472,8 @@ export default function List(props: IProps) {
   const featchData = ({ current, pageSize, sorter }: { current: number; pageSize: number; sorter?: any }): Promise<any> => {
     const query = {
       query: tableQueryContent,
+      collection_kind: collectionKind,
+      collector_id: collectorId,
       gids: gids === '-2' ? undefined : gids,
       limit: pageSize,
       p: current,
@@ -464,7 +502,7 @@ export default function List(props: IProps) {
       pageSize: tableProps.pagination.pageSize,
       sorter: sorterRef.current,
     });
-  }, [tableQueryContent, gids, downtime, agentVersions, hosts]);
+  }, [tableQueryContent, gids, downtime, agentVersions, hosts, collectionKind, collectorId]);
 
   useEffect(() => {
     run({
@@ -473,6 +511,12 @@ export default function List(props: IProps) {
       sorter: sorterRef.current,
     });
   }, [refreshFlag]);
+
+  useEffect(() => {
+    if (!collectionOn) return;
+    const timer = window.setInterval(() => setRefreshFlag(_.uniqueId('collection_')), 10000);
+    return () => window.clearInterval(timer);
+  }, [collectionOn]);
 
   return (
     <div>
@@ -538,6 +582,31 @@ export default function List(props: IProps) {
               setDowntime(val);
             }}
           />
+          {collectionOn && (
+            <>
+              <Select
+                style={{ width: 160 }}
+                allowClear
+                placeholder={ct('all')}
+                value={collectionKind}
+                onChange={setCollectionKind}
+                options={[
+                  { value: 'agent', label: ct('agent') },
+                  { value: 'managed', label: ct('managed') },
+                  { value: 'snmp', label: ct('snmp') },
+                  { value: 'mysql', label: 'MySQL' },
+                ]}
+              />
+              <Select
+                style={{ width: 160 }}
+                allowClear
+                placeholder={ct('all_collectors')}
+                value={collectorId}
+                onChange={setCollectorId}
+                options={collectors.map((c) => ({ value: c.id, label: c.name }))}
+              />
+            </>
+          )}
           <VersionSelect
             value={agentVersions}
             onChange={(val) => {
@@ -546,6 +615,16 @@ export default function List(props: IProps) {
           />
         </Space>
         <Space>
+          {collectionOn && (
+            <CollectionActions
+              onChanged={() => {
+                setRefreshFlag(_.uniqueId());
+                getCollectors()
+                  .then(setCollectors)
+                  .catch(() => {});
+              }}
+            />
+          )}
           {editable && (
             <Dropdown
               trigger={['click']}
@@ -613,6 +692,7 @@ export default function List(props: IProps) {
         tableLayout='auto'
         rowSelection={{
           type: 'checkbox',
+          getCheckboxProps: (record) => ({ disabled: !!record.collection }),
           selectedRowKeys: _.map(selectedRows, 'id'),
           onChange(selectedRowKeys, selectedRows: ITargetProps[]) {
             setSelectedRows(selectedRows);

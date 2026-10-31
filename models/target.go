@@ -39,17 +39,41 @@ type Target struct {
 	OS           string            `json:"os" gorm:"column:os"`
 	HostTags     []string          `json:"host_tags" gorm:"serializer:json"`
 
-	BeatTime   int64    `json:"beat_time" gorm:"-"` // 实时心跳时间，从 Redis 获取
-	UnixTime   int64    `json:"unixtime" gorm:"-"`
-	Offset     int64    `json:"offset" gorm:"-"`
-	TargetUp   float64  `json:"target_up" gorm:"-"`
-	MemUtil    float64  `json:"mem_util" gorm:"-"`
-	CpuNum     int      `json:"cpu_num" gorm:"-"`
-	CpuUtil    float64  `json:"cpu_util" gorm:"-"`
-	Arch       string   `json:"arch" gorm:"-"`
-	RemoteAddr string   `json:"remote_addr" gorm:"-"`
-	GroupIds   []int64  `json:"group_ids" gorm:"-"`
-	GroupNames []string `json:"group_names" gorm:"-"`
+	BeatTime   int64            `json:"beat_time" gorm:"-"` // 实时心跳时间，从 Redis 获取
+	UnixTime   int64            `json:"unixtime" gorm:"-"`
+	Offset     int64            `json:"offset" gorm:"-"`
+	TargetUp   float64          `json:"target_up" gorm:"-"`
+	MemUtil    float64          `json:"mem_util" gorm:"-"`
+	CpuNum     int              `json:"cpu_num" gorm:"-"`
+	CpuUtil    float64          `json:"cpu_util" gorm:"-"`
+	Arch       string           `json:"arch" gorm:"-"`
+	RemoteAddr string           `json:"remote_addr" gorm:"-"`
+	GroupIds   []int64          `json:"group_ids" gorm:"-"`
+	GroupNames []string         `json:"group_names" gorm:"-"`
+	Collection interface{}      `json:"collection,omitempty" gorm:"-"`
+	Inventory  *TargetInventory `json:"inventory,omitempty" gorm:"-"`
+}
+
+// UI-only projection. Neither inventory nor its status/counts are persisted or
+// used by the native edge/alert target read paths.
+type TargetInventory struct {
+	Name           string             `json:"name"`
+	DeviceModel    string             `json:"device_model"`
+	CollectionOK   bool               `json:"collection_ok"`
+	LastSampleAt   int64              `json:"last_sample_at"`
+	DeviceType     string             `json:"device_type"`
+	TemplatePath   []string           `json:"template_path"`
+	Method         string             `json:"method"`
+	Plugin         string             `json:"plugin,omitempty"`
+	Reachability   string             `json:"reachability"`
+	ReachabilityAt int64              `json:"reachability_at"`
+	CurrentAlerts  *TargetAlertCounts `json:"current_alerts"`
+}
+
+type TargetAlertCounts struct {
+	Critical int `json:"critical"`
+	Warning  int `json:"warning"`
+	Info     int `json:"info"`
 }
 
 func (t *Target) TableName() string {
@@ -112,7 +136,7 @@ func TargetStatistics(ctx *ctx.Context) (*Statistics, error) {
 	}
 
 	var stats []*Statistics
-	err := DB(ctx).Model(&Target{}).Select("count(*) as total", "max(update_at) as last_updated").Find(&stats).Error
+	err := MonitorFilterTargets(DB(ctx).Model(&Target{})).Select("count(*) as total", "max(update_at) as last_updated").Find(&stats).Error
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +150,13 @@ func TargetDel(ctx *ctx.Context, idents []string, force bool, deleteHook TargetD
 	}
 
 	return DB(ctx).Transaction(func(tx *gorm.DB) error {
-		txErr := deleteHook(tx, idents, force)
+		if err := MonitorGuardTargets(tx, idents); err != nil {
+			return err
+		}
+		var txErr error
+		if deleteHook != nil {
+			txErr = deleteHook(tx, idents, force)
+		}
 		if txErr != nil {
 			return txErr
 		}
@@ -220,7 +250,7 @@ func BuildTargetWhereWithQuery(query string) BuildTargetWhereOption {
 }
 
 func buildTargetWhere(ctx *ctx.Context, options ...BuildTargetWhereOption) *gorm.DB {
-	sub := DB(ctx).Model(&Target{}).Distinct("target.ident")
+	sub := MonitorFilterTargets(DB(ctx).Model(&Target{})).Distinct("target.ident")
 	for _, opt := range options {
 		sub = opt(sub)
 	}
@@ -270,7 +300,7 @@ func TargetCountByFilter(ctx *ctx.Context, query []map[string]interface{}) (int6
 }
 
 func TargetFilterQueryBuild(ctx *ctx.Context, query []map[string]interface{}, limit, offset int) *gorm.DB {
-	sub := DB(ctx).Model(&Target{}).Distinct("target.ident").Joins("left join " +
+	sub := MonitorFilterTargets(DB(ctx).Model(&Target{})).Distinct("target.ident").Joins("left join " +
 		"target_busi_group on target.ident = target_busi_group.target_ident")
 	for _, q := range query {
 		tx := DB(ctx).Model(&Target{})
@@ -290,7 +320,7 @@ func TargetFilterQueryBuild(ctx *ctx.Context, query []map[string]interface{}, li
 		sub = sub.Where(tx)
 	}
 
-	session := DB(ctx).Model(&Target{}).Where("ident in (?)", sub)
+	session := MonitorFilterTargets(DB(ctx).Model(&Target{})).Where("ident in (?)", sub)
 
 	if limit > 0 {
 		session = session.Limit(limit).Offset(offset)
@@ -306,7 +336,7 @@ func TargetGetsAll(ctx *ctx.Context) ([]*Target, error) {
 	}
 
 	var lst []*Target
-	err := DB(ctx).Model(&Target{}).Find(&lst).Error
+	err := MonitorFilterTargets(DB(ctx).Model(&Target{})).Find(&lst).Error
 	if err != nil {
 		return lst, err
 	}
@@ -325,6 +355,9 @@ func TargetGetsAll(ctx *ctx.Context) ([]*Target, error) {
 }
 
 func TargetUpdateNote(ctx *ctx.Context, idents []string, note string) error {
+	if err := MonitorGuardTargets(DB(ctx), idents); err != nil {
+		return err
+	}
 	return DB(ctx).Model(&Target{}).Where("ident in ?", idents).Updates(map[string]interface{}{
 		"note":      note,
 		"update_at": time.Now().Unix(),
@@ -332,6 +365,9 @@ func TargetUpdateNote(ctx *ctx.Context, idents []string, note string) error {
 }
 
 func TargetUpdateBgid(ctx *ctx.Context, idents []string, bgid int64, clearTags bool) error {
+	if err := MonitorGuardTargets(DB(ctx), idents); err != nil {
+		return err
+	}
 	fields := map[string]interface{}{
 		"group_id":  bgid,
 		"update_at": time.Now().Unix(),
@@ -540,6 +576,9 @@ func TargetGetTags(ctx *ctx.Context, idents []string, ignoreHostTag bool, bgLabe
 }
 
 func (t *Target) AddTags(ctx *ctx.Context, tags []string) error {
+	if err := MonitorGuardTargets(DB(ctx), []string{t.Ident}); err != nil {
+		return err
+	}
 	for i := 0; i < len(tags); i++ {
 		if !strings.Contains(t.Tags, tags[i]+" ") {
 			t.Tags += tags[i] + " "
@@ -556,6 +595,9 @@ func (t *Target) AddTags(ctx *ctx.Context, tags []string) error {
 }
 
 func (t *Target) DelTags(ctx *ctx.Context, tags []string) error {
+	if err := MonitorGuardTargets(DB(ctx), []string{t.Ident}); err != nil {
+		return err
+	}
 	for _, tag := range tags {
 		t.Tags = strings.ReplaceAll(t.Tags, tag+" ", "")
 	}
@@ -708,6 +750,9 @@ func IdentsFilter(ctx *ctx.Context, idents []string, where string, args ...inter
 }
 
 func (m *Target) UpdateFieldsMap(ctx *ctx.Context, fields map[string]interface{}) error {
+	if err := MonitorGuardTargets(DB(ctx), []string{m.Ident}); err != nil {
+		return err
+	}
 	return DB(ctx).Model(m).Updates(fields).Error
 }
 

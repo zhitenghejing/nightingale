@@ -1,4 +1,17 @@
 const en_US = {
+  inventory: {
+    model: 'Device model',
+    name: 'Device name', type: 'Device type', ip: 'IP address', method: 'Collection method', reachability: 'Reachability', alerts: 'Current alerts', groups: 'Business groups', tags: 'Device tags', actions: 'Actions',
+    edit: 'Edit', delete: 'Delete', cancel: 'Cancel', delete_confirm: 'Delete this device?', delete_failed: 'Could not delete device', load_failed: 'Could not load device configuration',
+    critical: 'Critical', warning: 'Warning', info: 'Info', unavailable: 'Unavailable', unclassified: 'Unclassified',
+    resize: 'Resize {{column}} column', mysql_agent: 'Collected remotely by the collector’s MySQL plugin; no Agent installation on the database device is needed.',
+    reachability_up: 'Reachable', reachability_down: 'Unreachable', reachability_unknown: 'Unknown', reachability_error: 'Probe error', reachability_conflict: 'Conflicting probes',
+    reachability_up_tip: 'Successful ICMP probe within 3 minutes; does not imply every service is healthy.',
+    reachability_down_tip: 'No ICMP response within the last 3 minutes.',
+    reachability_unknown_tip: 'No fresh ICMP result. Agent heartbeat and SNMP collection health are separate signals.',
+    reachability_error_tip: 'ICMP probe failed to execute; check probe configuration and permissions.',
+    reachability_conflict_tip: 'ICMP probes returned conflicting results at the same timestamp.',
+  },
   title: 'Hosts',
   default_filter: 'Preset filters',
   ungrouped_targets: 'Ungrouped hosts',

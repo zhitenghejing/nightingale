@@ -1,0 +1,131 @@
+[
+  {
+    "uuid": 1800000000300100,
+    "name": "MySQL connection utilization above 85%",
+    "cate": "prometheus",
+    "prod": "metric",
+    "disabled": 0,
+    "prom_for_duration": 300,
+    "prom_eval_interval": 15,
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "100 * mysql_global_status_threads_connected / (mysql_global_variables_max_connections > 0) > 85",
+          "severity": 2,
+          "unit": "percent"
+        }
+      ],
+      "version": "v1"
+    },
+    "notify_version": 1,
+    "notify_rule_ids": [],
+    "notify_recovered": 1,
+    "notify_repeat_step": 60,
+    "annotations": {
+      "action": "Check database reachability, monitoring account permissions and the assigned collector. Verify required metrics before enabling notifications."
+    },
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ]
+  },
+  {
+    "uuid": 1800000000300101,
+    "name": "MySQL unavailable",
+    "cate": "prometheus",
+    "prod": "metric",
+    "disabled": 0,
+    "prom_for_duration": 60,
+    "prom_eval_interval": 15,
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "mysql_up == 0",
+          "severity": 2,
+          "unit": "percent"
+        }
+      ],
+      "version": "v1"
+    },
+    "notify_version": 1,
+    "notify_rule_ids": [],
+    "notify_recovered": 1,
+    "notify_repeat_step": 60,
+    "annotations": {
+      "action": "Check database reachability, monitoring account permissions and the assigned collector. Verify required metrics before enabling notifications."
+    },
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ]
+  },
+  {
+    "uuid": 1800000000300102,
+    "name": "MySQL collection interrupted",
+    "cate": "prometheus",
+    "prod": "metric",
+    "disabled": 0,
+    "prom_for_duration": 60,
+    "prom_eval_interval": 15,
+    "rule_config": {
+      "queries": [
+        {
+          "prom_ql": "absent_over_time(mysql_up[3m])",
+          "severity": 2,
+          "unit": "percent"
+        }
+      ],
+      "version": "v1"
+    },
+    "notify_version": 1,
+    "notify_rule_ids": [],
+    "notify_recovered": 1,
+    "notify_repeat_step": 60,
+    "annotations": {
+      "action": "Check database reachability, monitoring account permissions and the assigned collector. Verify required metrics before enabling notifications."
+    },
+    "enable_stimes": [
+      "00:00"
+    ],
+    "enable_etimes": [
+      "23:59"
+    ],
+    "enable_days_of_weeks": [
+      [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6"
+      ]
+    ]
+  }
+]

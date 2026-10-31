@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2300" height="1490" viewBox="0 0 2300 1490" role="img" aria-labelledby="title description">
+<title id="title">SNMP 设备管理闭环 · 模板、采集、指标与告警</title><desc id="description">已实现的分支能力 · Windows_SNMP / Linux_SNMP · 配置流与指标数据流分开标示</desc>
+<defs>
+<marker id="arrow-ink" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M1 1 L8 4.5 L1 8" fill="none" stroke="#172033" stroke-width="1.5"/></marker>
+<marker id="arrow-muted" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M1 1 L8 4.5 L1 8" fill="none" stroke="#526074" stroke-width="1.5"/></marker>
+<marker id="arrow-line" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M1 1 L8 4.5 L1 8" fill="none" stroke="#cbd5e1" stroke-width="1.5"/></marker>
+<marker id="arrow-purple" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M1 1 L8 4.5 L1 8" fill="none" stroke="#6d28d9" stroke-width="1.5"/></marker>
+<marker id="arrow-blue" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M1 1 L8 4.5 L1 8" fill="none" stroke="#0369a1" stroke-width="1.5"/></marker>
+<marker id="arrow-teal" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M1 1 L8 4.5 L1 8" fill="none" stroke="#0f766e" stroke-width="1.5"/></marker>
+<marker id="arrow-orange" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M1 1 L8 4.5 L1 8" fill="none" stroke="#c2410c" stroke-width="1.5"/></marker>
+<marker id="arrow-gray" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse"><path d="M1 1 L8 4.5 L1 8" fill="none" stroke="#64748b" stroke-width="1.5"/></marker>
+</defs><style>text{font-family:"Noto Sans CJK SC","Microsoft YaHei",sans-serif} .body{font-size:21px;fill:#334155} .small{font-size:18px;fill:#526074} .heading{font-size:26px;font-weight:600;fill:#172033} .label{font-size:18px;font-weight:500}</style>
+<rect x="0" y="0" width="2300" height="1490" rx="0" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="48" y="64" font-size="36" font-weight="600" fill="#172033" text-anchor="start">SNMP 设备管理闭环 · 模板、采集、指标与告警</text>
+<text x="48" y="105" font-size="20" font-weight="400" fill="#526074" text-anchor="start">已实现的分支能力 · Windows_SNMP / Linux_SNMP · 配置流与指标数据流分开标示</text>
+<path d="M48 139 L106 139" fill="none" stroke="#0369a1" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<text x="120" y="145" font-size="19" font-weight="400" fill="#526074" text-anchor="start">指标写入</text>
+<path d="M280 139 L338 139" fill="none" stroke="#0f766e" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-teal)"/>
+<text x="352" y="145" font-size="19" font-weight="400" fill="#526074" text-anchor="start">查询请求 / 返回</text>
+<path d="M595 139 L653 139" fill="none" stroke="#c2410c" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-orange)"/>
+<text x="667" y="145" font-size="19" font-weight="400" fill="#526074" text-anchor="start">告警事件 / 通知</text>
+<path d="M945 139 L1003 139" fill="none" stroke="#6d28d9" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-purple)" stroke-dasharray="7 5"/>
+<text x="1017" y="145" font-size="19" font-weight="400" fill="#526074" text-anchor="start">配置 / 心跳 / 管理</text>
+<rect x="48" y="195" width="2204" height="330" rx="20" fill="#f5f0ff" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="72" y="233" font-size="25" font-weight="600" fill="#6d28d9" text-anchor="start">① 中心端：模板选择与设备登记</text>
+<text x="72" y="263" font-size="18" font-weight="400" fill="#526074" text-anchor="start">新增 / 编辑设备时绑定模板、采集器和凭据；模板不直接充当每台设备的实时实例。</text>
+<rect x="78" y="280" width="460" height="200" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="78" y="298" width="5" height="164" rx="2" fill="#6d28d9" stroke="none" stroke-width="1.5"/>
+<text x="100" y="318" font-size="25" font-weight="600" fill="#172033" text-anchor="start">原生模板中心 · 四部分</text>
+<text x="100" y="358" font-size="21" font-weight="400" fill="#172033" text-anchor="start">采集说明：SNMP OID / TOML 定义</text>
+<text x="100" y="390" font-size="21" font-weight="400" fill="#172033" text-anchor="start">指标说明：字段及指标名称</text>
+<text x="100" y="422" font-size="21" font-weight="400" fill="#172033" text-anchor="start">仪表盘、告警规则资源</text>
+<text x="100" y="460" font-size="17" font-weight="400" fill="#6d28d9" text-anchor="start">可编辑的原生组件记录</text>
+<rect x="648" y="280" width="460" height="200" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="648" y="298" width="5" height="164" rx="2" fill="#6d28d9" stroke="none" stroke-width="1.5"/>
+<text x="670" y="318" font-size="25" font-weight="600" fill="#172033" text-anchor="start">新增 / 编辑采集设备</text>
+<text x="670" y="358" font-size="21" font-weight="400" fill="#172033" text-anchor="start">IPv4、端口、团体字凭据、采集器</text>
+<text x="670" y="390" font-size="21" font-weight="400" fill="#172033" text-anchor="start">模板、业务组、ident、间隔 / 超时</text>
+<text x="670" y="422" font-size="21" font-weight="400" fill="#172033" text-anchor="start">只校验 IP 格式；不限制网段或 IP 重复</text>
+<text x="670" y="460" font-size="17" font-weight="400" fill="#6d28d9" text-anchor="start">ident 保持对象身份；一个采集器可采多个目标</text>
+<rect x="1218" y="280" width="460" height="200" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="1218" y="298" width="5" height="164" rx="2" fill="#6d28d9" stroke="none" stroke-width="1.5"/>
+<text x="1240" y="318" font-size="25" font-weight="600" fill="#172033" text-anchor="start">事务与模板快照</text>
+<text x="1240" y="358" font-size="21" font-weight="400" fill="#172033" text-anchor="start">加密凭据、不可变模板版本</text>
+<text x="1240" y="390" font-size="21" font-weight="400" fill="#172033" text-anchor="start">monitor_device + 原生 Target 登记</text>
+<text x="1240" y="422" font-size="21" font-weight="400" fill="#172033" text-anchor="start">独立仪表盘 / 规则实例、发布当前版本</text>
+<text x="1240" y="460" font-size="17" font-weight="400" fill="#6d28d9" text-anchor="start">保存失败整体回滚；不留下半成品设备</text>
+<rect x="1788" y="280" width="434" height="200" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="1788" y="298" width="5" height="164" rx="2" fill="#6d28d9" stroke="none" stroke-width="1.5"/>
+<text x="1810" y="318" font-size="25" font-weight="600" fill="#172033" text-anchor="start">设备专属资源</text>
+<text x="1810" y="358" font-size="21" font-weight="400" fill="#172033" text-anchor="start">采集配置 / 指标说明可定制</text>
+<text x="1810" y="390" font-size="21" font-weight="400" fill="#172033" text-anchor="start">原生仪表盘 / 告警规则可独立编辑</text>
+<text x="1810" y="422" font-size="21" font-weight="400" fill="#172033" text-anchor="start">普通保存保留定制；明确重应用再替换</text>
+<path d="M538 380 L648 380" fill="none" stroke="#6d28d9" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-purple)" stroke-dasharray="7 5"/>
+<path d="M1108 380 L1218 380" fill="none" stroke="#6d28d9" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-purple)" stroke-dasharray="7 5"/>
+<path d="M1678 380 L1788 380" fill="none" stroke="#6d28d9" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-purple)" stroke-dasharray="7 5"/>
+<rect x="48" y="590" width="2204" height="360" rx="20" fill="#eff8ff" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="72" y="628" font-size="25" font-weight="600" fill="#0369a1" text-anchor="start">② 执行与写入：由采集器远程访问 Agent</text>
+<text x="72" y="658" font-size="18" font-weight="400" fill="#526074" text-anchor="start">HTTP Provider 接口只负责发布配置；Categraf 执行 SNMP 请求，Pushgw 负责接收与转发指标。</text>
+<rect x="78" y="680" width="460" height="210" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="78" y="698" width="5" height="174" rx="2" fill="#6d28d9" stroke="none" stroke-width="1.5"/>
+<text x="100" y="718" font-size="25" font-weight="600" fill="#172033" text-anchor="start">Center HTTP Provider</text>
+<text x="100" y="758" font-size="21" font-weight="400" fill="#172033" text-anchor="start">按采集器身份返回版本化配置</text>
+<text x="100" y="790" font-size="21" font-weight="400" fill="#172033" text-anchor="start">独立认证、加密存储、权威撤回</text>
+<text x="100" y="822" font-size="21" font-weight="400" fill="#172033" text-anchor="start">失败不伪装成空配置成功</text>
+<text x="100" y="870" font-size="17" font-weight="400" fill="#6d28d9" text-anchor="start">/v1/n9e/collection/configs</text>
+<rect x="648" y="680" width="460" height="210" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="648" y="698" width="5" height="174" rx="2" fill="#0369a1" stroke="none" stroke-width="1.5"/>
+<text x="670" y="718" font-size="25" font-weight="600" fill="#172033" text-anchor="start">Categraf · 受管任务</text>
+<text x="670" y="758" font-size="21" font-weight="400" fill="#172033" text-anchor="start">主动拉取 Provider 配置并重载</text>
+<text x="670" y="790" font-size="21" font-weight="400" fill="#172033" text-anchor="start">同一采集器运行多台设备任务</text>
+<text x="670" y="822" font-size="21" font-weight="400" fill="#172033" text-anchor="start">每台设备携带身份与版本标签</text>
+<text x="670" y="870" font-size="17" font-weight="400" fill="#0369a1" text-anchor="start">由分支兼容的采集器执行配置</text>
+<rect x="1218" y="680" width="460" height="210" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="1218" y="698" width="5" height="174" rx="2" fill="#0369a1" stroke="none" stroke-width="1.5"/>
+<text x="1240" y="718" font-size="25" font-weight="600" fill="#172033" text-anchor="start">SNMP Agent 设备</text>
+<text x="1240" y="758" font-size="21" font-weight="400" fill="#172033" text-anchor="start">Windows SNMP / Linux Net-SNMP</text>
+<text x="1240" y="790" font-size="21" font-weight="400" fill="#172033" text-anchor="start">提供 HOST-RESOURCES / IF MIB</text>
+<text x="1240" y="822" font-size="21" font-weight="400" fill="#172033" text-anchor="start">CPU、内存、磁盘、接口、uptime</text>
+<text x="1240" y="870" font-size="17" font-weight="400" fill="#0369a1" text-anchor="start">远程 UDP SNMP v2c；目标机可不安装 Categraf</text>
+<rect x="1788" y="680" width="434" height="210" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="1788" y="698" width="5" height="174" rx="2" fill="#0369a1" stroke="none" stroke-width="1.5"/>
+<text x="1810" y="718" font-size="25" font-weight="600" fill="#172033" text-anchor="start">Pushgw → Prometheus</text>
+<text x="1810" y="758" font-size="21" font-weight="400" fill="#172033" text-anchor="start">Categraf 通过 Remote Write 上报</text>
+<text x="1810" y="790" font-size="21" font-weight="400" fill="#172033" text-anchor="start">校验设备 / 采集器 / 修订号归属</text>
+<text x="1810" y="822" font-size="21" font-weight="400" fill="#172033" text-anchor="start">按 Writers 配置转发到真实时序库</text>
+<text x="1810" y="870" font-size="17" font-weight="400" fill="#0369a1" text-anchor="start">样本不是从设备记录或模板生成的模拟数值</text>
+<path d="M1448 480 L1448 555 L308 555 L308 680" fill="none" stroke="#6d28d9" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-purple)" stroke-dasharray="7 5"/>
+<rect x="820.0" y="536" width="160" height="27" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="900" y="555" font-size="18" font-weight="500" fill="#6d28d9" text-anchor="middle">发布完整配置快照</text>
+<path d="M538 780 L648 780" fill="none" stroke="#6d28d9" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-purple)" stroke-dasharray="7 5"/>
+<rect x="535.0" y="725" width="118" height="27" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="594" y="744" font-size="18" font-weight="500" fill="#6d28d9" text-anchor="middle">拉取 / 返回</text>
+<path d="M1108 760 L1218 760" fill="none" stroke="#0369a1" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-blue)" marker-start="url(#arrow-blue)"/>
+<rect x="1134.0" y="708" width="56" height="27" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="1162" y="727" font-size="18" font-weight="500" fill="#0369a1" text-anchor="middle">SNMP</text>
+<path d="M878 890 L878 922 L2005 922 L2005 890" fill="none" stroke="#0369a1" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="1169.0" y="903" width="558" height="27" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="1448" y="922" font-size="18" font-weight="500" fill="#0369a1" text-anchor="middle">Categraf 将采得的指标写入（不是 Agent 直接 Remote Write）</text>
+<rect x="48" y="1020" width="2204" height="340" rx="20" fill="#edf9f6" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="72" y="1058" font-size="25" font-weight="600" fill="#0f766e" text-anchor="start">③ 读数据：健康、查询、仪表盘与告警</text>
+<text x="72" y="1088" font-size="18" font-weight="400" fill="#526074" text-anchor="start">模板定义如何采；实时查询和告警均读取时序库。仅收到配置不能证明采集正常。</text>
+<rect x="78" y="1110" width="460" height="205" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="78" y="1128" width="5" height="169" rx="2" fill="#0f766e" stroke="none" stroke-width="1.5"/>
+<text x="100" y="1148" font-size="25" font-weight="600" fill="#172033" text-anchor="start">采集健康与设备详情</text>
+<text x="100" y="1188" font-size="21" font-weight="400" fill="#172033" text-anchor="start">按设备 UUID / 采集器 / 修订过滤</text>
+<text x="100" y="1220" font-size="21" font-weight="400" fill="#172033" text-anchor="start">检查样本时间、缺失、时钟及查询错误</text>
+<text x="100" y="1252" font-size="21" font-weight="400" fill="#172033" text-anchor="start">设备详情展示真实查询值 / 曲线</text>
+<text x="100" y="1295" font-size="17" font-weight="400" fill="#0f766e" text-anchor="start">旧修订 / 旧采集器样本不能证明当前健康</text>
+<rect x="648" y="1110" width="460" height="205" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="648" y="1128" width="5" height="169" rx="2" fill="#0f766e" stroke="none" stroke-width="1.5"/>
+<text x="670" y="1148" font-size="25" font-weight="600" fill="#172033" text-anchor="start">指标查询与设备仪表盘</text>
+<text x="670" y="1188" font-size="21" font-weight="400" fill="#172033" text-anchor="start">ident：查询该身份下所有指标</text>
+<text x="670" y="1220" font-size="21" font-weight="400" fill="#172033" text-anchor="start">collection_device_id：精确定位设备</text>
+<text x="670" y="1252" font-size="21" font-weight="400" fill="#172033" text-anchor="start">独立面板继续读取同一数据源</text>
+<text x="670" y="1295" font-size="17" font-weight="400" fill="#0f766e" text-anchor="start">同 IP 可有多条设备记录，应按设备身份区分</text>
+<rect x="1218" y="1110" width="460" height="205" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="1218" y="1128" width="5" height="169" rx="2" fill="#c2410c" stroke="none" stroke-width="1.5"/>
+<text x="1240" y="1148" font-size="25" font-weight="600" fill="#172033" text-anchor="start">原生告警引擎</text>
+<text x="1240" y="1188" font-size="21" font-weight="400" fill="#172033" text-anchor="start">CPU / 内存 / 磁盘 &gt;90% 持续5分钟</text>
+<text x="1240" y="1220" font-size="21" font-weight="400" fill="#172033" text-anchor="start">SNMP 采集中断规则、恢复与去重</text>
+<text x="1240" y="1252" font-size="21" font-weight="400" fill="#172033" text-anchor="start">按设备及当前修订限定指标</text>
+<text x="1240" y="1295" font-size="17" font-weight="400" fill="#c2410c" text-anchor="start">阈值、规则和单设备覆盖均可再调整</text>
+<rect x="1788" y="1110" width="434" height="205" rx="13" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/>
+<rect x="1788" y="1128" width="5" height="169" rx="2" fill="#c2410c" stroke="none" stroke-width="1.5"/>
+<text x="1810" y="1148" font-size="25" font-weight="600" fill="#172033" text-anchor="start">通知规则与媒介</text>
+<text x="1810" y="1188" font-size="21" font-weight="400" fill="#172033" text-anchor="start">告警事件进入原生分发链路</text>
+<text x="1810" y="1220" font-size="21" font-weight="400" fill="#172033" text-anchor="start">按通知规则、订阅和模板投递</text>
+<text x="1810" y="1252" font-size="21" font-weight="400" fill="#172033" text-anchor="start">通知渠道 / 接收人需单独配置</text>
+<text x="1810" y="1295" font-size="17" font-weight="400" fill="#c2410c" text-anchor="start">生成告警事件不等于已经配置通知接收人</text>
+<path d="M2005 950 L2005 1097 L308 1097 L308 1110" fill="none" stroke="#0f766e" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-teal)"/>
+<rect x="1392.0" y="1056" width="336" height="27" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="1560" y="1075" font-size="18" font-weight="500" fill="#0f766e" text-anchor="middle">Prometheus 查询结果 / 当前时间序列</text>
+<path d="M878 1097 L878 1110" fill="none" stroke="#0f766e" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-teal)"/>
+<path d="M1448 1097 L1448 1110" fill="none" stroke="#0f766e" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-teal)"/>
+<path d="M1678 1210 L1788 1210" fill="none" stroke="#c2410c" stroke-width="2.3" stroke-linejoin="round" marker-end="url(#arrow-orange)"/>
+<rect x="1706.0" y="1158" width="52" height="27" rx="4" fill="#ffffff" stroke="none" stroke-width="1.5"/>
+<text x="1732" y="1177" font-size="18" font-weight="500" fill="#c2410c" text-anchor="middle">事件</text>
+<text x="48" y="1410" font-size="22" font-weight="400" fill="#526074" text-anchor="start">生命周期：启用 → 发布 → 观察当前样本；停用 / 删除 → 发布撤回 → 观察旧任务退出。断连时不承诺强制停止。</text>
+<text x="48" y="1450" font-size="22" font-weight="400" fill="#6d28d9" text-anchor="start">其他数据库 / 云 / 容器等“按类型动态生成接入表单”的能力：已做分类与交互原型，尚未接入真实业务执行链。</text>
+</svg>

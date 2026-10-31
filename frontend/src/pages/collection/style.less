@@ -1,0 +1,24 @@
+.collection-wizard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 270px;
+  gap: 26px;
+  margin-top: 26px;
+}
+.collection-wizard-summary {
+  padding: 18px;
+  border: 1px solid var(--fc-border-color);
+  border-radius: 6px;
+  align-self: start;
+}
+.collection-wizard-summary p {
+  margin-bottom: 18px;
+}
+
+@media (max-width: 900px) {
+  .collection-wizard-layout {
+    grid-template-columns: 1fr;
+  }
+  .collection-wizard-summary {
+    order: -1;
+  }
+}

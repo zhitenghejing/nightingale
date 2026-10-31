@@ -11,13 +11,14 @@ import (
 	"github.com/ccfos/nightingale/v6/alert/aconf"
 	"github.com/ccfos/nightingale/v6/center/metas"
 	"github.com/ccfos/nightingale/v6/memsto"
+	"github.com/ccfos/nightingale/v6/pkg/collection"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
+	"github.com/ccfos/nightingale/v6/pkg/ginx"
 	"github.com/ccfos/nightingale/v6/pkg/httpx"
 	"github.com/ccfos/nightingale/v6/pushgw/idents"
 	"github.com/ccfos/nightingale/v6/pushgw/pconf"
 	"github.com/ccfos/nightingale/v6/pushgw/pstat"
 	"github.com/ccfos/nightingale/v6/pushgw/writer"
-	"github.com/ccfos/nightingale/v6/pkg/ginx"
 )
 
 type HandleTSFunc func(pt *prompb.TimeSeries) *prompb.TimeSeries
@@ -33,6 +34,7 @@ type Router struct {
 	Writers        *writer.WritersType
 	Ctx            *ctx.Context
 	HandleTS       HandleTSFunc
+	Collection     *collection.Store
 	HeartbeatApi   string
 
 	// 预编译的 DropSample 过滤器

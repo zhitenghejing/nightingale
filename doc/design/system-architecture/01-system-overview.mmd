@@ -1,0 +1,27 @@
+flowchart LR
+  objects["被监控对象<br/>OS / SNMP Agent / 服务"] --> collector["Categraf / 其他采集体系<br/>本机插件、远程协议、指标上报"]
+  user["浏览器 / API 用户"] --> web
+  subgraph center["n9e / Center：单进程中的逻辑模块"]
+    web["WebUI / API<br/>登录、授权、配置管理"]
+    devices["设备与受管 SNMP<br/>Target、凭据、探测、Provider、健康"]
+    template["集成中心<br/>数据源、四部分模板、系统集成"]
+    business["本地业务扩展<br/>CMDB、机柜图、档案与文档导出"]
+    ai["Nightingale AI<br/>Agent、LLM、Skill、MCP / A2A"]
+    govern["平台治理<br/>用户、团队、角色、业务组、SSO、变量、审计"]
+    push["Pushgw<br/>接收、归属校验、Writers 转发"]
+    query["查询适配<br/>指标、日志、SQL、仪表盘、记录规则"]
+    eval["AlertEngine<br/>调度分片、持续时长、触发恢复"]
+    event["事件处理 / 通知<br/>屏蔽去重、队列、订阅、可选 Pipeline、模板媒介"]
+    web --- devices & template & business & ai & govern & query
+    template -. "快照并实例化" .-> devices
+    query --> eval --> event
+  end
+  collector -->|"Remote Write"| push
+  devices -. "配置 / 心跳" .-> collector
+  push -->|"写入"| store["指标 / 日志 / SQL 数据源<br/>当前指标：Prometheus；其他按需接入"]
+  query <-->|"查询请求 / 返回"| store
+  event --> channel["通知渠道 / 接收方<br/>IM、邮件、Webhook、第三方事件平台"]
+  center --- meta["元数据库<br/>当前 PostgreSQL；配置与业务元数据"]
+  center --- redis["运行状态<br/>当前进程内 miniredis；另有 memsto 内存配置缓存"]
+  business --- files["私有文件与离线导出<br/>档案、版本、Skills、密钥、日志"]
+  ai -.-> llm["外部 LLM / 身份提供商 / AI 客户端<br/>按配置启用"]

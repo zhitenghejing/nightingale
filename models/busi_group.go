@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type BusiGroup struct {
@@ -189,6 +190,23 @@ func (bg *BusiGroup) Del(ctx *ctx.Context) error {
 	}
 
 	return DB(ctx).Transaction(func(tx *gorm.DB) error {
+		var locked BusiGroup
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&locked, "id = ?", bg.Id).Error; err != nil {
+			return err
+		}
+
+		if tx.Migrator().HasTable(&MonitorDevice{}) {
+			for _, entry := range []interface{}{&MonitorDevice{}, &MonitorCredential{}, &MonitorProbe{}, &MonitorCollectorGroup{}} {
+				var count int64
+				if err := tx.Model(entry).Where("group_id = ?", bg.Id).Count(&count).Error; err != nil {
+					return err
+				}
+				if count > 0 {
+					return errors.New("business group still referenced by collection management")
+				}
+			}
+		}
+
 		if err := tx.Where("busi_group_id=?", bg.Id).Delete(&BusiGroupMember{}).Error; err != nil {
 			return err
 		}

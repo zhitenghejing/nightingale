@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>夜莺系统架构 · 当前分支</title>
+<style>
+:root{color-scheme:light;font-family:Inter,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;color:#172033;background:#f4f6fa}*{box-sizing:border-box}body{margin:0}header{padding:26px 32px;background:#fff;border-bottom:1px solid #e2e8f0}h1{font-size:25px;margin:0 0 9px;font-weight:650}p{margin:6px 0;color:#526074;line-height:1.7;font-size:14px}nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}button,a{font:inherit}button{padding:10px 17px;border:1px solid #cbd5e1;background:white;color:#334155;border-radius:8px;cursor:pointer}button[aria-selected=true]{background:#6d28d9;color:#fff;border-color:#6d28d9}button:focus-visible,a:focus-visible{outline:3px solid #b9a2ed;outline-offset:3px}main{padding:20px 24px 36px} .tools{display:flex;align-items:center;gap:15px;flex-wrap:wrap;margin:0 0 16px}.tools a{font-size:14px;color:#5b21b6}.tools label{font-size:14px;color:#526074}.tools input{vertical-align:middle;width:150px}.caption{margin-left:auto;font-size:13px;color:#64748b}.canvas{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:auto;min-height:240px}.canvas img{display:block;width:100%;max-width:none}.notes{margin-top:17px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.notes article{padding:16px 18px;background:white;border:1px solid #e2e8f0;border-radius:10px}.notes h2{font-size:15px;margin:0 0 7px}.notes p{font-size:13px}.notes a{color:#5b21b6}footer{margin-top:18px;font-size:12px;color:#64748b}@media(max-width:760px){header{padding:22px 18px}main{padding:16px 12px}.notes{grid-template-columns:1fr}.caption{margin-left:0}h1{font-size:21px}}
+</style>
+</head>
+<body>
+<header>
+<h1>夜莺系统架构 · 组件功能与实际链路</h1>
+<p>当前分支 <code>feat/snmp-device-management</code> · 核对日期 2026-10-29 · 参考夜莺官方架构，按当前源码与本地部署展开。</p>
+<nav role="tablist" aria-label="架构视图">
+<button type="button" role="tab" id="tab-overview" aria-selected="true" aria-controls="drawing" data-view="overview">系统全景</button>
+<button type="button" role="tab" id="tab-snmp" aria-selected="false" aria-controls="drawing" data-view="snmp">SNMP 采集闭环</button>
+<button type="button" role="tab" id="tab-deployment" aria-selected="false" aria-controls="drawing" data-view="deployment">当前部署与扩展</button>
+</nav>
+</header>
+<main>
+<div class="tools">
+<label for="zoom">缩放 <input id="zoom" type="range" min="100" max="220" step="10" value="100"> <output id="zoom-value" for="zoom">100%</output></label>
+<a id="svg-link" href="01-system-overview.svg" target="_blank" rel="noopener">打开矢量原图</a>
+<a id="png-link" href="01-system-overview.png" download>下载 PNG</a>
+<a id="mmd-link" href="01-system-overview.mmd.txt" download="01-system-overview.mmd">Mermaid 关系源</a>
+<a href="README.md">完整模块说明</a>
+<span class="caption">缩放后可横向滚动；图内已列各模块功能。</span>
+</div>
+<section class="canvas" id="drawing" role="tabpanel" aria-labelledby="tab-overview">
+<img id="diagram" src="01-system-overview.svg" alt="夜莺系统全景：采集器、Center 内的管理与查询告警模块、数据存储和通知渠道。">
+</section>
+<div class="notes">
+<article><h2>已实现与规划分开</h2><p>原生功能、CMDB / 档案等本地扩展、分支 SNMP 管理均已标明。多类型设备按模板自动接入仍是设计原型。</p></article>
+<article><h2>写入、查询与元数据分开</h2><p>Pushgw.Writers 决定写入位置；数据源配置决定查询位置。实时采集指标在 Prometheus，设备 / 模板 / 资产等在 PostgreSQL。</p></article>
+<article><h2>官方参考与本地核对</h2><p><a href="https://n9e.github.io/zh/docs/concepts/architecture" target="_blank" rel="noopener">官方系统架构</a> · <a href="https://flashcat.cloud/docs/content/flashcat-monitor/nightingale-v8/prologue/architecture/" target="_blank" rel="noopener">官方数据流图</a>。本轮未重新验收外部通知、LLM 或各模块全部业务行为。</p></article>
+</div>
+<footer>仅增加架构说明与图形；不修改业务功能或设备配置。可选进程不表示当前已经部署。</footer>
+</main>
+<script>
+const views={overview:{file:'01-system-overview',alt:'夜莺系统全景：采集器、Center 内的管理与查询告警模块、数据存储和通知渠道。'},snmp:{file:'02-snmp-collection',alt:'受管 SNMP 闭环：原生模板、设备事务与发布、Provider、Categraf、Agent、Pushgw、Prometheus、健康与告警。'},deployment:{file:'03-current-deployment',alt:'dev4 当前本地部署：30304 网关、Center、进程内 miniredis、独立 PostgreSQL 数据库、共享 Prometheus，以及未启用的可选进程。'}};
+const diagram=document.getElementById('diagram'),zoom=document.getElementById('zoom');
+function select(view){if(!views[view])view='overview';const item=views[view];document.querySelectorAll('[data-view]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.view===view)));diagram.src=item.file+'.svg';diagram.alt=item.alt;document.getElementById('drawing').setAttribute('aria-labelledby','tab-'+view);document.getElementById('svg-link').href=item.file+'.svg';document.getElementById('png-link').href=item.file+'.png';document.getElementById('mmd-link').href=item.file+'.mmd.txt';document.getElementById('mmd-link').download=item.file+'.mmd';zoom.value='100';setZoom();}
+function setZoom(){diagram.style.width=zoom.value+'%';document.getElementById('zoom-value').value=zoom.value+'%';}
+document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>{history.replaceState(null,'','#'+button.dataset.view);select(button.dataset.view);}));zoom.addEventListener('input',setZoom);window.addEventListener('hashchange',()=>select(location.hash.slice(1)));select(location.hash.slice(1));
+</script>
+</body></html>
