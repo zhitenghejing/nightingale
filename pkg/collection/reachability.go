@@ -31,7 +31,7 @@ func AgentPingOwners(db *gorm.DB, idents []string) (map[string]AgentPingOwner, e
 		return out, nil
 	}
 	var targets []models.Target
-	query := db.Select("ident", "host_ip").Where("agent_version <> ?", "").Where("ident NOT IN (?)", db.Model(&models.MonitorDevice{}).Select("ident"))
+	query := db.Select("ident", "host_ip").Where("agent_version <> ?", "").Where("ident NOT IN (?)", models.MonitorDeviceIdentQuery(db))
 	if idents != nil {
 		query = query.Where("ident IN ?", idents)
 	}

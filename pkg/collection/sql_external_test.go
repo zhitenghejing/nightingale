@@ -82,6 +82,7 @@ func TestCollectionSQLDialects(t *testing.T) {
 						}
 					}
 					s, scope, c, cred, secret := fixtureStore(t, db)
+					verifyNativeTargetVisibility(t, s, scope, c, cred)
 					verifyLegacyAddressUpgrade(t, s, scope, c, cred)
 					// Independent Store instances prove database serialization rather than a process mutex.
 					other := &Store{DB: db, Keys: s.Keys, Writers: s.Writers}
@@ -159,4 +160,28 @@ func TestCollectionSQLDialects(t *testing.T) {
 			}
 		})
 	}
+}
+
+// This also exercises mixed MySQL collations: native fixture tables inherit
+// utf8mb4_unicode_ci, while both monitor initialization paths use general_ci.
+func verifyNativeTargetVisibility(t *testing.T, s *Store, scope Scope, c models.MonitorCollector, cred models.MonitorCredential) {
+	t.Helper()
+	agent := models.Target{Ident: c.AgentIdent, HostIp: "192.0.2.42", AgentVersion: "fixture"}
+	require.NoError(t, s.DB.Create(&agent).Error)
+	owners, err := AgentPingOwners(s.DB, []string{agent.Ident})
+	require.NoError(t, err)
+	require.Equal(t, c.ID, owners[agent.Ident].CollectorID)
+	input := deviceInput(c, cred, "192.0.2.43")
+	input.Enabled = false
+	device, err := s.SaveDevice(scope, "", "native-visibility", input)
+	require.NoError(t, err)
+	var visible []string
+	require.NoError(t, models.MonitorFilterTargets(s.DB.Model(&models.Target{})).Pluck("ident", &visible).Error)
+	require.Contains(t, visible, device.Ident)
+	require.Contains(t, visible, agent.Ident)
+	require.NoError(t, s.DB.Model(&models.MonitorDevice{}).Where("id = ?", device.ID).Update("deleted", true).Error)
+	visible = nil
+	require.NoError(t, models.MonitorFilterTargets(s.DB.Model(&models.Target{})).Pluck("ident", &visible).Error)
+	require.NotContains(t, visible, device.Ident)
+	require.Contains(t, visible, agent.Ident)
 }

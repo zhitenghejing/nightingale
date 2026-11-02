@@ -496,6 +496,7 @@ func syncDeviceProfile(tx *gorm.DB, d *models.MonitorDevice, old models.MonitorD
 		category = strings.Join(document.Catalog.CategoryPath, " / ")
 	}
 	upgrading := !apply && old.ID != "" && old.TemplateVersionID != d.TemplateVersionID
+	newRules := map[int64]bool{}
 	if upgrading {
 		diff, err := mergeDeviceResources(tx, *d, old, state, document, ds, false)
 		if err != nil {
@@ -590,6 +591,7 @@ func syncDeviceProfile(tx *gorm.DB, d *models.MonitorDevice, old models.MonitorD
 				return bad("invalid alert template: " + err.Error())
 			}
 			state.Rules = append(state.Rules, ProfileResource{ID: rule.Id, Name: source.Name, SourceID: source.ID})
+			newRules[rule.Id] = true
 		}
 	}
 	for _, ref := range state.Rules {
@@ -613,20 +615,37 @@ func syncDeviceProfile(tx *gorm.DB, d *models.MonitorDevice, old models.MonitorD
 		if !d.Enabled || d.Deleted {
 			if _, ok := state.Suspended[ref.ID]; !ok {
 				state.Suspended[ref.ID] = rule.Disabled
-				if desired, waiting := state.Waiting[ref.ID]; waiting {
+				if desired, waiting := state.Waiting[ref.ID]; waiting && rule.UpdateBy == "collection" {
 					state.Suspended[ref.ID] = desired
 				}
+				if _, waiting := state.Waiting[ref.ID]; waiting {
+					state.Waiting[ref.ID] = state.Suspended[ref.ID]
+				}
+				// A lifecycle pause is the latest system write; a later native edit
+				// changes this marker and remains protected during initial arming.
+				rule.UpdateBy = "collection"
 			}
 			rule.Disabled = 1
 		} else if disabled, ok := state.Suspended[ref.ID]; ok {
-			rule.Disabled = disabled
+			if rule.UpdateBy == "collection" {
+				rule.Disabled = disabled
+			}
 			delete(state.Suspended, ref.ID)
 		}
-		if d.Enabled && document.Catalog != nil && (old.ID == "" || document.Catalog.Definition.Pack != nil) && state.ArmedRevision != d.DesiredRevision {
-			if _, waiting := state.Waiting[ref.ID]; !waiting {
-				state.Waiting[ref.ID] = rule.Disabled
+		// Existing armed rules must keep detecting a bad new configuration. Only
+		// initial adoption and genuinely new rules wait for their first samples.
+		_, waiting := state.Waiting[ref.ID]
+		if d.Enabled && !d.Deleted && document.Catalog != nil && (state.ArmedRevision == "" || newRules[ref.ID] || waiting) {
+			if rule.UpdateBy != "collection" {
+				// Explicit native edits supersede the pending system enable/disable
+				// decision, even if another device save occurs before healthy data.
+				delete(state.Waiting, ref.ID)
+			} else {
+				if !waiting {
+					state.Waiting[ref.ID] = rule.Disabled
+				}
+				rule.Disabled = 1
 			}
-			rule.Disabled = 1
 		}
 		if old.DesiredRevision != d.DesiredRevision || old.GroupID != d.GroupID || apply {
 			content, err := scopeJSON(rule.RuleConfig, *d, ds)
@@ -644,7 +663,7 @@ func syncDeviceProfile(tx *gorm.DB, d *models.MonitorDevice, old models.MonitorD
 		}
 		rule.GroupId = d.GroupID
 		rule.UpdateAt = max(stamp, rule.UpdateAt+1)
-		fields := []string{"Disabled", "GroupId", "RuleConfig", "PromQl", "DatasourceQueries", "UpdateAt"}
+		fields := []string{"Disabled", "GroupId", "RuleConfig", "PromQl", "DatasourceQueries", "UpdateAt", "UpdateBy"}
 		if notificationChanged {
 			fields = append(fields, "NotifyRuleIds", "NotifyVersion", "Annotations", "Note")
 		}

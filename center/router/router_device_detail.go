@@ -137,7 +137,7 @@ func (rt *Router) targetDeviceDetail(c *gin.Context) {
 	}
 	out := deviceDetailView{Target: target, Metrics: []deviceMetricInfo{}, Rules: []deviceRuleInfo{}}
 	if device != nil {
-		states, e := rt.CollectionStatus.States(c.Request.Context(), []models.MonitorDevice{*device})
+		states, e := rt.collectionStatesForUser(c, []models.MonitorDevice{*device})
 		if e != nil {
 			collectionReply(c, nil, e)
 			return

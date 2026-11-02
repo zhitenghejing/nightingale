@@ -348,6 +348,7 @@ func (s *Store) SetDeviceState(scope Scope, id string, version int64, enable, re
 		if d.Deleted {
 			return conflict("device is deleted")
 		}
+		outDeviceBeforeState := d
 		if enable {
 			if err = s.validateDevice(tx, scope, inputFromDevice(d), c); err != nil {
 				return err
@@ -359,7 +360,6 @@ func (s *Store) SetDeviceState(scope Scope, id string, version int64, enable, re
 			out = d
 			return nil
 		}
-		outDeviceBeforeState := d
 		wasEnabled := d.Enabled
 		d.Enabled = enable
 		d.Deleted = remove

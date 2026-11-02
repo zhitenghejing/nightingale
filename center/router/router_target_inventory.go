@@ -27,7 +27,7 @@ func (rt *Router) targetInventory(c *gin.Context, targets []*models.Target) erro
 	}
 	// The host-filter handler is also a service entry point without a UI user.
 	// Keep its native contract; this projection uses user-scoped event/datasource access.
-	if _, exists := c.Get("user"); !exists {
+	if _, exists := collectionUIUser(c); !exists {
 		return nil
 	}
 	idents := make([]string, 0, len(targets))

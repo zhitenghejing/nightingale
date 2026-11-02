@@ -318,7 +318,7 @@ func (rt *Router) collectionDevices(c *gin.Context) {
 		collectionReply(c, nil, e)
 		return
 	}
-	states, e := rt.CollectionStatus.States(c.Request.Context(), devices)
+	states, e := rt.collectionStatesForUser(c, devices)
 	out := []collectionDeviceView{}
 	for _, d := range devices {
 		out = append(out, collectionView(d, states[d.ID]))
@@ -336,7 +336,7 @@ func (rt *Router) collectionDevice(c *gin.Context) {
 		collectionReply(c, nil, e)
 		return
 	}
-	states, e := rt.CollectionStatus.States(c.Request.Context(), []models.MonitorDevice{d})
+	states, e := rt.collectionStatesForUser(c, []models.MonitorDevice{d})
 	v := collectionView(d, states[d.ID])
 	if e == nil {
 		v.Profile, e = rt.Collection.DeviceProfile(d)
@@ -359,7 +359,7 @@ func (rt *Router) collectionDeviceSave(c *gin.Context) {
 		collectionReply(c, nil, e)
 		return
 	}
-	states, e := rt.CollectionStatus.States(c.Request.Context(), []models.MonitorDevice{d})
+	states, e := rt.collectionStatesForUser(c, []models.MonitorDevice{d})
 	v := collectionView(d, states[d.ID])
 	if e == nil {
 		v.Profile, e = rt.Collection.DeviceProfile(d)
@@ -432,6 +432,9 @@ func (rt *Router) collectionTargets(c *gin.Context, targets []*models.Target) er
 	if rt.Collection == nil || len(targets) == 0 {
 		return nil
 	}
+	if _, exists := collectionUIUser(c); !exists {
+		return nil // Keep native service Target responses free of UI projections.
+	}
 	ids := []string{}
 	for _, t := range targets {
 		ids = append(ids, t.Ident)
@@ -440,7 +443,7 @@ func (rt *Router) collectionTargets(c *gin.Context, targets []*models.Target) er
 	if err := rt.Collection.DB.Where("ident IN ? AND deleted = ?", ids, false).Find(&devices).Error; err != nil {
 		return err
 	}
-	states, err := rt.CollectionStatus.States(c.Request.Context(), devices)
+	states, err := rt.collectionStatesForUser(c, devices)
 	if err != nil {
 		return err
 	}
@@ -460,6 +463,9 @@ func (rt *Router) collectionTargetFilter(c *gin.Context) models.BuildTargetWhere
 		if rt.Collection == nil {
 			return db
 		}
+		if _, exists := collectionUIUser(c); !exists {
+			return db // Service-authenticated host filters have no UI principal.
+		}
 		scope, err := rt.collectionScope(c)
 		if err != nil {
 			db.AddError(err)
@@ -471,7 +477,7 @@ func (rt *Router) collectionTargetFilter(c *gin.Context) models.BuildTargetWhere
 			db.AddError(err)
 			return db
 		}
-		all := db.Session(&gorm.Session{NewDB: true}).Model(&models.MonitorDevice{}).Select("ident")
+		all := models.MonitorDeviceIdentQuery(db)
 		if !canRead || (!scope.Admin && len(scope.ReadGroups) == 0) {
 			db = db.Where("target.ident NOT IN (?)", all)
 		} else if !scope.Admin {
@@ -479,7 +485,7 @@ func (rt *Router) collectionTargetFilter(c *gin.Context) models.BuildTargetWhere
 		}
 		kind := c.Query("collection_kind")
 		collector := c.Query("collector_id")
-		q := db.Session(&gorm.Session{NewDB: true}).Model(&models.MonitorDevice{}).Select("ident").Where("deleted = ?", false)
+		q := models.MonitorDeviceIdentQuery(db).Where("deleted = ?", false)
 		if collector != "" {
 			q = q.Where("collector_id = ?", collector)
 		}
@@ -513,6 +519,14 @@ func (rt *Router) collectionMetrics(c *gin.Context) {
 	var collector models.MonitorCollector
 	if err = rt.Collection.DB.First(&collector, "id = ?", d.CollectorID).Error; err != nil {
 		collectionReply(c, nil, err)
+		return
+	}
+	if allowed := rt.collectionDatasourcePermissions(c); allowed != nil && !allowed[collector.DatasourceID] {
+		collectionReply(c, nil, &collection.Error{Code: 403, Message: "forbidden"})
+		return
+	}
+	if rt.PromClients == nil {
+		collectionReply(c, nil, errors.New("datasource unavailable"))
 		return
 	}
 	client := rt.PromClients.GetCli(collector.DatasourceID)
@@ -582,7 +596,7 @@ func (rt *Router) collectionStatistics(c *gin.Context, bgids []int64) (map[strin
 	ginx.Dangerous(q.Order("id").Find(&devices).Error)
 	for start := 0; start < len(devices); start += 50 {
 		end := min(start+50, len(devices))
-		batch, err := rt.CollectionStatus.States(c.Request.Context(), devices[start:end])
+		batch, err := rt.collectionStatesForUser(c, devices[start:end])
 		ginx.Dangerous(err)
 		for _, d := range devices[start:end] {
 			states[d.Ident] = batch[d.ID]

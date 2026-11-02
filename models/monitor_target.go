@@ -25,7 +25,18 @@ func MonitorFilterTargets(db *gorm.DB) *gorm.DB {
 	if !db.Migrator().HasTable(&MonitorDevice{}) {
 		return db
 	}
-	return db.Where("target.ident NOT IN (?)", db.Session(&gorm.Session{NewDB: true}).Model(&MonitorDevice{}).Select("ident").Where("deleted = ?", true))
+	return db.Where("target.ident NOT IN (?)", MonitorDeviceIdentQuery(db).Where("deleted = ?", true))
+}
+
+// MonitorDeviceIdentQuery is the Center-side subquery shared by native Target
+// filters and Agent ICMP ownership. An explicit MySQL collation also works when
+// legacy Target tables use a different collation from the monitor schema.
+func MonitorDeviceIdentQuery(db *gorm.DB) *gorm.DB {
+	column := "ident"
+	if db.Dialector.Name() == "mysql" {
+		column = "ident COLLATE utf8mb4_bin"
+	}
+	return db.Session(&gorm.Session{NewDB: true}).Model(&MonitorDevice{}).Select(column)
 }
 func MonitorAgentIdents(db *gorm.DB, idents []string) ([]string, error) {
 	if len(idents) == 0 || !db.Migrator().HasTable(&MonitorDevice{}) {

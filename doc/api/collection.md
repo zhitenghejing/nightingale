@@ -68,6 +68,11 @@ users, `/collection/read`, `/collection/write`, `/collection/delete` operations,
 and business-group read/write checks. Collector registration, policy edits, token
 rotation, deletion, and whole-collector rollback additionally require an administrator.
 Single-object reads enforce the same group checks as list reads.
+User-facing health and chart reads also apply the native datasource filter before
+accessing shared metric caches. Denied sources expose unavailable health without
+cached values or sample timestamps; raw chart reads return 403. Background arming
+retains its service scope. BasicAuth Target service reads retain the native contract
+and do not perform UI-user projections (Gin's BasicAuth `user` is a string).
 
 | Path | Methods | Behavior |
 | --- | --- | --- |
@@ -169,6 +174,9 @@ the MySQL aggregate migration include these tables. Gorm migration uses the same
 constraints and unbounded text (LONGTEXT on MySQL). Startup migration removes legacy
 endpoint unique constraints before AutoMigrate on MySQL, PostgreSQL and SQLite,
 preserving device records, credentials, revisions and existing Target identities.
+MySQL Target/monitor ident subqueries use an explicit binary UTF-8 collation so
+legacy native tables and monitor tables may retain different collations without
+failing visibility, collection filtering or Agent ICMP ownership queries.
 
 ```bash
 go test ./pkg/collection ./center/router ./models ./pushgw/router -count=1
@@ -331,7 +339,9 @@ alerts until a pack is selected explicitly.
 
 `customization:{config,metrics,dashboards,alerts}` 为本设备覆盖，不修改全局包。已有独立仪表盘/规则仍可从设备详情进入夜莺原生编辑器。普通保存保持设备修改；显式选择同源新版本时，对旧包/设备现值/新包逐字段合并，只更新未覆盖字段。新增模板资源创建新实例。数组结构或同字段双向修改产生冲突；模板删除的设备资源保留并列为冲突。差异接口供第二步展示；确认保留冲突值时提交 `upgrade_resolution:"keep_device"`，未确认返回 409。`reset_resources:true` 是显式重建，旧规则停用、旧仪表盘隐藏、事件历史保留。旧 `refresh_template` 命令仍兼容。
 
-新包规则先暂停，完整的当前修订必需指标从数据源查询成功后，后台 worker 才恢复期望的启停状态。Provider 已读取、仅收到 up、历史修订样本、查询失败都不足以启用规则。暂停/删除设备暂停规则，独立停用状态保留。
+首次接入和升级新增的规则先暂停，完整的当前修订必需指标从数据源查询成功后，后台 worker 才恢复期望的启停状态。Provider 已读取、仅收到 up、历史修订样本、查询失败都不足以解除等待。已正常采集并启用过的规则在配置修改、重试或重新启用时保留原有启停状态，并更新到当前修订，避免新配置失败时中断告警也被停用。尚在等待的新增规则跨暂停/恢复仍继续等待。
+
+暂停/删除设备暂停规则，独立停用状态保留。系统暂停与其后发生的原生规则编辑通过最后写入者区分；等待期间显式原生编辑的启停状态不被后续设备保存或后台恢复覆盖。规则重新启用时使用递增更新时间，使原生规则缓存能观察变化。设备重新启用同时重绑定规则和仪表盘中的当前采集修订。
 
 ### 设备总表投影
 

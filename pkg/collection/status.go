@@ -174,6 +174,15 @@ func (s *StatusService) States(ctx context.Context, devices []models.MonitorDevi
 	}
 	return out, nil
 }
+
+// DatasourceUnavailableState exposes configuration metadata without consulting
+// metric caches. UI readers denied a datasource must not inherit cached values.
+func DatasourceUnavailableState(d models.MonitorDevice, c models.MonitorCollector) State {
+	state := baseState(d, c, time.Now().Unix())
+	state.Health = "query_error"
+	return state
+}
+
 func baseState(d models.MonitorDevice, c models.MonitorCollector, now int64) State {
 	state := State{DeviceID: d.ID, Kind: "snmp", ConfigurationState: "pending", Health: "waiting", CollectorID: d.CollectorID, Revision: d.DesiredRevision, CheckedAt: now, MissingMetrics: []string{}}
 	if d.Protocol == "mysql" {

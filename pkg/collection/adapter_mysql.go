@@ -37,7 +37,13 @@ func decodeMySQLHistorical(entries map[string]ConfigContent, collector string) (
 			return nil, bad("invalid historical MySQL configuration")
 		}
 		ins := config.Instances[0]
-		if ins.Labels["collection_collector_id"] != collector || ins.Labels["collection_mode"] != "managed" || ins.Labels["collection_device_id"] == "" || ins.Labels["collection_template_version"] == "" {
+		if ins.Labels["collection_collector_id"] != collector {
+			return nil, bad("historical MySQL ownership mismatch")
+		}
+		if ins.Labels["collection_mode"] == "probe" && ins.Labels["probe_id"] != "" && ins.Labels["collection_device_id"] == "" {
+			continue // Historical temporary probes are never restored as devices.
+		}
+		if ins.Labels["collection_mode"] != "managed" || ins.Labels["collection_device_id"] == "" || ins.Labels["collection_template_version"] == "" {
 			return nil, bad("historical MySQL ownership mismatch")
 		}
 		host, port, err := net.SplitHostPort(ins.Address)

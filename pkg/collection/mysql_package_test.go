@@ -109,3 +109,28 @@ func TestNativeMySQLPackageBootstrapsWholeBundleOnce(t *testing.T) {
 	require.Equal(t, "edited database instructions", again.Draft.Pack.Readme)
 	require.Equal(t, e.PublishedVersionID, again.PublishedVersionID)
 }
+
+func TestMySQLRollbackIgnoresHistoricalProbeEntries(t *testing.T) {
+	s, scope, c, _, token := testStore(t)
+	e := mysqlPackageFixture(t, s, scope)
+	f := DeviceInput{Name: "MySQL rollback", Address: "192.0.2.152", GroupID: 1, CollectorID: c.ID, TemplateVersionID: e.PublishedVersionID, Enabled: true, Parameters: map[string]interface{}{"username": "monitor", "password": "synthetic-password", "tls": "off"}}
+	d, err := s.SaveDevice(scope, "", "mysql-probe-rollback", f)
+	require.NoError(t, err)
+	f.Address = "192.0.2.153"
+	probe, err := s.CreateProbe(scope, f)
+	require.NoError(t, err)
+	snapshot, _, err := s.Provider(c.ID, token, "")
+	require.NoError(t, err)
+	require.Len(t, snapshot.Configs["mysql"], 2)
+	var publication models.MonitorPublication
+	require.NoError(t, s.DB.First(&publication, "version = ?", snapshot.Version).Error)
+	require.NoError(t, s.CancelProbe(scope, probe.ID))
+	require.NoError(t, s.Rollback(scope, publication.ID))
+	after, _, err := s.Provider(c.ID, token, "")
+	require.NoError(t, err)
+	require.Len(t, after.Configs["mysql"], 1)
+	for _, content := range after.Configs["mysql"] {
+		require.NotContains(t, content.Config, probe.ID)
+		require.Contains(t, content.Config, d.ID)
+	}
+}

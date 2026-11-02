@@ -33,7 +33,8 @@ func (s *Store) armDevice(d models.MonitorDevice) error {
 		}
 		for id, disabled := range state.Waiting {
 			// Respect an intervening native edit rather than blindly re-enabling it.
-			if err := tx.Model(&models.AlertRule{}).Where("id = ? AND update_by = ?", id, "collection").Updates(map[string]interface{}{"disabled": disabled, "update_at": time.Now().Unix()}).Error; err != nil {
+			now := time.Now().Unix()
+			if err := tx.Model(&models.AlertRule{}).Where("id = ? AND update_by = ?", id, "collection").Updates(map[string]interface{}{"disabled": disabled, "update_at": gorm.Expr("CASE WHEN update_at >= ? THEN update_at + 1 ELSE ? END", now, now)}).Error; err != nil {
 				return err
 			}
 		}
