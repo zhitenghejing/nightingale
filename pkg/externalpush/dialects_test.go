@@ -15,6 +15,7 @@ import (
 	"github.com/ccfos/nightingale/v6/internal/testenv"
 	"github.com/ccfos/nightingale/v6/models"
 	gomysql "github.com/go-sql-driver/mysql"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/stdlib"
 	"gorm.io/driver/mysql"
@@ -194,6 +195,34 @@ func TestExternalPushDatabaseDialects(t *testing.T) {
 					if len(d.Attempts) != 1 {
 						t.Fatal("missing persisted attempt")
 					}
+					// The same schema/lease must also serialize different
+					// reminder dispatches of a single approved incident.
+					reminders := labelPlan(srv.URL)
+					for i := 0; i < 8; i++ {
+						candidate := reminders
+						candidate.Event = *reminders.Event.DeepCopy()
+						candidate.Event.DispatchID = uuid.NewString()
+						candidate.Event.IncidentSequence = int64(i + 1)
+						enqueue(t, db, candidate)
+					}
+					for i := 0; i < 4; i++ {
+						wg.Add(1)
+						go func() {
+							defer wg.Done()
+							if err := (Worker{DB: db}).Step(context.Background()); err != nil {
+								t.Error(err)
+							}
+						}()
+					}
+					wg.Wait()
+					if calls.Load() != 9 {
+						t.Fatalf("eight distinct dispatches produced %d additional requests", calls.Load()-1)
+					}
+					var delivered int64
+					if err := db.Model(&models.ExternalPushTask{}).Where("incident_id = ? AND state = ?", reminders.Event.IncidentID, Accepted).Count(&delivered).Error; err != nil || delivered != 8 {
+						t.Fatalf("delivered=%d err=%v", delivered, err)
+					}
+
 				})
 			}
 		})

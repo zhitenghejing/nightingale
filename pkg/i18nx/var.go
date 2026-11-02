@@ -2,6 +2,20 @@ package i18nx
 
 var I18N = `{
   "zh_CN": {
+    "repeat suppressed: this incident already has a problem request attempt": "本轮已存在故障请求尝试，重复提醒明确不投递",
+    "duplicate recovery suppressed: this incident already has a recovery request attempt": "本轮已存在恢复请求尝试，重复恢复明确不投递",
+    "an earlier recovery request was already attempted; no request sent": "此前已尝试投递本轮恢复，本条未发送请求",
+    "deviceTags has no nonempty values after optional labels were omitted": "省略可选标签后deviceTags全部为空，未发送",
+    "deviceTags requires 1 to 64 source labels": "deviceTags须配置1至64个来源标签键",
+    "deviceTags source list must contain label and explicit required boolean": "deviceTags来源须含标签键及明确的必填布尔值，不能有重复属性或未知字段",
+    "unsupported external push mapping version": "不支持的1.0平台字段映射版本",
+    "channel_id and historical event_id are required": "请选择通知媒介并填写已有历史事件ID",
+    "selected historical event is missing": "所选历史事件不存在",
+    "event label mapping must not retain CMDB or literal device mappings": "事件标签映射不能同时保留CMDB或固定设备映射",
+    "companyId must select exactly one fixed or label source": "companyId固定值与标签来源只能选择一个",
+    "companyId requires a fixed or label source": "companyId须填写固定值或来源标签键",
+    "repeat_policy must explicitly be once_per_incident, all_dispatches or review_repeats": "旧版重复策略校验信息；当前故障次数由告警规则统一控制",
+
     "CMDB match field and an exact nonempty event label are required": "必须明确CMDB匹配字段和非空告警标签，不能自动关联设备",
     "matched CMDB asset must have model and business for deviceTags": "CMDB型号和所属业务均不能为空，无法构造deviceTags",
     "CMDB tags source cannot also configure literal or label tags": "CMDB标签来源不能同时配置固定值或告警标签",

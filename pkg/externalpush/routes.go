@@ -18,7 +18,7 @@ func routeParams(in map[string]interface{}) map[string]string {
 	}
 	// Omit absent optional keys so persisted literal-only snapshots retain their
 	// existing fingerprint and route-consensus representation.
-	for _, k := range []string{"company_id_label", "device_type_label", "device_tags_label", "device_source", "cmdb_match_field", "cmdb_match_label", "device_tags_source"} {
+	for _, k := range []string{"company_id_label", "device_type_label", "device_tags_label", "device_source", "cmdb_match_field", "cmdb_match_label", "device_tags_source", "mapping_version", "device_tags_labels"} {
 		if value, ok := in[k].(string); ok && value != "" {
 			out[k] = value
 		}
@@ -47,7 +47,7 @@ func routeConsensus(db *gorm.DB, s Snapshot, ruleID int64) error {
 		}
 		matched := false
 		for _, config := range rule.NotifyConfigs {
-			if config.ChannelID == ref.ChannelID && reflect.DeepEqual(routeParams(config.Params), s.Params) {
+			if config.ChannelID == ref.ChannelID && reflect.DeepEqual(effectiveProtocolParams(routeParams(config.Params)), effectiveProtocolParams(s.Params)) {
 				matched = true
 			}
 		}
@@ -84,6 +84,17 @@ func protocolFingerprint(s Snapshot, p Payload) string {
 		Incident  string
 		Sequence  int64
 		Recovered bool
-	}{s.Config, s.Params, p, s.Event.IncidentID, s.Event.IncidentSequence, s.Event.IsRecovered})
+	}{s.Config, effectiveProtocolParams(s.Params), p, s.Event.IncidentID, s.Event.IncidentSequence, s.Event.IsRecovered})
 	return digest(string(b))
+}
+
+// Retain the retired field in stored snapshots, but never let its old value
+// gate reminders or create a false conflict between otherwise equal routes.
+func effectiveProtocolParams(params map[string]string) map[string]string {
+	out := make(map[string]string, len(params)+1)
+	for k, v := range params {
+		out[k] = v
+	}
+	out["repeat_policy"] = "all_dispatches"
+	return out
 }

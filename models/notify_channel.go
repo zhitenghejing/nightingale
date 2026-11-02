@@ -886,7 +886,6 @@ var NotiChMap = []*NotifyChannelConfig{
 			{Key: "device_name_label", CName: "Device name label", Type: "string"},
 			{Key: "device_tags", CName: "Device tags", Type: "string"},
 			{Key: "level_map", CName: "Severity mapping", Type: "string"},
-			{Key: "repeat_policy", CName: "Repeat policy", Type: "string"},
 			{Key: "device_source", CName: "Device source", Type: "string"},
 			{Key: "cmdb_match_field", CName: "CMDB match field", Type: "string"},
 			{Key: "cmdb_match_label", CName: "CMDB event label", Type: "string"},

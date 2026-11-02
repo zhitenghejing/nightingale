@@ -316,7 +316,7 @@ func TestResponsesNeverAssumeDownstreamSuccess(t *testing.T) {
 	}
 }
 
-func TestValidationRepeatPolicyAndConflict(t *testing.T) {
+func TestValidationLegacyReminderMetadataAndConflict(t *testing.T) {
 	db := testDB(t)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, `{"status":200}`) }))
 	defer srv.Close()
@@ -332,8 +332,8 @@ func TestValidationRepeatPolicyAndConflict(t *testing.T) {
 	s.Event.IncidentSequence = 6
 	id := enqueue(t, db, s)
 	step(t, db)
-	if d := state(t, db, id); d.Task.State != Manual || d.Task.Attempts != 0 {
-		t.Fatal("repeat reminder silently dropped or sent")
+	if d := state(t, db, id); d.Task.State != Accepted || d.Task.Attempts != 1 {
+		t.Fatal("legacy metadata blocked a legitimate reminder")
 	}
 	s.Event.DispatchID = uuid.NewString()
 	s.Params["company_id"] = ""

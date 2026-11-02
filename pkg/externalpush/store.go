@@ -209,7 +209,14 @@ func Enqueue(db *gorm.DB, s Snapshot, channelID, ruleID int64) (int64, error) {
 				candidate, _ := Build(s)
 				t.Fingerprint = protocolFingerprint(s, candidate)
 			}
-			if existing.Fingerprint != t.Fingerprint {
+			// Old hashes included the retired reminder policy. Compare from the
+			// immutable snapshot without rewriting its historical hash or state.
+			existingFingerprint := existing.Fingerprint
+			if json.Unmarshal([]byte(existing.Snapshot), &winner) == nil {
+				original, _ := Build(winner)
+				existingFingerprint = protocolFingerprint(winner, original)
+			}
+			if existingFingerprint != t.Fingerprint {
 				conflict = true
 				after := existing.State
 				if existing.Attempts == 0 {
@@ -237,6 +244,7 @@ func Enqueue(db *gorm.DB, s Snapshot, channelID, ruleID int64) (int64, error) {
 }
 
 type Detail struct {
+	OmittedTags    []TagOmission                  `json:"omitted_tags"`
 	PayloadPreview *Payload                       `json:"payload_preview,omitempty"`
 	Task           models.ExternalPushTask        `json:"task"`
 	Attempts       []models.ExternalPushAttempt   `json:"attempts"`
@@ -244,7 +252,7 @@ type Detail struct {
 }
 
 func Get(db *gorm.DB, id int64) (Detail, error) {
-	d := Detail{Attempts: []models.ExternalPushAttempt{}, Operations: []models.ExternalPushOperation{}}
+	d := Detail{OmittedTags: []TagOmission{}, Attempts: []models.ExternalPushAttempt{}, Operations: []models.ExternalPushOperation{}}
 	if err := db.First(&d.Task, id).Error; err != nil {
 		return d, err
 	}
@@ -254,6 +262,27 @@ func Get(db *gorm.DB, id int64) (Detail, error) {
 	if json.Unmarshal([]byte(d.Task.Payload), &preview) == nil {
 		preview.Sign = "[REDACTED]"
 		d.PayloadPreview = &preview
+	}
+	var snapshot Snapshot
+	if json.Unmarshal([]byte(d.Task.Snapshot), &snapshot) == nil {
+		if snapshot.Params["device_tags_source"] == "event_labels" {
+			source := snapshot
+			if d.Task.Kind == "recovery" && d.Task.Attempts > 0 {
+				var original models.ExternalPushTask
+				if err := db.Where("stream_key = ? AND kind = ? AND sequence < ? AND attempts > 0 AND state IN ?", d.Task.StreamKey, "problem", d.Task.Sequence, []string{Accepted, Confirmed}).Order("sequence").First(&original).Error; err != nil {
+					return d, err
+				}
+				if err := json.Unmarshal([]byte(original.Snapshot), &source); err != nil {
+					return d, err
+				}
+			}
+			if d.Task.Kind != "recovery" || d.Task.Attempts > 0 {
+				_, omitted, _ := joinedTagLabels(source)
+				if omitted != nil {
+					d.OmittedTags = omitted
+				}
+			}
+		}
 	}
 	if err := db.Where("task_id = ?", id).Order("id").Find(&d.Attempts).Error; err != nil {
 		return d, err

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Form, Button } from 'antd';
 import { fireEvent, render, screen, within, waitFor } from '@testing-library/react';
-import ExternalPush from './ExternalPush';
+import ExternalPush from './ExternalPushLegacy';
 
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
 jest.mock('@/pages/notificationChannels/constants', () => ({ NS: 'notification-channels' }));

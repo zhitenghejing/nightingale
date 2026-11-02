@@ -145,9 +145,9 @@ func TestRecoveryDoesNotRequireNeverSentReminder(t *testing.T) {
 	s.Event.DispatchID = uuid.NewString()
 	s.Event.IncidentSequence = 3
 	reminder := enqueue(t, db, s)
-	step(t, db)
-	if state(t, db, reminder).Task.State != Manual {
-		t.Fatal("reminder policy not honored")
+	d := state(t, db, reminder)
+	if err := Act(db, reminder, "test-admin", Action{Action: "cancel_unsent", Reason: "TEST explicit cancellation of unsent reminder", Version: d.Task.Version}); err != nil {
+		t.Fatal(err)
 	}
 	s.Event.DispatchID = uuid.NewString()
 	s.Event.IncidentSequence = 5

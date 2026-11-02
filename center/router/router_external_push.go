@@ -1,8 +1,10 @@
 package router
 
 import (
+	"fmt"
 	"github.com/ccfos/nightingale/v6/pkg/i18nx"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -69,6 +71,17 @@ func (rt *Router) externalPushAction(c *gin.Context) {
 // durable audit stable and retain technical HTTP/hash evidence verbatim.
 func externalPushText(c *gin.Context, text string) string {
 	lang := c.GetHeader("X-Language")
+	if lang == "zh_CN" || lang == "zh" {
+		for _, item := range []struct{ pattern, message string }{
+			{`^deviceTags required label (.+) is missing or empty$`, "deviceTags必填标签 %s 缺失或为空"},
+			{`^deviceTags label (.+) has ambiguous values$`, "deviceTags标签 %s 存在不同值，无法唯一取值"},
+			{`^deviceTags source label (.+) is configured more than once$`, "deviceTags来源标签 %s 重复配置"},
+		} {
+			if parts := regexp.MustCompile(item.pattern).FindStringSubmatch(text); len(parts) == 2 {
+				return fmt.Sprintf(item.message, parts[1])
+			}
+		}
+	}
 	translated := i18nx.Translate(lang, text)
 	if translated != text || !strings.HasPrefix(text, "HTTP ") {
 		return translated
@@ -93,4 +106,15 @@ func (rt *Router) externalPushSigningKey(c *gin.Context) {
 	status := externalpush.NewFileKeys(rt.Center.ExternalPushKeyFiles).Status(ref)
 	status.Reason = externalPushText(c, status.Reason)
 	ginx.NewRender(c).Data(status, nil)
+}
+
+// Read-only draft validation. No dispatcher, signer or worker is invoked here.
+func (rt *Router) externalPushPreview(c *gin.Context) {
+	var in externalpush.PreviewInput
+	ginx.BindJSON(c, &in)
+	result, err := externalpush.Preview(models.DB(rt.Ctx), in)
+	if err != nil {
+		bombI18n(c, http.StatusBadRequest, externalPushText(c, err.Error()))
+	}
+	ginx.NewRender(c).Data(result, nil)
 }

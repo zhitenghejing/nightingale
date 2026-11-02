@@ -20,6 +20,7 @@ interface Task {
   channel_id: number;
 }
 interface Detail {
+  omitted_tags?: { label: string; reason: string }[];
   payload_preview?: Record<string, string>;
   task: Task;
   attempts: { id: number; number: number; state: string; summary: string; started_at: number; finished_at: number }[];
@@ -109,6 +110,7 @@ export default function ExternalTasks() {
                 {t('external.incident')}: {detail.task.incident_id} / {detail.task.sequence}
               </p>
               <Alert className='mb-3' type='info' message={t('external.pairing_notice')} />
+              {!!detail.omitted_tags?.length && <Alert className='mb-3' type='info' message={t('external.labels.omitted_title')} description={detail.omitted_tags.map((item) => `${item.label}: ${t(`external.labels.omitted_${item.reason}`)}`).join('；')} />}
               <h3>{t('external.payload_title')}</h3>
               <p>{t('external.payload_notice')}</p>
               {detail.payload_preview ? (

@@ -157,6 +157,19 @@ func (w Worker) claim(id int64) (*models.ExternalPushTask, *models.ExternalPushA
 			}
 			return release()
 		}
+		suppress := func(action, reason string) error {
+			r := tx.Model(&models.ExternalPushTask{}).Where("id = ? AND version = ? AND state IN ?", id, t.Version, []string{Pending, Waiting}).Updates(map[string]interface{}{"state": NotDelivered, "reason": reason, "version": t.Version + 1, "updated_at": now})
+			if r.Error != nil {
+				return r.Error
+			}
+			if err := release(); err != nil {
+				return err
+			}
+			if r.RowsAffected != 1 {
+				return nil
+			}
+			return tx.Create(&models.ExternalPushOperation{TaskID: id, Actor: "system", Action: action, Reason: reason, BeforeState: t.State, AfterState: NotDelivered, CreatedAt: now}).Error
+		}
 		if t.ChannelID > 0 {
 			var ch models.NotifyChannelConfig
 			if err := tx.First(&ch, t.ChannelID).Error; err != nil {
@@ -225,16 +238,15 @@ func (w Worker) claim(id int64) (*models.ExternalPushTask, *models.ExternalPushA
 			if recoveries > 0 {
 				return setState(Manual, "recovery was already attempted; an unsent stale problem must not reopen this incident")
 			}
-			if anchor != nil && t.Attempts == 0 && s.Params["repeat_policy"] == "review_repeats" {
-				var authorizations int64
-				if err := tx.Model(&models.ExternalPushOperation{}).Where("task_id = ? AND action = ?", t.ID, "authorize_resend").Count(&authorizations).Error; err != nil {
-					return err
-				}
-				if authorizations == 0 {
-					return setState(Manual, "repeat reminder retained; external repeat policy requires manual disposition")
-				}
-			}
 		} else {
+			// Recovery duplication protection is independent of fault reminder counts.
+			var previousRecoveries int64
+			if err := tx.Model(&models.ExternalPushTask{}).Where("stream_key = ? AND kind = ? AND id <> ? AND attempts > 0", t.StreamKey, "recovery", t.ID).Count(&previousRecoveries).Error; err != nil {
+				return err
+			}
+			if previousRecoveries > 0 {
+				return suppress("suppress_recovery", "duplicate recovery suppressed: this incident already has a recovery request attempt")
+			}
 			if anchor == nil {
 				return setState(Waiting, "no problem has been delivered for this destination and incident; no synthetic problem created")
 			}

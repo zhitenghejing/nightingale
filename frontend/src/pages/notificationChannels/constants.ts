@@ -71,7 +71,7 @@ export const getNotificationChannelTypes = () => {
         param_config: {
           user_info: undefined,
           custom: {
-            params: ['company_id', 'device_type', 'device_name_label', 'device_tags', 'level_map', 'repeat_policy', 'device_source', 'cmdb_match_field', 'cmdb_match_label', 'device_tags_source'].map((key) => ({
+            params: ['company_id', 'device_type', 'device_name_label', 'device_tags', 'level_map', 'device_source', 'cmdb_match_field', 'cmdb_match_label', 'device_tags_source'].map((key) => ({
               key,
               cname: i18next.t(`${NS}:external.params.${key}`),
               type: 'string',

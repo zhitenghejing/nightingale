@@ -10,6 +10,10 @@ const fields = ['alarmType', 'companyId', 'deviceType', 'deviceName', 'problemTi
 export default function ExternalPushFields({ params = {}, showRuleLink = false }: { params?: Record<string, string>; showRuleLink?: boolean }) {
   const { t } = useTranslation(NS);
   const mapped = (key: string) => (params[key + '_label'] ? `tags[${JSON.stringify(params[key + '_label'])}]` : params[key] || t('external.choose_rule_source'));
+  const joinedTags = () => {
+    try { const list = JSON.parse(params.device_tags_labels || '[]'); return list.map((item: { label: string; required: boolean }) => `tags[${JSON.stringify(item.label)}] (${item.required ? 'required' : 'optional'})`).join(' + "," + '); }
+    catch { return t('external.labels.invalid_list'); }
+  };
   const structure = {
     alarmType: 'IsRecovered ? "ok" : "problem"',
     companyId: mapped('company_id'),
@@ -19,7 +23,7 @@ export default function ExternalPushFields({ params = {}, showRuleLink = false }
     recoveryTime: 'IsRecovered ? RecoverTime → YYYY-MM-DD HH:mm:ss : ""',
     triggerName: 'RuleName',
     level: `level_map[Severity]${params.level_map ? ' · ' + params.level_map : ''}`,
-    deviceTags: params.device_tags_source === 'cmdb_model_business' ? "[CMDB.model, CMDB.business] (single-quoted list text, snapshot)" : params.device_tags_source === 'rule_append_tags' ? 'AlertRule.append_tags (saved field string, snapshot)' : mapped('device_tags'),
+    deviceTags: params.device_tags_source === 'event_labels' ? joinedTags() : params.device_tags_source === 'cmdb_model_business' ? "[CMDB.model, CMDB.business] (single-quoted list text, snapshot)" : params.device_tags_source === 'rule_append_tags' ? 'AlertRule.append_tags (saved field string, snapshot)' : mapped('device_tags'),
     sign: t('external.sign_pending'),
   };
   return (

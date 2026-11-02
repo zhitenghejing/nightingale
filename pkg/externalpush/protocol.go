@@ -79,18 +79,26 @@ func Build(s Snapshot) (Payload, error) {
 	if e.IsRecovered && e.IncidentSequence < 2 {
 		return p, errors.New("recovery has no preceding problem sequence")
 	}
-	for _, k := range []string{"level_map", "repeat_policy"} {
+	for _, k := range []string{"level_map"} {
 		if strings.TrimSpace(s.Params[k]) == "" {
 			return p, fmt.Errorf("required rule parameter %s is missing", k)
 		}
 	}
-	policy := s.Params["repeat_policy"]
-	if policy != "all_dispatches" && policy != "review_repeats" {
-		return p, errors.New("repeat_policy must explicitly be all_dispatches or review_repeats (simulation assumptions)")
-	}
 	levels, err := decodeLevelMap(s.Params["level_map"])
 	if err != nil {
 		return p, errors.New("level_map must be an unambiguous JSON object of severity to text")
+	}
+	if err := validateLabelMapping(s.Params); err != nil {
+		return p, err
+	}
+	// Recovery mappings come from the attempted problem at claim time, even when
+	// current event labels are absent. Never invent or submit a problem to fill it.
+	if e.IsRecovered && s.Params["mapping_version"] == LabelMappingVersion {
+		if e.FirstTriggerTime <= 0 || e.RecoverTime <= 0 || e.RecoverTime < e.FirstTriggerTime {
+			return p, errors.New("valid recovery time is required")
+		}
+		loc, _ := time.LoadLocation(s.Config.TimeZone)
+		return Payload{AlarmType: s.Config.RecoveryType, ProblemTime: time.Unix(e.FirstTriggerTime, 0).In(loc).Format("2006-01-02 15:04:05"), RecoveryTime: time.Unix(e.RecoverTime, 0).In(loc).Format("2006-01-02 15:04:05"), Sign: s.Config.TestSign}, nil
 	}
 	level := levels[strconv.Itoa(e.Severity)]
 	if strings.TrimSpace(level) == "" {
@@ -128,7 +136,15 @@ func Build(s Snapshot) (Payload, error) {
 		}
 	}
 	var tags string
-	if s.Params["device_tags_source"] == "cmdb_model_business" {
+	if s.Params["device_tags_source"] == "event_labels" {
+		if s.Params["mapping_version"] != LabelMappingVersion {
+			return p, errors.New("event label tags require an explicit mapping version")
+		}
+		tags, _, err = joinedTagLabels(s)
+		if err != nil {
+			return p, err
+		}
+	} else if s.Params["device_tags_source"] == "cmdb_model_business" {
 		if s.Params["device_tags"] != "" || s.Params["device_tags_label"] != "" {
 			return p, errors.New("CMDB tags source cannot also configure literal or label tags")
 		}
