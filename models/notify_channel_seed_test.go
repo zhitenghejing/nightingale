@@ -202,3 +202,35 @@ func TestTeamsSeedIsIdempotentAndPreservesUserEdits(t *testing.T) {
 		t.Fatalf("user settings overwritten: %+v, %v", row, err)
 	}
 }
+
+func TestPlatform10SeedIsSavedOnceAndPreservesConfiguredDraft(t *testing.T) {
+	c := seedTestDB(t)
+	models.InitNotifyChannel(c)
+	models.InitNotifyChannel(c)
+	rows, err := models.NotifyChannelsGet(c, "name = ?", "1.0平台推送")
+	if err != nil || len(rows) != 1 {
+		t.Fatalf("expected one saved platform 1.0 channel: count=%d err=%v", len(rows), err)
+	}
+	row := rows[0]
+	if row.Enable || row.Ident != models.ExternalPushType || row.RequestType != models.ExternalPushType || row.ParamConfig == nil || row.ParamConfig.UserInfo != nil || row.RequestConfig == nil || row.RequestConfig.ExternalPushConfig == nil {
+		t.Fatalf("preset must be a disabled dedicated event channel without recipient expansion: %+v", row)
+	}
+	config := row.RequestConfig.ExternalPushConfig
+	if config.Mode != "platform10" || config.Endpoint != "https://admin.ztservice.cn/messageWarn!acceptWarn.act" || config.ProblemType != "problem" || config.RecoveryType != "ok" || config.SigningMode != "key_file" || config.TestSign != "" {
+		t.Fatal("confirmed types and file key reference must be retained without a signature placeholder")
+	}
+	edited := *row
+	edited.UpdateBy = "root"
+	edited.RequestConfig = &models.RequestConfig{ExternalPushConfig: &models.ExternalPushConfig{
+		Mode: "simulation", Endpoint: "http://127.0.0.1:19999/owned-mock", Destination: "owned-destination", TimeoutMS: 2000,
+		ProblemType: "problem", RecoveryType: "ok", SigningMode: "key_file", SigningKeyRef: "customer-version", TimeZone: "Asia/Shanghai",
+	}}
+	if err := row.Update(c, edited); err != nil {
+		t.Fatal(err)
+	}
+	models.InitNotifyChannel(c)
+	rows, err = models.NotifyChannelsGet(c, "name = ?", "1.0平台推送")
+	if err != nil || len(rows) != 1 || rows[0].ID != row.ID || rows[0].Enable || rows[0].RequestConfig.ExternalPushConfig.Endpoint != "http://127.0.0.1:19999/owned-mock" || rows[0].RequestConfig.ExternalPushConfig.SigningKeyRef != "customer-version" {
+		t.Fatal("restart overwrote administrator configuration or created a duplicate")
+	}
+}

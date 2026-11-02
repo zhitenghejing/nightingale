@@ -8,6 +8,9 @@ import (
 )
 
 type Center struct {
+	// ExternalPushKeyFiles maps versioned signing references to center-only paths.
+	// Passwords are provisioned separately and never belong in application config.
+	ExternalPushKeyFiles   map[string]string
 	Plugins                []Plugin
 	MetricsYamlFile        string
 	OpsYamlFile            string

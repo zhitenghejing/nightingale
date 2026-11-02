@@ -130,7 +130,16 @@ export default function NotifyConfig(props: Props) {
       </div>
       <div className='p-4'>
         <Row gutter={SIZE}>
-          <Col span={channelItem?.request_type !== 'flashduty' && channelItem?.request_type !== 'pagerduty' && channelItem?.ident !== 'callback' ? 12 : 24}>
+          <Col
+            span={
+              channelItem?.request_type !== 'flashduty' &&
+              channelItem?.request_type !== 'pagerduty' &&
+              channelItem?.ident !== 'callback' &&
+              channelItem?.request_type !== 'external_push'
+                ? 12
+                : 24
+            }
+          >
             <ChannelSelect
               prefixNamePath={['notify_configs']}
               field={field}
@@ -139,11 +148,14 @@ export default function NotifyConfig(props: Props) {
               }}
             />
           </Col>
-          {channelItem?.request_type !== 'flashduty' && channelItem?.request_type !== 'pagerduty' && channelItem?.ident !== 'callback' && (
-            <Col span={12}>
-              <TemplateSelect prefixNamePath={['notify_configs']} field={field} />
-            </Col>
-          )}
+          {channelItem?.request_type !== 'flashduty' &&
+            channelItem?.request_type !== 'pagerduty' &&
+            channelItem?.ident !== 'callback' &&
+            channelItem?.request_type !== 'external_push' && (
+              <Col span={12}>
+                <TemplateSelect prefixNamePath={['notify_configs']} field={field} />
+              </Col>
+            )}
         </Row>
         <ChannelParams prefixNamePath={['notify_configs']} field={field} channelItem={channelItem} />
         <div className='rounded-lg fc-border overflow-hidden mb-4'>
@@ -266,7 +278,7 @@ export default function NotifyConfig(props: Props) {
             </div>
           </div>
         </div>
-        {!disabled && <TestButton field={field} channelItem={channelItem} />}
+        {!disabled && channelItem?.request_type !== 'external_push' && <TestButton field={field} channelItem={channelItem} />}
       </div>
     </div>
   );

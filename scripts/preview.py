@@ -422,6 +422,8 @@ SkillsPath = "skill"
 Disabled = {str(binding.get('profile', 'basic') != 'full').lower()}
 RequireIsolation = true
 DataDir = {json.dumps(str(runtime_temp(binding) / 'sandbox'))}
+[Center.ExternalPushKeyFiles]
+"platform10-v1" = {json.dumps(str(instance(binding) / "secrets/platform10.key"))}
 [EmbeddedTSDB]
 Enable = false
 [Ibex]

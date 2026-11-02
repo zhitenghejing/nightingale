@@ -119,6 +119,8 @@ Manage alert rules by data source and business group:
 
 ## Deployment
 
+For the Platform 1.0 push channel, see the [deployment and signing-key runbook (Chinese)](doc/deployment/platform10-push.md).
+
 | Option | Start here |
 | --- | --- |
 | Local evaluation with Docker Compose | [Included Compose stack](docker/compose-bridge/docker-compose.yaml) |

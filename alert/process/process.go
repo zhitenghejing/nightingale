@@ -19,6 +19,7 @@ import (
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
 	"github.com/ccfos/nightingale/v6/pkg/evallog"
 
+	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
 	"github.com/toolkits/pkg/logger"
 	"github.com/toolkits/pkg/str"
@@ -630,6 +631,19 @@ func (p *Processor) fireEvent(event *models.AlertCurEvent) {
 }
 
 func (p *Processor) pushEventToQueue(e *models.AlertCurEvent) {
+	// Identity belongs to the immutable dispatch snapshot, before rule/subscription
+	// fan-out. Do not synthesize an episode for a legacy recovered event.
+	if !e.IsRecovered {
+		if previous, ok := p.fires.Get(e.Hash); ok {
+			e.IncidentID = previous.IncidentID
+			e.IncidentSequence = previous.IncidentSequence
+		} else {
+			e.IncidentID = uuid.NewString()
+			e.IncidentSequence = 0
+		}
+	}
+	e.DispatchID = uuid.NewString()
+	e.IncidentSequence++
 	if !e.IsRecovered {
 		// 只屏蔽通知的事件不算作已发送，保留原 LastSentTime，
 		// 使解除屏蔽后按真正的上次发送时间计算重复通知间隔。

@@ -24,6 +24,8 @@ interface Filter {
   idents?: string[];
 }
 
+const isPlatform10Preset = (item: ChannelItem) => item.create_by === 'system' && item.request_type === 'external_push';
+
 export default function index() {
   const { t } = useTranslation(NS);
   const history = useHistory();
@@ -75,7 +77,7 @@ export default function index() {
         return false;
       }
       return true;
-    });
+    }).sort((a, b) => Number(isPlatform10Preset(b)) - Number(isPlatform10Preset(a)));
   }, [data, filters]);
 
   return (
@@ -98,24 +100,24 @@ export default function index() {
             </div>
             <div className='pr-[10px]'>
               <div className='grid grid-cols-2 gap-3'>
-                  {map(filteredTypes, (val, key) => {
-                    return (
-                      <Link to={`/notification-channels/add?ident=${key}`} key={key}>
-                        <div className='relative overflow-hidden bg-fc-100 border border-antd rounded p-2 flex flex-col items-center justify-center transition group hover:border-primary'>
-                          <div className='mb-2'>
-                            <img src={val.logo} alt={key} height={40} />
-                          </div>
-                          <div className='text-center text-main'>{t(`types.${key}`)}</div>
-                          <div className='absolute -bottom-10 -right-10 z-0 h-16 w-16 rounded-[32px] bg-fc-300 pl-2 pt-2 opacity-0 group-hover:opacity-100'>
-                            <PlusOutlined className='text-l1' />
-                          </div>
+                {map(filteredTypes, (val, key) => {
+                  return (
+                    <Link to={`/notification-channels/add?ident=${key}`} key={key}>
+                      <div className='relative overflow-hidden bg-fc-100 border border-antd rounded p-2 flex flex-col items-center justify-center transition group hover:border-primary'>
+                        <div className='mb-2'>
+                          <img src={val.logo} alt={key} height={40} />
                         </div>
-                      </Link>
-                    );
-                  })}
-                </div>
+                        <div className='text-center text-main'>{t(`types.${key}`)}</div>
+                        <div className='absolute -bottom-10 -right-10 z-0 h-16 w-16 rounded-[32px] bg-fc-300 pl-2 pt-2 opacity-0 group-hover:opacity-100'>
+                          <PlusOutlined className='text-l1' />
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
+          </div>
           <div className='w-px self-stretch bg-fc-300'></div>
           <div className='ml-4 min-w-0 flex-1 flex flex-col gap-4'>
             <div className='flex justify-between'>
@@ -186,6 +188,9 @@ export default function index() {
                 />
               </Space>
               <Space>
+                <Link to={`/${NS}/external-tasks`}>
+                  <Button>{t('external.tasks')}</Button>
+                </Link>
                 <Button
                   onClick={() => {
                     Import({
@@ -229,135 +234,142 @@ export default function index() {
               </Space>
             </div>
             <EnhancedTable
-                size='small'
-                loading={loading}
-                rowKey='id'
-                dataSource={filteredData}
-                columns={[
-                  {
-                    title: t('common:table.name'),
-                    dataIndex: 'name',
-                    width: 240,
-                    ellipsis: true,
-                    render: (val, record) => {
-                      return (
-                        <Link
-                          className='block truncate'
-                          to={{
-                            pathname: `/${NS}/edit/${record.id}`,
-                            search: `?page=${current}`,
-                          }}
-                        >
-                          {val}
-                        </Link>
-                      );
-                    },
-                  },
-                  {
-                    title: t('ident'),
-                    dataIndex: 'ident',
-                    width: 180,
-                    ellipsis: true,
-                    render: (val) => {
-                      const typeConfig = channelTypes[val];
-                      return (
-                        <div className='flex min-w-0 items-center gap-2'>
-                          {typeConfig ? <img height={16} src={typeConfig?.logo} alt={val} /> : null}
-                          <span className='truncate'>{typeConfig ? t(`types.${val}`) : val}</span>
-                        </div>
-                      );
-                    },
-                  },
-                  dateColumn({ title: t('common:table.update_at'), dataIndex: 'update_at', unix: true, sortable: true, defaultSortOrder: 'descend' }) as any,
-                  updateByColumn({ title: t('common:table.update_by'), dataIndex: 'update_by', nickname: 'update_by_nickname' }) as any,
-                  {
-                    ...getEnabledStatusColumn({
-                      title: t('common:table.enabled'),
-                      dataIndex: 'enable',
-                      enabledText: t('common:table.enabled'),
-                      disabledText: t('disabled'),
-                      enabledValue: true,
-                      disabledValue: false,
-                    }),
-                    width: 96,
-                    render: (val, record) => (
-                      <Switch
-                        checked={val}
-                        size='small'
-                        loading={togglingId === record.id}
-                        onChange={(checked) => {
-                          // 整条 PUT 用列表加载时的快照会静默覆盖他人的并发编辑，
-                          // 先取一次最新记录再回写，把窗口缩到最小（根治要靠后端窄接口）
-                          setTogglingId(record.id);
-                          getItem(record.id)
-                            .then((latest) => putItem({ ...latest, enable: checked }))
-                            .then(() => {
-                              const newData = map(data, (item) => {
-                                if (item.id === record.id) {
-                                  return {
-                                    ...item,
-                                    enable: checked,
-                                  };
-                                }
-                                return item;
-                              });
-                              mutate(newData);
-                            })
-                            // 请求失败的提示由 request.tsx 的全局 errorHandler 统一弹出，
-                            // 这里只记录并复位，不重复 toast
-                            .catch(console.error)
-                            .finally(() => {
-                              setTogglingId(undefined);
-                            });
+              size='small'
+              loading={loading}
+              rowKey='id'
+              dataSource={filteredData}
+              columns={[
+                {
+                  title: t('common:table.name'),
+                  dataIndex: 'name',
+                  width: 240,
+                  ellipsis: true,
+                  render: (val, record) => {
+                    return (
+                      <Link
+                        className='block truncate'
+                        to={{
+                          pathname: `/${NS}/edit/${record.id}`,
+                          search: `?page=${current}`,
                         }}
-                      />
-                    ),
+                      >
+                        {val}
+                      </Link>
+                    );
                   },
-                ]}
-                rowActions={(record) => ({
-                  inline: [
-                    {
-                      key: 'clone',
-                      icon: 'copy',
-                      text: t('common:btn.clone'),
-                      onClick: () => {
-                        window.open(`/${NS}/edit/${record.id}?mode=clone`, '_blank');
-                      },
-                    },
-                    {
-                      key: 'delete',
-                      danger: true,
-                      disabled: record.enable === true,
-                      tooltip: record.enable === true ? t('common:delete_disable_first') : undefined,
-                      icon: 'delete',
-                      text: t('common:btn.delete'),
-                      onClick: () => {
-                        Modal.confirm({
-                          title: t('common:confirm.delete'),
-                          onOk: () => {
-                            deleteItems([record.id]).then(() => {
-                              message.success(t('common:success.delete'));
-                              run();
+                },
+                {
+                  title: t('ident'),
+                  dataIndex: 'ident',
+                  width: 180,
+                  ellipsis: true,
+                  render: (val) => {
+                    const typeConfig = channelTypes[val];
+                    return (
+                      <div className='flex min-w-0 items-center gap-2'>
+                        {typeConfig ? <img height={16} src={typeConfig?.logo} alt={val} /> : null}
+                        <span className='truncate'>{typeConfig ? t(`types.${val}`) : val}</span>
+                      </div>
+                    );
+                  },
+                },
+                {
+                  ...dateColumn({ title: t('common:table.update_at'), dataIndex: 'update_at', unix: true, sortable: true, defaultSortOrder: 'descend' }),
+                  sorter: (a: ChannelItem, b: ChannelItem, order?: 'ascend' | 'descend' | null) => {
+                    const presetOrder = Number(isPlatform10Preset(a)) - Number(isPlatform10Preset(b));
+                    if (presetOrder) return order === 'descend' ? presetOrder : -presetOrder;
+                    return Number(a.update_at || 0) - Number(b.update_at || 0);
+                  },
+                } as any,
+                updateByColumn({ title: t('common:table.update_by'), dataIndex: 'update_by', nickname: 'update_by_nickname' }) as any,
+                {
+                  ...getEnabledStatusColumn({
+                    title: t('common:table.enabled'),
+                    dataIndex: 'enable',
+                    enabledText: t('common:table.enabled'),
+                    disabledText: t('disabled'),
+                    enabledValue: true,
+                    disabledValue: false,
+                  }),
+                  width: 96,
+                  render: (val, record) => (
+                    <Switch
+                      checked={val}
+                      size='small'
+                      loading={togglingId === record.id}
+                      onChange={(checked) => {
+                        // 整条 PUT 用列表加载时的快照会静默覆盖他人的并发编辑，
+                        // 先取一次最新记录再回写，把窗口缩到最小（根治要靠后端窄接口）
+                        setTogglingId(record.id);
+                        getItem(record.id)
+                          .then((latest) => putItem({ ...latest, enable: checked }))
+                          .then(() => {
+                            const newData = map(data, (item) => {
+                              if (item.id === record.id) {
+                                return {
+                                  ...item,
+                                  enable: checked,
+                                };
+                              }
+                              return item;
                             });
-                          },
-                        });
-                      },
+                            mutate(newData);
+                          })
+                          // 请求失败的提示由 request.tsx 的全局 errorHandler 统一弹出，
+                          // 这里只记录并复位，不重复 toast
+                          .catch(console.error)
+                          .finally(() => {
+                            setTogglingId(undefined);
+                          });
+                      }}
+                    />
+                  ),
+                },
+              ]}
+              rowActions={(record) => ({
+                inline: [
+                  {
+                    key: 'clone',
+                    icon: 'copy',
+                    text: t('common:btn.clone'),
+                    onClick: () => {
+                      window.open(`/${NS}/edit/${record.id}?mode=clone`, '_blank');
                     },
-                  ],
-                })}
-                actionColumn={{ title: t('common:table.operations'), width: 64 }}
-                rowSelection={{
-                  selectedRowKeys: map(selectedRows, 'id'),
-                  onChange: (_selectedRowKeys, selectedRows: ChannelItem[]) => {
-                    setSelectedRows(selectedRows);
                   },
-                }}
-                pagination={{ ...pagination, current }}
-                onChange={(pag) => {
-                  setCurrent(pag.current || 1);
-                  history.replace({ pathname: location.pathname, search: setPageInSearch(location.search, pag.current || 1) });
-                }}
-              />
+                  {
+                    key: 'delete',
+                    danger: true,
+                    disabled: record.enable === true,
+                    tooltip: record.enable === true ? t('common:delete_disable_first') : undefined,
+                    icon: 'delete',
+                    text: t('common:btn.delete'),
+                    onClick: () => {
+                      Modal.confirm({
+                        title: t('common:confirm.delete'),
+                        onOk: () => {
+                          deleteItems([record.id]).then(() => {
+                            message.success(t('common:success.delete'));
+                            run();
+                          });
+                        },
+                      });
+                    },
+                  },
+                ],
+              })}
+              actionColumn={{ title: t('common:table.operations'), width: 64 }}
+              rowSelection={{
+                selectedRowKeys: map(selectedRows, 'id'),
+                onChange: (_selectedRowKeys, selectedRows: ChannelItem[]) => {
+                  setSelectedRows(selectedRows);
+                },
+              }}
+              pagination={{ ...pagination, current }}
+              onChange={(pag) => {
+                setCurrent(pag.current || 1);
+                history.replace({ pathname: location.pathname, search: setPageInSearch(location.search, pag.current || 1) });
+              }}
+            />
           </div>
         </div>
       </div>

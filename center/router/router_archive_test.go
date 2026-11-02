@@ -61,7 +61,7 @@ func archiveRequest(r *gin.Engine, method, path string, data interface{}, userna
 }
 func TestArchiveRoutesRequireAuthentication(t *testing.T) {
 	r, _, _ := archiveTestRouter(t)
-	for _, tc := range []struct{ method, path string }{{"GET", "/api/n9e/archives"}, {"POST", "/api/n9e/archives"}, {"GET", "/api/n9e/archives/files/1"}, {"GET", "/api/n9e/archives/documents/1"}, {"GET", "/api/n9e/archives/documents/1/versions"}, {"POST", "/api/n9e/archives/documents/1/save"}, {"POST", "/api/n9e/archives/1/assets"}, {"POST", "/api/n9e/archives/documents/1/lease/resume"}, {"GET", "/api/n9e/archives/licenses"}, {"GET", "/api/n9e/archives/exports/invalid/file"}} {
+	for _, tc := range []struct{ method, path string }{{"POST", "/api/n9e/archives/1/downloads"}, {"GET", "/api/n9e/archives"}, {"POST", "/api/n9e/archives"}, {"GET", "/api/n9e/archives/files/1"}, {"GET", "/api/n9e/archives/documents/1"}, {"GET", "/api/n9e/archives/documents/1/versions"}, {"POST", "/api/n9e/archives/documents/1/save"}, {"POST", "/api/n9e/archives/1/assets"}, {"POST", "/api/n9e/archives/documents/1/lease/resume"}, {"GET", "/api/n9e/archives/licenses"}, {"GET", "/api/n9e/archives/exports/invalid/file"}} {
 		w := archiveRequest(r, tc.method, tc.path, nil, "")
 		if w.Code != http.StatusUnauthorized {
 			t.Fatalf("%s %s: %d %s", tc.method, tc.path, w.Code, w.Body)

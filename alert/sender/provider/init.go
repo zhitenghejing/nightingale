@@ -3,6 +3,7 @@ package provider
 import "github.com/ccfos/nightingale/v6/models"
 
 func init() {
+	DefaultRegistry.Register(&ExternalPushProvider{})
 	// 自定义逻辑 Provider：各自文件实现 Ident/Check/Notify
 	DefaultRegistry.Register(&DingtalkProvider{})
 	// TODO(dingtalkapp): 钉钉应用本次不上线，先不注册 Provider；未注册时 VerifyChannelConfig/Resolve 都会直接报错，避免误用。待上线时恢复本行。

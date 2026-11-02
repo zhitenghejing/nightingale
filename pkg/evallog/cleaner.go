@@ -269,11 +269,13 @@ func pruneToBudget(cfg Config, buckets map[int64]int64, total, budget int64) {
 	logger.Infof("evallog clean: disk budget exceeded, pruned to %d bytes", total-freed)
 }
 
-// pruneEmptyDirs 删除清理后残留的空天目录/空规则目录。
+// pruneEmptyDirs 删除清理后残留的空天目录，保留规则父目录。
 //
 // 跳过今天的天目录：writer 的 getAppender 是「MkdirAll 之后再 OpenFile」两步，
 // 中间有窗口。把它刚建好、还没来得及写入的空目录删掉，会让这一轮的 OpenFile 拿到
 // ENOENT，记录直接落不了盘。今天的目录本来也马上会被写满，不值得为它冒这个险。
+// 规则父目录也不能在线删除：MkdirAll 先创建父目录，再创建天目录，清理线程可能
+// 在这两步之间看到空父目录。保留这些小目录，避免写入因 ENOENT 进入熔断而丢记录。
 func pruneEmptyDirs(root string) {
 	today := time.Now().Format(dateLayout)
 	ruleDirs, err := os.ReadDir(root)
@@ -294,9 +296,6 @@ func pruneEmptyDirs(root string) {
 			if entries, err := os.ReadDir(datePath); err == nil && len(entries) == 0 {
 				os.Remove(datePath)
 			}
-		}
-		if entries, err := os.ReadDir(rulePath); err == nil && len(entries) == 0 {
-			os.Remove(rulePath)
 		}
 	}
 }

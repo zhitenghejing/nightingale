@@ -16,6 +16,7 @@ import type { RichHandle } from './RichEditor';
 const RichEditor = React.lazy(() => import('./RichEditor'));
 const PdfReader = React.lazy(() => import('./PdfReader'));
 import HistoryPanel, { plainText } from './HistoryPanel';
+import { openPrintWindow, printPdf } from './print';
 
 export default function DocumentPage() {
   const { id, documentID } = useParams<{ id: string; documentID: string }>();
@@ -419,27 +420,16 @@ export default function DocumentPage() {
   };
   const output = async (format: string, print = false) => {
     if (!doc || !archive) return;
-    const popup = print ? window.open('', '_blank') : null;
+    let popup: Window | undefined;
     setBusy(true);
     try {
+      if (print) popup = openPrintWindow();
       const result =
         format === 'pdf_original'
           ? { blob: await fileBlob(doc.file!.id, true), job: { file_name: doc.file!.name } }
           : await exportDocument(archive.id, format, doc.id, doc.version.id);
       if (print) {
-        await api(`/${archive.id}/print`, 'POST', { document_id: doc.id, version_id: doc.version.id });
-        const url = URL.createObjectURL(result.blob);
-        if (popup) {
-          popup.location.href = url;
-          popup.onload = () => {
-            try {
-              popup.print();
-            } catch {
-              message.info('请在打开的 PDF 窗口中使用打印');
-            }
-          };
-        } else message.info('浏览器阻止了打印窗口，请允许本站弹出窗口');
-        setTimeout(() => URL.revokeObjectURL(url), 120000);
+        await printPdf(popup!, result.blob, () => api(`/${archive.id}/print`, 'POST', { document_id: doc.id, version_id: doc.version.id }));
       } else await downloadBlob(result.blob, result.job.file_name);
     } catch (e) {
       if (popup) popup.close();

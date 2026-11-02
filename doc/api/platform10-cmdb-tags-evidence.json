@@ -1,0 +1,36 @@
+{
+  "buildId": "20261029T083622Z-453b8284",
+  "local": {
+    "ok": true,
+    "buildId": "20261029T083622Z-453b8284"
+  },
+  "lan": {
+    "ok": true,
+    "buildId": "20261029T083622Z-453b8284"
+  },
+  "public": {
+    "ok": false,
+    "error": "<urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)>"
+  },
+  "channelId": 25,
+  "draftRuleId": 13,
+  "taskCountBefore": 30,
+  "taskCountAfter": 30,
+  "checks": [
+    "draft CMDB model/business source saved and reopened",
+    "matching fields preserved",
+    "lookup label explicitly documented as no JSON output",
+    "both channel and rule disabled",
+    "no task creation, send or page error"
+  ],
+  "pageErrors": [],
+  "checksExecuted": {
+    "infraPassed": 63,
+    "goPassedIncludingSubtests": 2786,
+    "goExternalTestsSkipped": 48,
+    "frontendSuitesPassed": 214,
+    "frontendTestsPassed": 1860,
+    "raceFocusedPassed": true,
+    "statikMatchesPub": true
+  }
+}

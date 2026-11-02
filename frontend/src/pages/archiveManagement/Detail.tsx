@@ -16,8 +16,9 @@ import {
 import { Link, useHistory, useParams } from 'react-router-dom';
 import PageLayout from '@/components/pageLayout';
 import EnhancedTable from '@/components/EnhancedTable';
-import { Archive, ArchiveDocument, categories, emptyBody, fmtBytes, fmtDate, purposes } from './types';
-import { acquire, api, downloadBlob, errorText, exportDocument, fileBlob, getArchive, release, upload } from './services';
+import { Archive, ArchiveDocument, DownloadFormat, categories, emptyBody, fmtBytes, fmtDate, purposes } from './types';
+import { acquire, api, downloadBlob, downloadDocuments, errorText, exportDocument, fileBlob, getArchive, release, upload } from './services';
+import { openPrintWindow, printPdf } from './print';
 import MetadataForm, { categoryFields, getFieldLabel } from './MetadataForm';
 import HistoryPanel from './HistoryPanel';
 export default function Detail() {
@@ -32,6 +33,11 @@ export default function Detail() {
   const [form] = Form.useForm();
   const [panel, setPanel] = useState<{ kind: 'versions' | 'logs'; documentID?: number }>();
   const [infoCollapsed, setInfoCollapsed] = useState(false);
+  const [downloadSelection, setDownloadSelection] = useState<Archive>();
+  const [downloadIDs, setDownloadIDs] = useState<React.Key[]>([]);
+  const [downloadFormats, setDownloadFormats] = useState<Record<number, DownloadFormat>>({});
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState('');
   const screens = Grid.useBreakpoint();
   const infoColumns = screens.xl ? 3 : screens.md ? 2 : 1;
   const load = useCallback(async () => {
@@ -47,6 +53,7 @@ export default function Detail() {
   useEffect(() => {
     setEditing(undefined);
     setPanel(undefined);
+    setDownloadSelection(undefined);
     setInfoCollapsed(false);
     load();
   }, [load]);
@@ -122,21 +129,30 @@ export default function Detail() {
   };
   const printInformation = () =>
     perform(async () => {
-      const popup = window.open('', '_blank');
+      const popup = openPrintWindow();
       try {
         const { blob, job } = await exportDocument(a.id, 'information_pdf');
-        await api(`/${a.id}/print`, 'POST', { version_id: (job as any).archive_version_id });
-        const url = URL.createObjectURL(blob);
-        if (popup) {
-          popup.onload = () => popup.print();
-          popup.location.href = url;
-        } else message.info('请允许本站打开打印窗口');
-        setTimeout(() => URL.revokeObjectURL(url), 120000);
+        await printPdf(popup, blob, () => api(`/${a.id}/print`, 'POST', { version_id: (job as any).archive_version_id }));
       } catch (e) {
-        popup?.close();
+        popup.close();
         throw e;
       }
     });
+  const confirmDownload = async () => {
+    if (!downloadSelection || !downloadIDs.length || downloading) return;
+    setDownloading(true);
+    setDownloadError('');
+    try {
+      const documents = downloadIDs.map((id) => ({ document_id: Number(id), format: downloadFormats[Number(id)] }));
+      const { blob, job } = await downloadDocuments(downloadSelection.id, downloadSelection.revision, documents);
+      await downloadBlob(blob, job.file_name);
+      setDownloadSelection(undefined);
+    } catch (e) {
+      setDownloadError(errorText(e));
+    } finally {
+      setDownloading(false);
+    }
+  };
   const createOnline = async () => {
     const v = await form.validateFields();
     setBusy(true);
@@ -206,14 +222,14 @@ export default function Detail() {
                       key='export'
                       icon={<DownloadOutlined />}
                       disabled={busy}
-                      onClick={() =>
-                        perform(async () => {
-                          const { blob, job } = await exportDocument(a.id, 'zip');
-                          await downloadBlob(blob, job.file_name);
-                        })
-                      }
+                      onClick={() => {
+                        setDownloadSelection(a);
+                        setDownloadIDs([]);
+                        setDownloadFormats(Object.fromEntries((a.documents || []).map((d) => [d.id, d.kind === 'online' ? 'pdf' : 'original'])));
+                        setDownloadError('');
+                      }}
                     >
-                      导出整份档案
+                      下载文档
                     </Menu.Item>
                   </Menu>
                 }
@@ -420,6 +436,69 @@ export default function Detail() {
             />
           </div>
         </section>
+        <Modal
+          title='选择下载文档'
+          visible={!!downloadSelection}
+          width={840}
+          onCancel={() => {
+            if (!downloading) setDownloadSelection(undefined);
+          }}
+          onOk={confirmDownload}
+          okText={downloading ? '正在生成下载包' : '确认下载'}
+          cancelText='取消'
+          confirmLoading={downloading}
+          okButtonProps={{ disabled: !downloadIDs.length }}
+          cancelButtonProps={{ disabled: downloading }}
+          closable={!downloading}
+          maskClosable={!downloading}
+          keyboard={!downloading}
+          destroyOnClose
+        >
+          <p>勾选资料并选择下载格式。在线文档默认只下载 PDF，可改选 Word；所选资料统一打包为 ZIP。</p>
+          {downloadError && <Alert type='error' showIcon message={downloadError} className='mb-4' />}
+          <EnhancedTable
+            rowKey='id'
+            size='small'
+            autoSortColumns={false}
+            pagination={false}
+            dataSource={downloadSelection?.documents || []}
+            rowSelection={{ selectedRowKeys: downloadIDs, onChange: setDownloadIDs, getCheckboxProps: () => ({ disabled: downloading }) }}
+            columns={[
+              { title: '文档名称', dataIndex: 'title' },
+              { title: '格式', dataIndex: 'kind', render: (v) => (v === 'online' ? '在线文档' : v === 'image' ? '图片' : v.toUpperCase()) },
+              {
+                title: '下载格式',
+                width: 180,
+                render: (_, d) => (
+                  <Select<DownloadFormat>
+                    aria-label={`下载格式：${d.title}`}
+                    value={downloadFormats[d.id]}
+                    disabled={downloading || !['online', 'pdf'].includes(d.kind)}
+                    style={{ width: '100%' }}
+                    onChange={(format) => setDownloadFormats((v) => ({ ...v, [d.id]: format }))}
+                    options={
+                      d.kind === 'online'
+                        ? [
+                            { value: 'pdf', label: 'PDF' },
+                            { value: 'docx', label: 'Word（DOCX）' },
+                            { value: 'pdf_and_docx', label: 'PDF + Word' },
+                          ]
+                        : d.kind === 'pdf'
+                        ? [
+                            { value: 'original', label: 'PDF 原件' },
+                            { value: 'annotated_pdf', label: 'PDF（含批注）' },
+                          ]
+                        : [{ value: 'original', label: d.kind === 'docx' ? 'Word 原件' : '图片原件' }]
+                    }
+                  />
+                ),
+              },
+              { title: '版本', render: (_, d) => `v${d.version.sequence}` },
+            ]}
+            locale={{ emptyText: '暂无可下载文档' }}
+          />
+          <div className='archive-hint'>已选 {downloadIDs.length} 份。仅下载正式保存的版本，不包含私有草稿。</div>
+        </Modal>
         <MetadataForm
           category={a.category}
           initial={editing?.metadata}

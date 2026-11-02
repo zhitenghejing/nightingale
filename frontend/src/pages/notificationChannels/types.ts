@@ -130,12 +130,15 @@ export interface JSMAlertRequestConfig extends NativeNetworkConfig {
 
 export interface ChannelItem {
   id: number;
+  create_by?: string;
+  update_at?: number;
   name: string;
   ident: string;
   description: string;
   enable: boolean;
   param_config: ParamConfig;
   request_type:
+    | 'external_push'
     | 'http'
     | 'smtp'
     | 'script'
@@ -155,6 +158,18 @@ export interface ChannelItem {
     | 'slackwebhook'
     | 'mattermostwebhook';
   request_config: {
+    external_push_config?: {
+      signing_mode?: 'key_file' | 'test_value';
+      signing_key_ref?: string;
+      mode: string;
+      endpoint: string;
+      destination: string;
+      timeout_ms: number;
+      problem_type: string;
+      recovery_type: string;
+      test_sign: string;
+      time_zone: string;
+    };
     http_request_config: HttpRequestConfig;
     smtp_request_config: SmtpRequestConfig;
     script_request_config: ScriptRequestConfig;

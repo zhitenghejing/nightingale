@@ -1,0 +1,1230 @@
+--- a/.gitignore
++++ b/.gitignore
+@@ -92,3 +92,7 @@
+ 
+ __pycache__/
+ *.pyc
++
++# Center signing keys are provisioned outside the checkout; guard misplaced files.
++/secrets/
++**/platform10*.key
+--- a/center/cconf/conf.go
++++ b/center/cconf/conf.go
+@@ -8,6 +8,9 @@
+ )
+ 
+ type Center struct {
++	// ExternalPushKeyFiles maps versioned signing references to center-only paths.
++	// Passwords are provisioned separately and never belong in application config.
++	ExternalPushKeyFiles   map[string]string
+ 	Plugins                []Plugin
+ 	MetricsYamlFile        string
+ 	OpsYamlFile            string
+--- a/center/center.go
++++ b/center/center.go
+@@ -231,7 +231,7 @@
+ 		ibex.ServerStart(true, db, redis, config.HTTP.APIForService.BasicAuth, config.Alert.Heartbeat, &config.CenterApi, r, centerRouter, config.Ibex, config.HTTP.Port)
+ 	}
+ 
+-	externalPushClean := externalpush.Start(ctx.Ctx, db)
++	externalPushClean := externalpush.StartWithKeys(ctx.Ctx, db, externalpush.NewFileKeys(config.Center.ExternalPushKeyFiles))
+ 	httpClean := httpx.Init(config.HTTP, r)
+ 
+ 	fmt.Printf("please view n9e at  http://%v:%v\n", config.Alert.Heartbeat.IP, config.HTTP.Port)
+--- a/center/router/router.go
++++ b/center/router/router.go
+@@ -800,6 +800,7 @@
+ 		pages.DELETE("/notify-channel-configs", rt.auth(), rt.user(), rt.perm("/notification-channels/del"), rt.notifyChannelsDel)
+ 		pages.PUT("/notify-channel-config/:id", rt.auth(), rt.user(), rt.perm("/notification-channels/put"), rt.notifyChannelPut)
+ 		pages.GET("/notify-channel-config/:id", rt.auth(), rt.user(), rt.perm("/notification-channels"), rt.notifyChannelGet)
++		pages.GET("/external-push-signing-key", rt.auth(), rt.admin(), rt.externalPushSigningKey)
+ 		pages.GET("/external-push-tasks", rt.auth(), rt.admin(), rt.externalPushTasks)
+ 		pages.GET("/external-push-tasks/:id", rt.auth(), rt.admin(), rt.externalPushDetail)
+ 		pages.POST("/external-push-tasks/:id/actions", rt.auth(), rt.admin(), rt.externalPushAction)
+--- a/center/router/router_external_push.go
++++ b/center/router/router_external_push.go
+@@ -79,3 +79,18 @@
+ 	}
+ 	return strings.Join(parts, "; ")
+ }
++
++// Querying readiness reads only local files. It never sends an alarm, returns
++// file paths/key material, or writes delivery state.
++func (rt *Router) externalPushSigningKey(c *gin.Context) {
++	ref := c.Query("reference")
++	if ref == "" {
++		ref = models.ExternalPushDefaultKeyRef
++	}
++	if len(ref) > 64 {
++		bombI18n(c, http.StatusBadRequest, "invalid signing key reference")
++	}
++	status := externalpush.NewFileKeys(rt.Center.ExternalPushKeyFiles).Status(ref)
++	status.Reason = externalPushText(c, status.Reason)
++	ginx.NewRender(c).Data(status, nil)
++}
+--- a/center/router/router_external_push_test.go
++++ b/center/router/router_external_push_test.go
+@@ -5,6 +5,7 @@
+ 	"context"
+ 	"encoding/json"
+ 	"net/http/httptest"
++	"os"
+ 	"path/filepath"
+ 	"testing"
+ 	"time"
+@@ -50,6 +51,7 @@
+ 		}
+ 		c.Set("userid", id)
+ 	})
++	engine.GET("/signing-key", rt.admin(), rt.externalPushSigningKey)
+ 	engine.GET("/tasks", rt.admin(), rt.externalPushTasks)
+ 	engine.GET("/tasks/:id", rt.admin(), rt.externalPushDetail)
+ 	engine.POST("/tasks/:id/actions", rt.admin(), rt.externalPushAction)
+@@ -84,6 +86,18 @@
+ 	if response.Dat.PayloadPreview["companyId"] != "TEST_CUSTOMER" || response.Dat.PayloadPreview["deviceName"] != "TEST_NODE_192.0.2.8:1443" || response.Dat.PayloadPreview["sign"] != "[REDACTED]" {
+ 		t.Fatal("admin task detail must expose the saved JSON with sign redacted")
+ 	}
++	keyPath := filepath.Join(t.TempDir(), "test-only.key")
++	if err := os.WriteFile(keyPath, []byte("NEVER_EXPOSE_FILE_KEY"), 0600); err != nil {
++		t.Fatal(err)
++	}
++	rt.Center.ExternalPushKeyFiles = map[string]string{"TEST-v1": keyPath}
++	if w := call("GET", "/signing-key?reference=TEST-v1", "", false); w.Code != 403 {
++		t.Fatal("non-admin key status allowed")
++	}
++	wKey := call("GET", "/signing-key?reference=TEST-v1", "", true)
++	if wKey.Code != 200 || !bytes.Contains(wKey.Body.Bytes(), []byte(`"ready":true`)) || bytes.Contains(wKey.Body.Bytes(), []byte(keyPath)) || bytes.Contains(wKey.Body.Bytes(), []byte("NEVER_EXPOSE_FILE_KEY")) {
++		t.Fatal("key status fails or exposes sensitive data")
++	}
+ 	var untouched models.ExternalPushTask
+ 	db.First(&untouched, task.ID)
+ 	if untouched.State != externalpush.Unknown || untouched.Version != 2 {
+--- a/etc/config.toml
++++ b/etc/config.toml
+@@ -284,3 +284,9 @@
+ [Ibex]
+ Enable = true
+ RPCListen = "0.0.0.0:20090"
++
++# Optional center-only override. The file is provisioned separately, outside Git.
++# The default reference platform10-v1 uses /etc/n9e/secrets/platform10.key.
++# Restart center after changing this path registry; keep each version immutable.
++# [Center.ExternalPushKeyFiles]
++# platform10-v1 = "/etc/n9e/secrets/platform10.key"
+--- a/frontend/src/pages/notificationChannels/constants.ts
++++ b/frontend/src/pages/notificationChannels/constants.ts
+@@ -78,7 +78,18 @@
+           },
+         },
+         request_config: {
+-          external_push_config: { mode: 'simulation', endpoint: '', destination: '', timeout_ms: 1000, problem_type: 'problem', recovery_type: 'ok', test_sign: '', time_zone: '' },
++          external_push_config: {
++            signing_mode: 'key_file',
++            signing_key_ref: 'platform10-v1',
++            mode: 'simulation',
++            endpoint: '',
++            destination: '',
++            timeout_ms: 1000,
++            problem_type: 'problem',
++            recovery_type: 'ok',
++            test_sign: '',
++            time_zone: '',
++          },
+         },
+       },
+     },
+--- a/frontend/src/pages/notificationChannels/locale/en_US.ts
++++ b/frontend/src/pages/notificationChannels/locale/en_US.ts
+@@ -1,5 +1,15 @@
+ const en_US = {
+   external: {
++    signing_mode: 'Signing mode (production sending remains disabled)',
++    signing_modes: { key_file: 'Center key file: timestamp without spaces + key → uppercase MD5', test_value: 'Simulation-only explicit test signature (legacy compatible)' },
++    signing_key_ref: 'Versioned key reference (e.g. platform10-v1)',
++    key_file_notice:
++      'Only a reference belongs here. The default reference platform10-v1 uses /etc/n9e/secrets/platform10.key, overridable in center configuration. Previews use private instance paths. Provision the file separately, outside Git.',
++    check_key: 'Check key readiness (read only)',
++    key_ready: 'Key file configured and available',
++    key_unready: 'Key unavailable; no new attempt can be signed',
++    key_check_failed: 'Unable to inspect center key readiness; administrators only.',
++
+     source_conflict: 'Both literal and label mappings exist; sending is blocked. Explicitly select one source to resolve the conflict.',
+     mapping_title: 'JSON fields and Nightingale sources',
+     mapping_location: 'Transport is configured on the channel; business mappings on notification rules; saved redacted JSON in task details.',
+@@ -11,13 +21,13 @@
+     structure_preview: 'JSON structure and source expressions (never sent)',
+     choose_rule_source: 'Choose a literal or event label in the notification rule',
+     choose_label: 'Specify the event label key in the notification rule',
+-    sign_pending: 'Awaiting 1.0 signing rules; explicit test values only in local simulation',
++    sign_pending: 'Uppercase MD5(timestamp without ASCII spaces + center file key); local simulation',
+     source_literal: 'Literal text',
+     source_label: 'Original event label',
+     edit_mapping: 'Configure JSON business field sources',
+     payload_title: 'Saved JSON (sign redacted)',
+     payload_notice:
+-      'Read-only task payload snapshot. Zero attempts does not mean delivered; waiting recovery fields are anchored to an accepted problem when claimed. Real signing rules remain unknown.',
++      'Read-only task payload snapshot. Zero attempts does not mean delivered; waiting recovery fields are anchored to an accepted problem when claimed. The supplied signing conversion is implemented; UTF-8 still needs a Java vector.',
+     payload_unavailable: 'No parseable payload snapshot; inspect the validation reason.',
+     pairing_notice:
+       'Local association uses logical destination + persistent incident UUID. Recovery preserves accepted problem attribution, device and problemTime. Dispatch UUID deduplicates; sign is never an identity. The 1.0 pairing algorithm remains unknown.',
+@@ -31,7 +41,7 @@
+       triggerName: 'RuleName / history rule_name; recovery preserves original problem text.',
+       level: 'Severity / history severity mapped through explicit level_map; no default production dictionary.',
+       deviceTags: 'Literal string or complete event-label string; never implicitly converts all event tags to an array.',
+-      sign: 'Reserved; signing rules unknown. Never an incident or dedupe key; production is blocked.',
++      sign: 'Worker computes uppercase MD5 from the final problemTime without ASCII spaces plus the center file key. Never an incident or dedupe key; production is blocked.',
+     },
+ 
+     simulation_notice: 'Local simulation only. Production destinations and unconfirmed production protocol are blocked.',
+@@ -47,7 +57,7 @@
+     test_sign: 'Simulation-only signature test value',
+     timeout: 'Timeout (ms; no automatic retries)',
+     protocol_notice:
+-      'Event types problem/ok are confirmed. Attribution/device/level mappings, original wire format, deviceTags type and signing remain unconfirmed. Missing parameters produce a validation failure task.',
++      'Event types problem/ok are confirmed. The four receiver levels and signing conversion are supplied. Attribution/device dictionaries, original wire format, deviceTags type and Java signing encoding/vectors still need verification. Missing parameters produce a validation failure task.',
+     rule_notice:
+       'Register per dispatch and logical destination, regardless of recipient count. Independent events may share an endpoint with different mappings; contradictory applicable routes for the same dispatch are blocked. Headquarters/branch attribution fields are unconfirmed: no branchId is added and companyId is not assumed to identify a branch. Values are simulation assumptions.',
+     all_dispatches: 'Simulation assumption: send each dispatch, including reminders',
+--- a/frontend/src/pages/notificationChannels/locale/zh_CN.ts
++++ b/frontend/src/pages/notificationChannels/locale/zh_CN.ts
+@@ -1,5 +1,15 @@
+ const zh_CN = {
+   external: {
++    signing_mode: '签名方式（生产发送仍关闭）',
++    signing_modes: { key_file: 'center密钥文件：时间去空格＋密码串→MD5大写', test_value: '仅模拟：显式测试签名值（兼容已有配置）' },
++    signing_key_ref: '密钥引用（包含版本，例如 platform10-v1）',
++    key_file_notice:
++      '密码只放在center独立文件中，此处只填写引用。默认引用platform10-v1对应/etc/n9e/secrets/platform10.key，路径可在center配置覆盖；预览使用实例私有路径。文件须单独配置，不上传仓库。',
++    check_key: '检查密钥状态（只读）',
++    key_ready: '已配置且文件可用',
++    key_unready: '密钥不可用，不能生成新的发送尝试',
++    key_check_failed: '无法检查center密钥状态；仅管理员可查看。',
++
+     source_conflict: '当前同时存在固定文本和标签映射，发送会被阻止。请明确切换并只保留一种来源。',
+     mapping_title: 'JSON 字段与夜莺来源',
+     mapping_location: '渠道页配置传输；通知规则页配置业务字段映射；任务详情查看实际保存的脱敏 JSON。',
+@@ -11,12 +21,13 @@
+     structure_preview: 'JSON 结构与来源示意（不发送）',
+     choose_rule_source: '在通知规则中选择固定文本或告警标签',
+     choose_label: '在通知规则中指定标签键',
+-    sign_pending: '待补充1.0生成规则；仅本地模拟使用显式测试值',
++    sign_pending: '大写MD5（problemTime去普通空格＋center文件密钥）；仅模拟验证',
+     source_literal: '固定文本',
+     source_label: '原始告警标签',
+     edit_mapping: '配置 JSON 业务字段来源',
+     payload_title: '实际保存的 JSON（sign 已隐藏）',
+-    payload_notice: '这是任务保存的报文快照，读取不会发送。零次尝试不表示已投递；等待中的恢复报文在领取时才引用已受理故障字段。sign 的生成规则仍未知。',
++    payload_notice:
++      '这是任务保存的报文快照，读取不会发送。零次尝试不表示已投递；等待中的恢复报文在领取时才引用已受理故障字段。文件签名按已确认转换规则生成，UTF-8编码仍需Java向量核对。',
+     payload_unavailable: '没有可解析的报文快照；请查看校验原因。',
+     pairing_notice: '夜莺按同一逻辑目的端 + 持久故障轮次 UUID 关联；恢复沿用已受理故障的归属、设备、problemTime 等字段。派发 UUID 用于去重，sign 不参与。1.0具体配对字段仍未知。',
+     sources: {
+@@ -29,7 +40,7 @@
+       triggerName: '自动：RuleName / 历史 rule_name；恢复沿用原故障内容。',
+       level: '规则：Severity / 历史 severity 经显式 level_map 映射；没有已确认的默认等级词典。',
+       deviceTags: '规则：固定字符串或指定告警标签的完整字符串；不擅自将全部夜莺标签转成数组。',
+-      sign: '保留字段；1.0生成规则未知。不是故障身份或去重键；生产发送仍被阻止。',
++      sign: 'worker按最终problemTime去普通空格后拼接文件密钥，计算大写MD5；密钥只在center。不是故障身份或去重键，生产发送仍被阻止。',
+     },
+ 
+     simulation_notice: '仅限本地模拟：本阶段不能连接生产平台，测试值不代表生产协议。',
+@@ -43,7 +54,8 @@
+     time_zone: '时间显示时区（如 Asia/Shanghai）',
+     test_sign: '仅模拟：显式测试签名值（不能用于生产）',
+     timeout: '超时（毫秒，不自动重试）',
+-    protocol_notice: 'problem/ok事件类型已确认。归属映射、设备和等级词典、原始传输格式、deviceTags类型及生产签名仍待对方确认。缺少必要参数会保存校验失败任务。',
++    protocol_notice:
++      'problem/ok事件类型已确认。四种目标等级和签名转换规则已提供；归属映射、设备词典、原始传输格式、deviceTags类型和Java签名编码/向量仍待核对。缺少必要参数会保存校验失败任务。',
+     rule_notice:
+       '按派发及逻辑目的端登记，不按本地人数复制请求。不同事件可共用接收地址并携带各自参数；同次派发实际命中的矛盾配置会阻止发送。总部/分部通过原协议哪些字段区分仍待确认，以下只用明确模拟值，不新增 branchId，也不假定用 companyId。',
+     all_dispatches: '模拟假设：每次派发（包括重复提醒）各推一次',
+--- a/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.test.tsx
++++ b/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.test.tsx
+@@ -1,19 +1,30 @@
+ /** @jest-environment jsdom */
+ import React from 'react';
+ import { Form, Input } from 'antd';
+-import { render, screen } from '@testing-library/react';
++import { act, fireEvent, render, screen } from '@testing-library/react';
+ import ExternalPush from './ExternalPush';
+ import { getNotificationChannelTypes } from '../../constants';
+ 
++const mockRequest = jest.fn();
++jest.mock('@/utils/request', () => ({ __esModule: true, default: (...args: unknown[]) => mockRequest(...args) }));
+ jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+ beforeAll(() => {
+   window.matchMedia = jest.fn().mockImplementation(() => ({ matches: false, addListener: jest.fn(), removeListener: jest.fn() }));
+ });
++beforeEach(() => mockRequest.mockReset());
+ it('defaults to a disabled simulation draft with confirmed problem/ok values without a destination or signature', async () => {
+   const preset = getNotificationChannelTypes().external_push.default_values;
+   expect(preset.enable).toBe(false);
+   expect(preset.param_config.user_info).toBeUndefined();
+-  expect(preset.request_config.external_push_config).toMatchObject({ mode: 'simulation', endpoint: '', test_sign: '', problem_type: 'problem', recovery_type: 'ok' });
++  expect(preset.request_config.external_push_config).toMatchObject({
++    mode: 'simulation',
++    endpoint: '',
++    test_sign: '',
++    signing_mode: 'key_file',
++    signing_key_ref: 'platform10-v1',
++    problem_type: 'problem',
++    recovery_type: 'ok',
++  });
+   render(
+     <Form initialValues={preset}>
+       <Form.Item name='request_type' hidden>
+@@ -23,17 +34,79 @@
+     </Form>,
+   );
+   expect(await screen.findByText('external.recovery_notice')).toBeTruthy();
+-  expect(screen.getByLabelText('external.test_sign')).toHaveProperty('value', '');
++  expect(screen.queryByLabelText('external.test_sign')).toBeNull();
++  expect(screen.getByLabelText('external.signing_key_ref')).toHaveProperty('value', 'platform10-v1');
+ });
+ 
+ it('shows confirmed event types as read-only values while keeping signing explicitly test-only', async () => {
+   const preset = getNotificationChannelTypes().external_push.default_values;
+-  render(<Form initialValues={preset}><Form.Item name='request_type' hidden><Input /></Form.Item><ExternalPush /></Form>);
++  render(
++    <Form initialValues={preset}>
++      <Form.Item name='request_type' hidden>
++        <Input />
++      </Form.Item>
++      <ExternalPush />
++    </Form>,
++  );
+   const problem = await screen.findByLabelText('external.problem_type');
+   const recovery = screen.getByLabelText('external.recovery_type');
+   expect(problem).toHaveProperty('value', 'problem');
+   expect(recovery).toHaveProperty('value', 'ok');
+   expect(problem).toHaveProperty('readOnly', true);
+   expect(recovery).toHaveProperty('readOnly', true);
+-  expect(screen.getByLabelText('external.test_sign')).toHaveProperty('value', '');
++  expect(screen.queryByLabelText('external.test_sign')).toBeNull();
++  expect(screen.getByLabelText('external.signing_key_ref')).toHaveProperty('value', 'platform10-v1');
+ });
++
++it('reads only center readiness on explicit check and never accepts key material in the form', async () => {
++  mockRequest.mockResolvedValue({ dat: { reference: 'platform10-v1', ready: true, reason: 'TEST_READY' } });
++  const preset = getNotificationChannelTypes().external_push.default_values;
++  render(
++    <Form initialValues={preset}>
++      <Form.Item name='request_type' hidden>
++        <Input />
++      </Form.Item>
++      <ExternalPush />
++    </Form>,
++  );
++  fireEvent.click(await screen.findByRole('button', { name: 'external.check_key' }));
++  await screen.findByText('TEST_READY');
++  expect(mockRequest).toHaveBeenCalledWith('/api/n9e/external-push-signing-key', { method: 'Get', params: { reference: 'platform10-v1' } });
++  expect(screen.queryByLabelText('external.test_sign')).toBeNull();
++});
++
++it('keeps an existing explicit test signature usable without silently selecting a file key', async () => {
++  const preset = getNotificationChannelTypes().external_push.default_values;
++  const initial = {
++    ...preset,
++    request_config: { external_push_config: { ...preset.request_config.external_push_config, signing_mode: undefined, signing_key_ref: undefined, test_sign: 'TEST_LEGACY_ONLY' } },
++  };
++  render(
++    <Form initialValues={initial}>
++      <Form.Item name='request_type' hidden>
++        <Input />
++      </Form.Item>
++      <ExternalPush />
++    </Form>,
++  );
++  expect(await screen.findByLabelText('external.test_sign')).toHaveProperty('value', 'TEST_LEGACY_ONLY');
++  expect(screen.queryByLabelText('external.signing_key_ref')).toBeNull();
++});
++
++it('discards readiness for an old reference when a request completes after the reference changes', async () => {
++  let complete: (value: unknown) => void = () => {};
++  mockRequest.mockReturnValue(new Promise((resolve) => (complete = resolve)));
++  const preset = getNotificationChannelTypes().external_push.default_values;
++  render(
++    <Form initialValues={preset}>
++      <Form.Item name='request_type' hidden><Input /></Form.Item>
++      <ExternalPush />
++    </Form>,
++  );
++  fireEvent.click(await screen.findByRole('button', { name: 'external.check_key' }));
++  fireEvent.change(screen.getByLabelText('external.signing_key_ref'), { target: { value: 'platform10-v2' } });
++  await act(async () => complete({ dat: { reference: 'platform10-v1', ready: true, reason: 'OLD_REFERENCE_READY' } }));
++  expect(screen.getByLabelText('external.signing_key_ref')).toHaveProperty('value', 'platform10-v2');
++  expect(screen.queryByText('OLD_REFERENCE_READY')).toBeNull();
++  expect(screen.queryByText('external.key_ready')).toBeNull();
++});
+--- a/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.tsx
++++ b/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.tsx
+@@ -1,13 +1,60 @@
+-import React from 'react';
+-import { Alert, Form, Input, InputNumber, Select } from 'antd';
++import React, { useEffect, useRef, useState } from 'react';
++import { Alert, Button, Form, Input, InputNumber, Select } from 'antd';
+ import { useTranslation } from 'react-i18next';
++import request from '@/utils/request';
++import { RequestMethod } from '@/store/common';
+ import { NS } from '../../constants';
+ import ExternalPushFields from '../../ExternalPushFields';
+ 
+ const names = ['request_config', 'external_push_config'];
++function FileKeyStatus() {
++  const { t } = useTranslation(NS);
++  const reference = Form.useWatch([...names, 'signing_key_ref']) || 'platform10-v1';
++  const [status, setStatus] = useState<{ ready: boolean; reason: string }>();
++  const [busy, setBusy] = useState(false);
++  const latestRequest = useRef(0);
++  useEffect(() => {
++    setStatus(undefined);
++    setBusy(false);
++    return () => { latestRequest.current++; };
++  }, [reference]);
++  return (
++    <>
++      <Alert className='mb-3' type='info' message={t('external.key_file_notice')} />
++      <Form.Item name={[...names, 'signing_key_ref']} label={t('external.signing_key_ref')} rules={[{ required: true, whitespace: true }]}>
++        <Input autoComplete='off' />
++      </Form.Item>
++      <Button
++        className='mb-3'
++        loading={busy}
++        onClick={async () => {
++          const requestID = ++latestRequest.current;
++          setBusy(true);
++          try {
++            const result = await request('/api/n9e/external-push-signing-key', { method: RequestMethod.Get, params: { reference } });
++            if (latestRequest.current === requestID) {
++              setStatus(result.dat.reference === reference ? result.dat : { ready: false, reason: t('external.key_check_failed') });
++            }
++          } catch {
++            if (latestRequest.current === requestID) setStatus({ ready: false, reason: t('external.key_check_failed') });
++          } finally {
++            if (latestRequest.current === requestID) setBusy(false);
++          }
++        }}
++      >
++        {t('external.check_key')}
++      </Button>
++      {status && (
++        <Alert className='mb-3' type={status.ready ? 'success' : 'warning'} message={t(status.ready ? 'external.key_ready' : 'external.key_unready')} description={status.reason} />
++      )}
++    </>
++  );
++}
+ export default function ExternalPush() {
+   const { t } = useTranslation(NS);
++  const form = Form.useFormInstance();
+   const requestType = Form.useWatch('request_type');
++  const signingMode = Form.useWatch([...names, 'signing_mode']) || 'test_value';
+   if (requestType !== 'external_push') return null;
+   return (
+     <>
+@@ -15,11 +62,31 @@
+       <Form.Item name={[...names, 'mode']} label={t('external.mode')} rules={[{ required: true }]}>
+         <Select options={[{ value: 'simulation', label: t('external.simulation') }]} />
+       </Form.Item>
+-      {['endpoint', 'destination', 'problem_type', 'recovery_type', 'time_zone', 'test_sign'].map((key) => (
++      {['endpoint', 'destination', 'problem_type', 'recovery_type', 'time_zone'].map((key) => (
+         <Form.Item key={key} name={[...names, key]} label={t(`external.${key}`)} rules={[{ required: true, whitespace: true }]}>
+           <Input autoComplete='off' readOnly={key === 'problem_type' || key === 'recovery_type'} />
+         </Form.Item>
+       ))}
++      <Form.Item name={[...names, 'signing_mode']} label={t('external.signing_mode')} getValueProps={(value) => ({ value: value || 'test_value' })}>
++        <Select
++          options={['key_file', 'test_value'].map((value) => ({ value, label: t('external.signing_modes.' + value) }))}
++          onChange={(value) => {
++            if (value === 'key_file')
++              form.setFields([
++                { name: [...names, 'test_sign'], value: '' },
++                { name: [...names, 'signing_key_ref'], value: form.getFieldValue([...names, 'signing_key_ref']) || 'platform10-v1' },
++              ]);
++            else form.setFields([{ name: [...names, 'signing_key_ref'], value: undefined }]);
++          }}
++        />
++      </Form.Item>
++      {signingMode === 'key_file' ? (
++        <FileKeyStatus />
++      ) : (
++        <Form.Item name={[...names, 'test_sign']} label={t('external.test_sign')} rules={[{ required: true, whitespace: true }]}>
++          <Input autoComplete='off' />
++        </Form.Item>
++      )}
+       <Form.Item name={[...names, 'timeout_ms']} label={t('external.timeout')} rules={[{ required: true }]}>
+         <InputNumber min={1} max={10000} />
+       </Form.Item>
+--- a/frontend/src/pages/notificationChannels/types.ts
++++ b/frontend/src/pages/notificationChannels/types.ts
+@@ -157,6 +157,8 @@
+     | 'mattermostwebhook';
+   request_config: {
+     external_push_config?: {
++      signing_mode?: 'key_file' | 'test_value';
++      signing_key_ref?: string;
+       mode: string;
+       endpoint: string;
+       destination: string;
+--- a/models/external_push.go
++++ b/models/external_push.go
+@@ -4,6 +4,7 @@
+ 	"errors"
+ 	"net"
+ 	"net/url"
++	"regexp"
+ 	"strconv"
+ 	"strings"
+ 	"time"
+@@ -14,19 +15,25 @@
+ const ExternalPushType = "external_push"
+ 
+ // Event type values confirmed by platform 1.0's business owner. Other protocol
+-// details, including signing and transport representation, remain unconfirmed.
++// details, including signature encoding and transport representation, still
++// require production verification.
+ const ExternalPushProblemType = "problem"
+ const ExternalPushRecoveryType = "ok"
++const ExternalPushDefaultKeyRef = "platform10-v1"
++
++var externalPushKeyReference = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$`)
+ 
+ type ExternalPushConfig struct {
+-	Mode         string `json:"mode"`
+-	Endpoint     string `json:"endpoint"`
+-	Destination  string `json:"destination"`
+-	TimeoutMS    int    `json:"timeout_ms"`
+-	ProblemType  string `json:"problem_type"`
+-	RecoveryType string `json:"recovery_type"`
+-	TestSign     string `json:"test_sign"`
+-	TimeZone     string `json:"time_zone"`
++	SigningMode   string `json:"signing_mode,omitempty"`
++	SigningKeyRef string `json:"signing_key_ref,omitempty"`
++	Mode          string `json:"mode"`
++	Endpoint      string `json:"endpoint"`
++	Destination   string `json:"destination"`
++	TimeoutMS     int    `json:"timeout_ms"`
++	ProblemType   string `json:"problem_type"`
++	RecoveryType  string `json:"recovery_type"`
++	TestSign      string `json:"test_sign"`
++	TimeZone      string `json:"time_zone"`
+ }
+ 
+ type ExternalPushTask struct {
+@@ -115,11 +122,41 @@
+ 	if c.ProblemType != ExternalPushProblemType || c.RecoveryType != ExternalPushRecoveryType {
+ 		return errors.New("confirmed event types must be problem and ok; legacy simulation types require explicit configuration review")
+ 	}
+-	if strings.TrimSpace(c.TestSign) == "" {
+-		return errors.New("an explicit test-only signature is required; production signing is unconfirmed")
++	switch c.EffectiveSigningMode() {
++	case "test_value":
++		if strings.TrimSpace(c.TestSign) == "" {
++			return errors.New("an explicit test-only signature is required; production signing is unconfirmed")
++		}
++		if c.SigningKeyRef != "" {
++			return errors.New("test signing must not select a key file reference")
++		}
++	case "key_file":
++		if !externalPushKeyReference.MatchString(c.KeyReference()) {
++			return errors.New("signing key reference must be a versioned identifier, not a file path or password")
++		}
++		if c.TestSign != "" {
++			return errors.New("file signing must not contain a test signature or private key")
++		}
++	default:
++		return errors.New("signing mode must be test_value or key_file")
+ 	}
+ 	if _, err := time.LoadLocation(c.TimeZone); err != nil || c.TimeZone == "" {
+ 		return errors.New("explicit valid time_zone is required")
+ 	}
+ 	return nil
+ }
++
++// Empty mode preserves existing explicit simulation configurations without
++// rewriting their durable snapshots or enabling file signing implicitly.
++func (c ExternalPushConfig) EffectiveSigningMode() string {
++	if c.SigningMode == "" {
++		return "test_value"
++	}
++	return c.SigningMode
++}
++func (c ExternalPushConfig) KeyReference() string {
++	if c.SigningKeyRef == "" {
++		return ExternalPushDefaultKeyRef
++	}
++	return c.SigningKeyRef
++}
+--- a/models/external_push_test.go
++++ b/models/external_push_test.go
+@@ -1,6 +1,9 @@
+ package models
+ 
+-import "testing"
++import (
++	"encoding/json"
++	"testing"
++)
+ 
+ func TestExternalPushValidationWithoutAlertEngine(t *testing.T) {
+ 	previous := VerifyByProvider
+@@ -43,3 +46,34 @@
+ 		}
+ 	}
+ }
++
++func TestExternalPushFileSigningConfiguration(t *testing.T) {
++	var c ExternalPushConfig
++	raw := `{"mode":"simulation","endpoint":"http://127.0.0.1:19091/mock","destination":"TEST","timeout_ms":1000,"problem_type":"problem","recovery_type":"ok","time_zone":"Asia/Shanghai","signing_mode":"key_file","signing_key_ref":"platform10-v1"}`
++	if err := json.Unmarshal([]byte(raw), &c); err != nil {
++		t.Fatal(err)
++	}
++	if err := c.Verify(); err != nil {
++		t.Fatalf("file-key mode must validate without embedding a password or test sign: %v", err)
++	}
++}
++
++func TestExternalPushFileSigningRejectsMixedSourcesAndPaths(t *testing.T) {
++	var c ExternalPushConfig
++	json.Unmarshal([]byte(`{"mode":"simulation","endpoint":"http://127.0.0.1:19091/mock","destination":"TEST","timeout_ms":1000,"problem_type":"problem","recovery_type":"ok","time_zone":"UTC","signing_mode":"key_file"}`), &c)
++	for _, ref := range []string{"/tmp/key", "../key", "TEST key"} {
++		c.SigningKeyRef = ref
++		if c.Verify() == nil {
++			t.Fatal("path/password-like reference allowed")
++		}
++	}
++	c.SigningKeyRef = "TEST-v1"
++	c.TestSign = "TEST_VALUE"
++	if c.Verify() == nil {
++		t.Fatal("mixed key and literal signing accepted")
++	}
++	c.SigningMode = "test_value"
++	if c.Verify() == nil {
++		t.Fatal("test mode retained a key reference")
++	}
++}
+--- /dev/null
++++ b/pkg/externalpush/signing.go
+@@ -0,0 +1,101 @@
++package externalpush
++
++import (
++	"crypto/md5" // Required by the existing receiver protocol.
++	"encoding/hex"
++	"errors"
++	"io"
++	"os"
++	"path/filepath"
++	"strings"
++	"unicode/utf8"
++
++	"github.com/ccfos/nightingale/v6/models"
++)
++
++const DefaultSigningKeyFile = "/etc/n9e/secrets/platform10.key"
++
++// FileKeys belongs to a center process. Only references enter channel/task
++// configuration. Paths and key bytes never enter dispatches or API responses.
++type FileKeys struct{ files map[string]string }
++
++type SigningKeyStatus struct {
++	Reference string `json:"reference"`
++	Ready     bool   `json:"ready"`
++	Reason    string `json:"reason"`
++}
++
++func NewFileKeys(overrides map[string]string) *FileKeys {
++	files := map[string]string{models.ExternalPushDefaultKeyRef: DefaultSigningKeyFile}
++	for ref, path := range overrides {
++		files[ref] = path
++	}
++	return &FileKeys{files: files}
++}
++
++func (k *FileKeys) read(ref string) ([]byte, error) {
++	if k == nil {
++		k = NewFileKeys(nil)
++	}
++	path, ok := k.files[ref]
++	if !ok {
++		return nil, errors.New("signing key reference is not configured on center")
++	}
++	if !filepath.IsAbs(path) {
++		return nil, errors.New("signing key file path must be absolute on center")
++	}
++	info, err := os.Stat(path)
++	if os.IsNotExist(err) {
++		return nil, errors.New("signing key file is missing on center")
++	}
++	if err != nil {
++		return nil, errors.New("signing key file is unreadable on center")
++	}
++	if !info.Mode().IsRegular() {
++		return nil, errors.New("signing key must be a regular file")
++	}
++	// Owner read/write or a controlled read-only group is supported. Never accept
++	// world access, execution, or group write. Docker mounts should use 0400/0440.
++	if info.Mode().Perm()&0137 != 0 {
++		return nil, errors.New("signing key file permissions must restrict access to its owner or read-only group")
++	}
++	f, err := os.Open(path)
++	if err != nil {
++		return nil, errors.New("signing key file is unreadable on center")
++	}
++	defer f.Close()
++	actual, err := f.Stat()
++	if err != nil || !actual.Mode().IsRegular() || actual.Mode().Perm()&0137 != 0 {
++		return nil, errors.New("signing key file changed or has unsafe permissions")
++	}
++	value, err := io.ReadAll(io.LimitReader(f, 65537))
++	if err != nil {
++		return nil, errors.New("signing key file could not be read completely")
++	}
++	if len(value) == 0 || len(value) > 65536 || !utf8.Valid(value) || strings.TrimSpace(string(value)) == "" || strings.ContainsAny(string(value), "\r\n\x00") || strings.HasPrefix(string(value), "\ufeff") {
++		return nil, errors.New("signing key must be nonempty UTF-8 without BOM, line breaks or NUL, at most 65536 bytes")
++	}
++	return value, nil
++}
++
++func (k *FileKeys) Status(ref string) SigningKeyStatus {
++	result := SigningKeyStatus{Reference: ref}
++	if _, err := k.read(ref); err != nil {
++		result.Reason = err.Error()
++		return result
++	}
++	result.Ready = true
++	result.Reason = "signing key file is configured and readable"
++	return result
++}
++
++func (k *FileKeys) Sign(problemTime, ref string) (string, error) {
++	key, err := k.read(ref)
++	if err != nil {
++		return "", err
++	}
++	// Delete ordinary ASCII spaces in the timestamp only. Never trim the key.
++	// UTF-8 is explicit; verify against the Java receiver before production use.
++	sum := md5.Sum(append([]byte(strings.ReplaceAll(problemTime, " ", "")), key...))
++	return strings.ToUpper(hex.EncodeToString(sum[:])), nil
++}
+--- /dev/null
++++ b/pkg/externalpush/signing_test.go
+@@ -0,0 +1,231 @@
++package externalpush
++
++import (
++	"context"
++	"encoding/json"
++	"fmt"
++	"net/http"
++	"net/http/httptest"
++	"os"
++	"path/filepath"
++	"strings"
++	"sync"
++	"testing"
++	"time"
++
++	"github.com/google/uuid"
++)
++
++func TestFileKeySigningThroughPersistentDelivery(t *testing.T) {
++	const secret = "TEST_ONLY_FIXED_KEY"
++	const expected = "134CD8F89958CBFEED40918C040FCE9D"
++	path := filepath.Join(t.TempDir(), "test-only.key")
++	if err := os.WriteFile(path, []byte(secret), 0600); err != nil {
++		t.Fatal(err)
++	}
++	var got []Payload
++	receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		r.ParseForm()
++		var p Payload
++		if err := json.Unmarshal([]byte(r.PostForm.Get("json")), &p); err != nil {
++			t.Error(err)
++		}
++		got = append(got, p)
++		fmt.Fprint(w, `{"status":200}`)
++	}))
++	defer receiver.Close()
++	db := testDB(t)
++	s := simulation(receiver.URL)
++	s.Config.TestSign = ""
++	s.Config.SigningMode = "key_file"
++	s.Config.SigningKeyRef = "platform10-v1"
++	// Literal vector was calculated independently with Python hashlib/UTF-8.
++	s.Event.FirstTriggerTime = 1767294245
++	id := enqueue(t, db, s)
++	worker := Worker{DB: db, Keys: NewFileKeys(map[string]string{"platform10-v1": path})}
++	if err := worker.Step(context.Background()); err != nil {
++		t.Fatal(err)
++	}
++	if len(got) != 1 || got[0].Sign != expected {
++		t.Fatalf("file signature not applied to final payload: %+v", got)
++	}
++	recovery := s
++	recovery.Event.DispatchID = uuid.NewString()
++	recovery.Event.IsRecovered = true
++	recovery.Event.IncidentSequence = 2
++	recovery.Event.RecoverTime = s.Event.FirstTriggerTime + 722
++	rid := enqueue(t, db, recovery)
++	if err := worker.Step(context.Background()); err != nil {
++		t.Fatal(err)
++	}
++	if len(got) != 2 || got[1].Sign != expected || got[1].ProblemTime != got[0].ProblemTime || got[1].AlarmType != "ok" {
++		t.Fatal("recovery must use the original signing input")
++	}
++	for _, id := range []int64{id, rid} {
++		d := state(t, db, id)
++		raw, _ := json.Marshal(d)
++		if d.Task.State != Accepted || strings.Contains(string(raw), secret) || strings.Contains(d.Task.Snapshot, secret) || strings.Contains(d.Task.Payload, secret) {
++			t.Fatal("key leaked or task not accepted")
++		}
++	}
++}
++
++func TestMissingFileKeyBlocksOnlyItsOwnTask(t *testing.T) {
++	var calls int
++	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls++; fmt.Fprint(w, `{"status":200}`) }))
++	defer srv.Close()
++	db := testDB(t)
++	s := simulation(srv.URL)
++	s.Config.TestSign = ""
++	s.Config.SigningMode = "key_file"
++	id := enqueue(t, db, s)
++	legacy := simulation(srv.URL)
++	enqueue(t, db, legacy)
++	worker := Worker{DB: db, Keys: NewFileKeys(map[string]string{"platform10-v1": filepath.Join(t.TempDir(), "missing.key")})}
++	if err := worker.Step(context.Background()); err != nil {
++		t.Fatal(err)
++	}
++	d := state(t, db, id)
++	if d.Task.State != Invalid || d.Task.Attempts != 0 || !strings.Contains(d.Task.Reason, "missing on center") || calls != 1 {
++		t.Fatalf("missing key must block only file-key channel: state=%s attempts=%d calls=%d reason=%s", d.Task.State, d.Task.Attempts, calls, d.Task.Reason)
++	}
++}
++
++func TestSigningModeCannotChangeWithinDeliveredIncident(t *testing.T) {
++	for _, firstMode := range []string{"key_file", "test_value"} {
++		for _, recovery := range []bool{false, true} {
++			t.Run(fmt.Sprintf("%s/recovery=%t", firstMode, recovery), func(t *testing.T) {
++				var calls int
++				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls++; fmt.Fprint(w, `{"status":200}`) }))
++				defer srv.Close()
++				path := filepath.Join(t.TempDir(), "key")
++				if err := os.WriteFile(path, []byte("TEST_ONLY_KEY"), 0600); err != nil {
++					t.Fatal(err)
++				}
++				db := testDB(t)
++				s := simulation(srv.URL)
++				s.Config.SigningMode = firstMode
++				if firstMode == "key_file" {
++					s.Config.TestSign = ""
++				}
++				id := enqueue(t, db, s)
++				worker := Worker{DB: db, Keys: NewFileKeys(map[string]string{"platform10-v1": path})}
++				if err := worker.Step(context.Background()); err != nil || state(t, db, id).Task.State != Accepted {
++					t.Fatal("original problem must be accepted", err)
++				}
++				s.Event.DispatchID = uuid.NewString()
++				s.Event.IncidentSequence = 2
++				s.Event.IsRecovered = recovery
++				if recovery {
++					s.Event.RecoverTime = s.Event.FirstTriggerTime + 60
++				}
++				if firstMode == "key_file" {
++					s.Config.SigningMode, s.Config.TestSign = "test_value", "TEST_CHANGED_MODE"
++				} else {
++					s.Config.SigningMode, s.Config.TestSign = "key_file", ""
++				}
++				next := enqueue(t, db, s)
++				if err := worker.Step(context.Background()); err != nil {
++					t.Fatal(err)
++				}
++				d := state(t, db, next)
++				if calls != 1 || d.Task.State != Invalid || d.Task.Attempts != 0 || !strings.Contains(d.Task.Reason, "signing") {
++					t.Fatalf("mode change must not send: calls=%d state=%s attempts=%d reason=%s", calls, d.Task.State, d.Task.Attempts, d.Task.Reason)
++				}
++			})
++		}
++	}
++}
++
++func TestFileKeyValidationAndExactWhitespace(t *testing.T) {
++	for _, tc := range []struct {
++		name, content string
++		mode          os.FileMode
++		ready         bool
++	}{
++		{"valid", "TEST_ONLY_FIXED_KEY", 0600, true},
++		{"key_spaces_are_significant", " TEST_ONLY_FIXED_KEY ", 0600, true},
++		{"empty", "", 0600, false}, {"spaces_only", "  ", 0600, false},
++		{"newline", "TEST_ONLY_FIXED_KEY\n", 0600, false},
++		{"world_readable", "TEST_ONLY_FIXED_KEY", 0644, false},
++		{"invalid_utf8", string([]byte{255}), 0600, false},
++		{"oversized", strings.Repeat("X", 65537), 0600, false},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			path := filepath.Join(t.TempDir(), "key")
++			if err := os.WriteFile(path, []byte(tc.content), tc.mode); err != nil {
++				t.Fatal(err)
++			}
++			keys := NewFileKeys(map[string]string{"TEST-v1": path})
++			status := keys.Status("TEST-v1")
++			if status.Ready != tc.ready {
++				t.Fatalf("unexpected readiness: %+v", status)
++			}
++			encoded, _ := json.Marshal(status)
++			if strings.Contains(string(encoded), "TEST_ONLY_FIXED_KEY") || strings.Contains(string(encoded), path) {
++				t.Fatal("readiness leaks material or path")
++			}
++			if tc.name == "key_spaces_are_significant" {
++				value, err := keys.Sign("2026-01-02 03:04:05", "TEST-v1")
++				if err != nil || value != "E1EF396EB25FDDC58724AFBB26949460" {
++					t.Fatal("key was trimmed or timestamp was changed")
++				}
++			}
++		})
++	}
++	dir := t.TempDir()
++	keys := NewFileKeys(map[string]string{"directory": dir, "relative": "key"})
++	if keys.Status("directory").Ready || keys.Status("relative").Ready || keys.Status("unknown").Ready {
++		t.Fatal("invalid references accepted")
++	}
++}
++
++func TestFileKeyResendKeepsFrozenSignatureAndRequiresOriginalVersion(t *testing.T) {
++	var bodies []string
++	var bodyMu sync.Mutex
++	readBodies := func() []string { bodyMu.Lock(); defer bodyMu.Unlock(); return append([]string(nil), bodies...) }
++	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		r.ParseForm()
++		bodyMu.Lock()
++		bodies = append(bodies, r.PostForm.Get("json"))
++		first := len(bodies) == 1
++		bodyMu.Unlock()
++		if first {
++			time.Sleep(70 * time.Millisecond)
++		}
++		fmt.Fprint(w, `{"status":200}`)
++	}))
++	defer srv.Close()
++	path := filepath.Join(t.TempDir(), "key")
++	os.WriteFile(path, []byte("TEST_KEY_V1"), 0600)
++	db := testDB(t)
++	s := simulation(srv.URL)
++	s.Config.SigningMode = "key_file"
++	s.Config.TestSign = ""
++	s.Config.TimeoutMS = 20
++	id := enqueue(t, db, s)
++	worker := Worker{DB: db, Keys: NewFileKeys(map[string]string{"platform10-v1": path})}
++	worker.Step(context.Background())
++	d := state(t, db, id)
++	if d.Task.State != Unknown || d.Task.Attempts != 1 {
++		t.Fatal("expected unknown first attempt")
++	}
++	time.Sleep(80 * time.Millisecond)
++	os.WriteFile(path, []byte("TEST_REPLACED_KEY"), 0600)
++	if err := Act(db, id, "test-admin", Action{Action: "authorize_resend", Version: d.Task.Version, Reason: "TEST receiver reconciled and old request ended"}); err != nil {
++		t.Fatal(err)
++	}
++	worker.Step(context.Background())
++	d = state(t, db, id)
++	if d.Task.State != Manual || d.Task.Attempts != 1 || len(readBodies()) != 1 {
++		t.Fatal("changed key sent a replacement signature")
++	}
++	os.WriteFile(path, []byte("TEST_KEY_V1"), 0600)
++	if err := Act(db, id, "test-admin", Action{Action: "authorize_resend", Version: d.Task.Version, Reason: "TEST original key restored, resend explicitly authorized"}); err != nil {
++		t.Fatal(err)
++	}
++	worker.Step(context.Background())
++	if len(readBodies()) != 2 || readBodies()[0] != readBodies()[1] || state(t, db, id).Task.State != Accepted {
++		t.Fatal("resend changed frozen bytes")
++	}
++}
+--- a/pkg/externalpush/worker.go
++++ b/pkg/externalpush/worker.go
+@@ -22,9 +22,16 @@
+ 
+ // Worker is center-owned. Step is shared by the runtime and simulation tests;
+ // every request uses a fresh client with no proxy, redirects or retries.
+-type Worker struct{ DB *gorm.DB }
++type Worker struct {
++	DB   *gorm.DB
++	Keys *FileKeys
++}
+ 
+ func Start(ctx context.Context, db *gorm.DB) func() {
++	return StartWithKeys(ctx, db, NewFileKeys(nil))
++}
++
++func StartWithKeys(ctx context.Context, db *gorm.DB, keys *FileKeys) func() {
+ 	run, cancel := context.WithCancel(ctx)
+ 	var wg sync.WaitGroup
+ 	// Concurrency is bounded. Database stream leases arbitrate across workers
+@@ -35,7 +42,7 @@
+ 			defer wg.Done()
+ 			ticker := time.NewTicker(500 * time.Millisecond)
+ 			defer ticker.Stop()
+-			w := Worker{DB: db}
++			w := Worker{DB: db, Keys: keys}
+ 			for {
+ 				select {
+ 				case <-run.Done():
+@@ -231,23 +238,68 @@
+ 			if anchor == nil {
+ 				return setState(Waiting, "no problem has been delivered for this destination and incident; no synthetic problem created")
+ 			}
+-			current, _ := Build(s)
+-			var original Payload
+-			if err := json.Unmarshal([]byte(anchor.Payload), &original); err != nil {
++			if t.Attempts == 0 || s.Config.EffectiveSigningMode() != "key_file" {
++				current, _ := Build(s)
++				var original Payload
++				if err := json.Unmarshal([]byte(anchor.Payload), &original); err != nil {
++					return setState(Invalid, "invalid predecessor payload")
++				}
++				current.CompanyID = original.CompanyID
++				current.DeviceType = original.DeviceType
++				current.DeviceName = original.DeviceName
++				current.ProblemTime = original.ProblemTime
++				current.TriggerName = original.TriggerName
++				current.Level = original.Level
++				current.DeviceTags = original.DeviceTags
++				encoded, err := json.Marshal(current)
++				if err != nil {
++					return err
++				}
++				t.Payload = string(encoded)
++			}
++		}
++		var previous Snapshot
++		if anchor != nil {
++			if json.Unmarshal([]byte(anchor.Snapshot), &previous) != nil {
+ 				return setState(Invalid, "invalid predecessor payload")
+ 			}
+-			current.CompanyID = original.CompanyID
+-			current.DeviceType = original.DeviceType
+-			current.DeviceName = original.DeviceName
+-			current.ProblemTime = original.ProblemTime
+-			current.TriggerName = original.TriggerName
+-			current.Level = original.Level
+-			current.DeviceTags = original.DeviceTags
+-			encoded, err := json.Marshal(current)
++			if previous.Config.EffectiveSigningMode() != s.Config.EffectiveSigningMode() {
++				return setState(Invalid, "signing inputs differ from accepted problem; restore the original key version")
++			}
++		}
++		if s.Config.EffectiveSigningMode() == "key_file" {
++			var final Payload
++			if err := json.Unmarshal([]byte(t.Payload), &final); err != nil {
++				return setState(Invalid, "invalid persisted protocol payload")
++			}
++			signature, err := w.Keys.Sign(final.ProblemTime, s.Config.KeyReference())
+ 			if err != nil {
+-				return err
+-			}
+-			t.Payload = string(encoded)
++				state := Invalid
++				if t.Attempts > 0 {
++					state = Manual
++				}
++				return setState(state, err.Error())
++			}
++			if t.Attempts > 0 && final.Sign != signature {
++				return setState(Manual, "signing key no longer matches frozen request; restore key version before explicit resend")
++			}
++			if anchor != nil {
++				var original Payload
++				if json.Unmarshal([]byte(anchor.Payload), &original) != nil {
++					return setState(Invalid, "invalid predecessor payload")
++				}
++				if previous.Config.KeyReference() != s.Config.KeyReference() || original.ProblemTime != final.ProblemTime || original.Sign != signature {
++					return setState(Invalid, "signing inputs differ from accepted problem; restore the original key version")
++				}
++			}
++			if t.Attempts == 0 {
++				final.Sign = signature
++				encoded, err := json.Marshal(final)
++				if err != nil {
++					return err
++				}
++				t.Payload = string(encoded)
++			}
+ 		}
+ 		a := models.ExternalPushAttempt{TaskID: id, Number: t.Attempts + 1, Token: token, State: Sending, StartedAt: now}
+ 		r = tx.Model(&models.ExternalPushTask{}).Where("id = ? AND version = ? AND state IN ?", id, t.Version, []string{Pending, Waiting}).Updates(map[string]interface{}{"state": Sending, "reason": "request attempt recorded before network I/O", "version": t.Version + 1, "updated_at": now, "payload": t.Payload, "attempts": a.Number, "lease_token": token, "lease_until": now + leaseMS})
+@@ -281,6 +333,12 @@
+ 	raw := []byte(t.Payload)
+ 	if !json.Valid(raw) {
+ 		return Invalid, "invalid persisted protocol payload"
++	}
++	if s.Config.EffectiveSigningMode() == "key_file" {
++		var p Payload
++		if json.Unmarshal(raw, &p) != nil || len(p.Sign) != 32 || strings.Trim(p.Sign, "0123456789ABCDEF") != "" {
++			return Invalid, "file signature was not prepared before sending"
++		}
+ 	}
+ 	form := url.Values{"json": {string(raw)}}.Encode()
+ 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.Config.Endpoint, strings.NewReader(form))
+--- a/pkg/i18nx/var.go
++++ b/pkg/i18nx/var.go
+@@ -2,6 +2,25 @@
+ 
+ var I18N = `{
+   "zh_CN": {
++    "invalid signing key reference": "密钥引用无效",
++    "signing key reference is not configured on center": "center未配置此版本的密钥引用",
++    "signing key file path must be absolute on center": "center密钥文件路径必须是绝对路径",
++    "signing key file is missing on center": "center密钥文件不存在，请单独配置文件",
++    "signing key file is unreadable on center": "center无法读取密钥文件，请检查权限",
++    "signing key must be a regular file": "密钥必须是普通文件",
++    "signing key file permissions must restrict access to its owner or read-only group": "密钥文件权限只允许所有者或受控只读组访问，禁止其他用户访问及执行权限",
++    "signing key file changed or has unsafe permissions": "密钥文件发生变化或权限不安全",
++    "signing key file could not be read completely": "密钥文件未能完整读取",
++    "signing key must be nonempty UTF-8 without BOM, line breaks or NUL, at most 65536 bytes": "密钥须为非空UTF-8原文，不含BOM、换行或NUL，最多65536字节；不会自动去除密码空格",
++    "signing key file is configured and readable": "密钥文件已配置、可读且格式有效",
++    "signing key no longer matches frozen request; restore key version before explicit resend": "当前密钥与已保存请求签名不一致，请恢复原密钥版本后再明确授权重发",
++    "signing inputs differ from accepted problem; restore the original key version": "签名输入与已受理故障不一致，请核对原故障时间及密钥版本",
++    "file signature was not prepared before sending": "文件签名尚未准备完成，未发出请求",
++    "signing key reference must be a versioned identifier, not a file path or password": "密钥引用必须是包含版本的标识，不能填写路径或密码",
++    "file signing must not contain a test signature or private key": "文件签名模式不能同时保存测试签名或密码",
++    "signing mode must be test_value or key_file": "签名方式必须是显式测试值或密钥文件",
++    "test signing must not select a key file reference": "显式测试签名不能同时选择文件密钥引用",
++
+     "company_id mapping selects both literal and label; choose exactly one source": "company_id同时配置固定文本和标签，请只选择一种取值来源",
+     "company_id label mapping is missing or ambiguous in the original event": "company_id指定的标签在原始持久告警中缺失、为空或有多个不同值",
+     "device_type mapping selects both literal and label; choose exactly one source": "device_type同时配置固定文本和标签，请只选择一种取值来源",
+--- /dev/null
++++ b/scripts/external-push-key.py
+@@ -0,0 +1,51 @@
++#!/usr/bin/env python3
++"""Provision a versioned center signing key outside Git. Never overwrite a key."""
++import argparse
++import getpass
++import os
++from pathlib import Path
++import sys
++import warnings
++
++
++def main():
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--path', type=Path, default=Path('/etc/n9e/secrets/platform10.key'))
++    parser.add_argument('--stdin', action='store_true', help='Read exact UTF-8 bytes from stdin, without a trailing newline')
++    args = parser.parse_args()
++    if not args.path.is_absolute():
++        parser.error('--path must be absolute')
++    checkout = Path(__file__).resolve().parents[1]
++    if (checkout / '.git').exists() and args.path.resolve().is_relative_to(checkout):
++        parser.error('key files must be outside the Git checkout')
++    if args.stdin:
++        raw = sys.stdin.buffer.read(65537)
++    else:
++        with warnings.catch_warnings():
++            warnings.simplefilter('error', getpass.GetPassWarning)
++            value = getpass.getpass('1.0 signing password (not echoed): ')
++            if value != getpass.getpass('Confirm signing password: '):
++                raise ValueError('password confirmation differs')
++        raw = value.encode('utf-8')
++    text = raw.decode('utf-8')
++    if not raw or len(raw) > 65536 or not text.strip() or text.startswith('\ufeff') or any(c in text for c in '\r\n\0'):
++        raise ValueError('key must be nonempty UTF-8 without BOM, line breaks or NUL; no automatic trimming')
++    args.path.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
++    descriptor = os.open(args.path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
++    try:
++        with os.fdopen(descriptor, 'wb') as target:
++            target.write(raw)
++            target.flush()
++            os.fsync(target.fileno())
++    except BaseException:
++        args.path.unlink(missing_ok=True)
++        raise
++    print('Signing key file created; existing keys are never overwritten.')
++
++
++if __name__ == '__main__':
++    try:
++        main()
++    except (OSError, ValueError, UnicodeError, getpass.GetPassWarning):
++        print('Key creation failed: check content, permissions and whether the file already exists. No key value is logged.', file=sys.stderr)
++        sys.exit(1)
+--- a/scripts/preview.py
++++ b/scripts/preview.py
+@@ -407,6 +407,8 @@
+ Disabled = {str(binding.get('profile', 'basic') != 'full').lower()}
+ RequireIsolation = true
+ DataDir = {json.dumps(str(runtime_temp(binding) / 'sandbox'))}
++[Center.ExternalPushKeyFiles]
++"platform10-v1" = {json.dumps(str(instance(binding) / "secrets/platform10.key"))}
+ [EmbeddedTSDB]
+ Enable = false
+ [Ibex]
+--- /dev/null
++++ b/scripts/test_external_push_key.py
+@@ -0,0 +1,67 @@
++import os
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++import unittest
++
++
++class ExternalPushKeyProvisioningTest(unittest.TestCase):
++    def test_unsafe_terminal_input_is_rejected_on_either_prompt(self):
++        # Simulate the stdlib's terminal boundary: getpass warns before falling
++        # back to echoed input when disabling terminal echo fails.
++        script = Path(__file__).with_name('external-push-key.py')
++        for prompt in (1, 2):
++            with self.subTest(prompt=prompt), tempfile.TemporaryDirectory() as directory:
++                path = Path(directory) / 'test-only.key'
++                wrapper = '''
++import getpass, runpy, sys, warnings
++count = 0
++script, warning_prompt, path = sys.argv[1:]
++def terminal_input(*args):
++    global count
++    count += 1
++    if count == int(warning_prompt):
++        warnings.warn('terminal cannot disable echo', getpass.GetPassWarning)
++    return 'TEST_ONLY_NO_ECHO_KEY'
++getpass.getpass = terminal_input
++sys.argv = [script, '--path', path]
++runpy.run_path(script, run_name='__main__')
++'''
++                result = subprocess.run([sys.executable, '-c', wrapper, str(script), str(prompt), str(path)], capture_output=True)
++                self.assertNotEqual(result.returncode, 0)
++                self.assertFalse(path.exists())
++                self.assertNotIn(b'TEST_ONLY_NO_ECHO_KEY', result.stdout + result.stderr)
++
++    def test_exact_bytes_no_echo_and_no_overwrite(self):
++        with tempfile.TemporaryDirectory() as directory:
++            path = Path(directory) / 'private' / 'test-only.key'
++            command = [sys.executable, str(Path(__file__).with_name('external-push-key.py')), '--stdin', '--path', str(path)]
++            key = b' TEST_ONLY_DEPLOYMENT_KEY '
++            result = subprocess.run(command, input=key, capture_output=True)
++            self.assertEqual(result.returncode, 0)
++            self.assertEqual(path.read_bytes(), key)
++            if os.name == 'posix':
++                self.assertEqual(path.stat().st_mode & 0o777, 0o600)
++            self.assertNotIn(key.strip(), result.stdout + result.stderr)
++            retry = subprocess.run(command, input=b'TEST_REPLACEMENT', capture_output=True)
++            self.assertNotEqual(retry.returncode, 0)
++            self.assertEqual(path.read_bytes(), key)
++
++    def test_newline_is_rejected_before_creating_file(self):
++        with tempfile.TemporaryDirectory() as directory:
++            path = Path(directory) / 'test-only.key'
++            result = subprocess.run([sys.executable, str(Path(__file__).with_name('external-push-key.py')), '--stdin', '--path', str(path)], input=b'TEST_ONLY_KEY\n', capture_output=True)
++            self.assertNotEqual(result.returncode, 0)
++            self.assertFalse(path.exists())
++            self.assertNotIn(b'TEST_ONLY_KEY', result.stdout + result.stderr)
++
++    def test_checkout_path_is_rejected(self):
++        checkout = Path(__file__).resolve().parents[1]
++        if not (checkout / '.git').exists():
++            self.skipTest('requires a Git checkout boundary')
++        path = checkout / 'secrets' / 'platform10-test.key'
++        result = subprocess.run([sys.executable, str(Path(__file__).with_name('external-push-key.py')), '--stdin', '--path', str(path)], input=b'TEST_ONLY_KEY', capture_output=True)
++        self.assertNotEqual(result.returncode, 0)
++        self.assertFalse(path.exists())
++        self.assertNotIn(b'TEST_ONLY_KEY', result.stdout + result.stderr)
