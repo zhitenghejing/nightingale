@@ -102,6 +102,14 @@ type TargetUpdate struct {
 }
 
 func (s *Set) UpdateTargets(lst []string, now int64) error {
+	if s.ctx.IsCenter {
+		var filterErr error
+		lst, filterErr = models.MonitorAgentIdents(s.ctx.DB, lst)
+		if filterErr != nil {
+			return filterErr
+		}
+	}
+
 	if len(lst) == 0 {
 		return nil
 	}

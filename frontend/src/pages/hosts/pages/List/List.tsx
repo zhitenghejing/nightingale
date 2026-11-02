@@ -20,6 +20,9 @@ import classNames from 'classnames';
 import moment from 'moment';
 
 import { CommonStateContext } from '@/App';
+import { collectionEnabled, getCollectors, Collector } from '@/services/collection';
+import { CollectionActions, CollectionLink, Health } from '@/pages/collection';
+import CollectionBatchActions from '@/pages/collection/BatchActions';
 import N9EProgress from '@/components/N9EProgress';
 import { IS_PLUS } from '@/utils/constant';
 import { copy2ClipBoard } from '@/utils';
@@ -55,6 +58,7 @@ import VersionIcon from './VersionIcon';
 import Tags from './Tags';
 import { formatBeatTimeDisplay } from './formatBeatTimeDisplay';
 import AuthLevelDropdown from './AuthLevelDropdown';
+import DeviceInventoryTable from './DeviceInventoryTable';
 
 const downtimeOptions = [1, 2, 3, 5, 10, 30];
 /** 老后端拿不到 installMeta 时文档里手动安装的兜底版本，随 categraf release 更新（2026-07 时为最新版） */
@@ -150,6 +154,7 @@ interface Props {
 export default function List(props: Props) {
   const { t, i18n } = useTranslation(NS);
   const { t: tTargets } = useTranslation('targets');
+  const { t: ct } = useTranslation('collection');
   const { darkMode, siteInfo } = useContext(CommonStateContext);
   const history = useHistory();
   const location = useLocation();
@@ -157,6 +162,25 @@ export default function List(props: Props) {
 
   const { allCollapseNode, editable = true, explorable = true, gids, selectedRows, setSelectedRows, refreshFlag, setRefreshFlag, setOperateType, aiTaskMode = false } = props;
   const selectedIdents = _.map(selectedRows, 'ident');
+  const [collectionOn, setCollectionOn] = useState(false);
+  const [collectors, setCollectors] = useState<Collector[]>([]);
+  useEffect(() => {
+    if (aiTaskMode) return;
+    collectionEnabled()
+      .then((enabled) => {
+        setCollectionOn(enabled);
+        if (enabled)
+          getCollectors()
+            .then(setCollectors)
+            .catch(() => {});
+      })
+      .catch(() => {});
+  }, [aiTaskMode]);
+  useEffect(() => {
+    if (!collectionOn) return;
+    const timer = window.setInterval(() => setRefreshFlag(_.uniqueId('collection_')), 10000);
+    return () => window.clearInterval(timer);
+  }, [collectionOn]);
 
   const [metaDrawerOpen, setMetaDrawerOpen] = useState(false);
   const [metaDrawerIdent, setMetaDrawerIdent] = useState('');
@@ -176,6 +200,8 @@ export default function List(props: Props) {
     hosts?: string;
     downtime?: number;
     agent_versions?: string[];
+    collection_kind?: string;
+    collector_id?: string;
     auth_level?: string; // 逗号分隔，如 '1,2,3'
   }>({
     limit: pagination.pageSize,
@@ -191,6 +217,11 @@ export default function List(props: Props) {
     setInnerParams((prev) => ({ ...prev, ...next }));
   };
 
+  const collectionKind = params.collection_kind;
+  const collectorId = params.collector_id;
+  const setCollectionKind = (value?: string) => setParams((p) => ({ ...p, collection_kind: value }));
+  const setCollectorId = (value?: string) => setParams((p) => ({ ...p, collector_id: value }));
+
   const featchData = ({ current, pageSize }: { current: number; pageSize: number }): Promise<any> => {
     return getList({
       gids: gids === '-2' ? undefined : gids,
@@ -201,6 +232,8 @@ export default function List(props: Props) {
       agent_versions: _.isEmpty(params.agent_versions) ? undefined : JSON.stringify(params.agent_versions),
       hosts: params.hosts,
       auth_level: params.auth_level,
+      collection_kind: collectionKind,
+      collector_id: collectorId,
     }).then((res) => {
       return {
         total: res.total,
@@ -220,7 +253,7 @@ export default function List(props: Props) {
       current: 1,
       pageSize: tableProps.pagination.pageSize,
     });
-  }, [gids, params.query, params.downtime, params.agent_versions, params.hosts, params.auth_level]);
+  }, [gids, params.query, params.downtime, params.agent_versions, params.hosts, params.auth_level, collectionKind, collectorId]);
 
   useEffect(() => {
     if (refreshFlag) {
@@ -269,7 +302,7 @@ export default function List(props: Props) {
   };
 
   // 有搜索/筛选时的空结果不代表「该业务组没有机器」，此时不展示部署引导，避免误导用户去重复部署采集器
-  const hasActiveFilter = !!(params.query || params.hosts || !_.isNil(params.downtime) || !_.isEmpty(params.agent_versions) || params.auth_level);
+  const hasActiveFilter = !!(collectionKind || collectorId || params.query || params.hosts || !_.isNil(params.downtime) || !_.isEmpty(params.agent_versions) || params.auth_level);
 
   const groupObjsColumn: {
     dataIndex: string;
@@ -321,8 +354,43 @@ export default function List(props: Props) {
               }}
             />
             <HostFilters value={params} onChange={(next) => setParams((p) => ({ ...p, ...next }))} aiTaskMode={aiTaskMode} />
+            {collectionOn && (
+              <>
+                <Select
+                  style={{ width: 150 }}
+                  allowClear
+                  value={collectionKind}
+                  onChange={setCollectionKind}
+                  placeholder={ct('all')}
+                  options={[
+                    { value: 'agent', label: ct('agent') },
+                    { value: 'managed', label: ct('managed') },
+                    { value: 'snmp', label: ct('snmp') },
+                    { value: 'mysql', label: 'MySQL' },
+                  ]}
+                />
+                <Select
+                  style={{ width: 150 }}
+                  allowClear
+                  value={collectorId}
+                  onChange={setCollectorId}
+                  placeholder={ct('all_collectors')}
+                  options={collectors.map((c) => ({ value: c.id, label: c.name }))}
+                />
+              </>
+            )}
           </div>
           <Space wrap className='ml-auto'>
+            {collectionOn && !aiTaskMode && editable && (
+              <CollectionActions
+                onChanged={() => {
+                  setRefreshFlag(_.uniqueId());
+                  getCollectors()
+                    .then(setCollectors)
+                    .catch(() => {});
+                }}
+              />
+            )}
             {/* 接入类动作与「批量操作」同属操作区，放右侧，左侧留给筛选控件 */}
             {!aiTaskMode && installMeta && (
               <Tooltip title={t('install.entry')}>
@@ -342,6 +410,7 @@ export default function List(props: Props) {
               两者同时在屏上是重复的；引导条本身在套完大盘与告警后就整体消失，不长期占位 */}
             {editable && aiTaskMode === false && (
               <Dropdown
+                disabled={selectedRows.some((r) => !!r.collection)}
                 trigger={['click']}
                 overlay={
                   <Menu
@@ -377,10 +446,19 @@ export default function List(props: Props) {
                   </Menu>
                 }
               >
-                <Button>
+                <Button disabled={selectedRows.some((r) => !!r.collection)} title={selectedRows.some((r) => !!r.collection) ? ct('agent_batch_hint') : undefined}>
                   {t('common:btn.batch_operations')} <DownOutlined />
                 </Button>
               </Dropdown>
+            )}
+            {editable && !aiTaskMode && selectedRows.some((r) => !!r.collection) && (
+              <CollectionBatchActions
+                rows={selectedRows}
+                onChanged={(failed) => {
+                  setSelectedRows(failed);
+                  setRefreshFlag(_.uniqueId('refreshFlag_'));
+                }}
+              />
             )}
             {IS_PLUS && aiTaskMode === true && (
               <AuthLevelDropdown
@@ -403,7 +481,24 @@ export default function List(props: Props) {
         </div>
       </div>
       <div className={classNames('n9e-hosts-ng-table mt-4', { 'n9e-antd-table-height-full': !aiTaskMode })}>
-        <Table
+        {!aiTaskMode ? <DeviceInventoryTable
+          tableProps={{
+            ...tableProps,
+            pagination: { ...tableProps.pagination, ...pagination, onChange: (_page, pageSize) => localStorage.setItem('targetsListPageSize', String(pageSize)) },
+            locale: { emptyText: !IS_PLUS && !hasActiveFilter ? <EmptyGuide
+              title={t('empty_guide.title')}
+              description={t('empty_guide.desc')}
+              actions={<><Button type='primary' onClick={() => installMeta ? setInstallVisible(true) : openCategrafDoc()}>{installMeta ? t('install.entry') : t('empty_guide.deploy_btn')}</Button><a onClick={openCategrafDoc}>{t('categraf_doc')}</a></>}
+            /> : undefined },
+          }}
+          selectedRows={selectedRows}
+          setSelectedRows={setSelectedRows}
+          editable={editable}
+          onChanged={() => setRefreshFlag(_.uniqueId('inventory_'))}
+          onTagClick={(tag) => {
+            if (!_.includes(params.query, tag)) setParams((p) => ({ ...p, query: params.query ? `${params.query.trim()} ${tag}` : tag }));
+          }}
+        /> : <Table
           {...tableProps}
           rowKey='id'
           size='small'
@@ -412,6 +507,7 @@ export default function List(props: Props) {
           onRow={(record) => ({
             className: 'group cursor-pointer',
             onClick: (e) => {
+              if (record.collection) return;
               const el = e.target as HTMLElement;
               if (
                 el.closest(
@@ -444,6 +540,7 @@ export default function List(props: Props) {
           }}
           rowSelection={{
             type: 'checkbox',
+            getCheckboxProps: (record) => ({ disabled: aiTaskMode && !!record.collection }),
             preserveSelectedRowKeys: true,
             selectedRowKeys: _.map(selectedRows, 'id'),
             onChange(_selectedRowKeys, selectedRows: Item[]) {
@@ -512,6 +609,15 @@ export default function List(props: Props) {
                     </Space>
                   ),
                   render: (ident, record) => {
+                    if (record.collection)
+                      return (
+                        <div onClick={(event) => event.stopPropagation()}>
+                          <CollectionLink id={record.collection.device_id} name={record.note || ident} onChanged={() => setRefreshFlag(_.uniqueId())} />
+                          <div className='text-secondary'>
+                            {record.ident} · {record.host_ip}
+                          </div>
+                        </div>
+                      );
                     const ipWidthSample = record.host_ip && isHostIpLikelyIpv6(record.host_ip) ? IDENT_IP_V6_MAX_SAMPLE : IDENT_IP_V4_MAX_SAMPLE;
                     const identIpWidth = getTextWidth(ipWidthSample);
                     const identMetaWidth = getTextWidth(`256 ${t('cores')} ${IDENT_META_MAX_SAMPLE_SUFFIX}`) + 20; // 14 的 icon + 间距 + 容错
@@ -605,6 +711,7 @@ export default function List(props: Props) {
                   dataIndex: 'target_up',
                   title: t('status'),
                   render: (_val, record) => {
+                    if (record.collection) return <Health state={record.collection.health} />;
                     const isOnline = record.target_up !== 0;
                     const label = isOnline ? t('online') : t('offline');
                     const minWidth = getTextWidth(label) + 28; // 6 圆点 + 4 间距 + 16 内边距 + 容错
@@ -649,11 +756,22 @@ export default function List(props: Props) {
                     },
                   ]
                 : [],
+              collectionOn && !aiTaskMode
+                ? [
+                    {
+                      dataIndex: 'collection_collector',
+                      title: ct('collector'),
+                      render: (_, row) => (row.collection ? collectors.find((c) => c.id === row.collection.collector_id)?.name || row.collection.collector_id : '—'),
+                    },
+                    { dataIndex: 'collection_configuration', title: ct('phase'), render: (_, row) => (row.collection ? ct(row.collection.configuration_state) : '—') },
+                  ]
+                : [],
               [
                 {
                   dataIndex: 'agent_version',
                   title: t('agent_version_title'),
                   render: (val, record) => {
+                    if (record.collection) return ct('not_applicable');
                     const display = record.agent_version || 'Null';
                     const hasUpgrade = record.new_version && record.agent_version !== record.new_version;
                     const displayText = hasUpgrade ? `${display} / ${record.new_version}` : display;
@@ -802,6 +920,8 @@ export default function List(props: Props) {
                       dataIndex: 'beat_time',
                       title: t('beat_time'),
                       render: (val, record) => {
+                        if (record.collection)
+                          return record.collection.last_sample_at ? moment.unix(record.collection.last_sample_at).format('YYYY-MM-DD HH:mm:ss') : ct('no_sample');
                         const minWidth = Math.max(
                           getTextWidth(t('beat_time')) + 24,
                           getTextWidth(t('beat_time_just_now')),
@@ -853,6 +973,8 @@ export default function List(props: Props) {
                       dataIndex: 'mem_util',
                       title: t('mem_util'),
                       render: (val: number, record) => {
+                        if (record.collection?.kind === 'mysql') return ct('not_applicable');
+                        if (record.collection) return record.collection.memory_percent == null ? ct('no_sample') : `${record.collection.memory_percent.toFixed(1)} %`;
                         const minWidth = getTextWidth(t('mem_util')) + 4;
                         if (record.cpu_num === -1 || !_.isNumber(val)) {
                           return (
@@ -880,6 +1002,8 @@ export default function List(props: Props) {
                       dataIndex: 'cpu_util',
                       title: 'CPU',
                       render: (val: number, record) => {
+                        if (record.collection?.kind === 'mysql') return ct('not_applicable');
+                        if (record.collection) return record.collection.cpu_percent == null ? ct('no_sample') : `${record.collection.cpu_percent.toFixed(1)} %`;
                         const minWidth = getTextWidth('CPU') + 4;
                         if (record.cpu_num === -1 || !_.isNumber(val)) {
                           return (
@@ -914,6 +1038,7 @@ export default function List(props: Props) {
                         </Space>
                       ),
                       render: (val, record) => {
+                        if (record.collection) return ct('not_applicable');
                         const minWidth = getTextWidth(t('offset')) + 24;
                         if (record.cpu_num === -1 || !_.isNumber(val)) {
                           return (
@@ -960,6 +1085,7 @@ export default function List(props: Props) {
                         </Space>
                       ),
                       render: (val, record: Item) => {
+                        if (record.collection) return ct('not_applicable');
                         const minWidth = getTextWidth(t('remote_addr')) + 24;
                         return (
                           <div
@@ -998,7 +1124,7 @@ export default function List(props: Props) {
                   ],
             ) as any[]
           }
-        />
+        />}
       </div>
       <TargetMetaDrawer
         ident={metaDrawerIdent}

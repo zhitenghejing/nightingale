@@ -1,0 +1,62 @@
+{
+  "README.md": {
+    "bytes": 9401,
+    "sha256": "39e78fc802cd01ef38510c59b2d6c103a37b6ad5c331c209fc3c5717a67b2cd7"
+  },
+  "baseline-browser.json": {
+    "bytes": 354,
+    "sha256": "7979a29a008f8c75fafad1f2c01266cef2e4decc4770bfdf55efdd52e81f9a23"
+  },
+  "behavior-checks.txt": {
+    "bytes": 5356,
+    "sha256": "659c348dce2d8c2447f83257a0da6361ec626c743306273a2a9c9579cc42faeb"
+  },
+  "checks-summary.txt": {
+    "bytes": 2735,
+    "sha256": "7c589fdf79152816d77973c4a8761bf620db90c1775762b723602e8bed4330c9"
+  },
+  "dashboard-render.json": {
+    "bytes": 2991,
+    "sha256": "b2fa1596003a3ff7ef38d14ca54c2322585582eba013085f09e70ab526d528c6"
+  },
+  "device-inventory.png": {
+    "bytes": 162555,
+    "sha256": "ff316ba724c12b6b08bbdff41184b93557fd8bab118986f2b5accea708d499d5"
+  },
+  "device-regression.json": {
+    "bytes": 2344,
+    "sha256": "1e31da260dc5b289264155795b7dc9bf22bc82cebed79e7fe19b2d7f9fed08e4"
+  },
+  "preservation.json": {
+    "bytes": 827,
+    "sha256": "2a2334d2fcf9875ce2e611e5d940a254f7bc9719a93d13225fc8645984524fd2"
+  },
+  "snmp-template-dashboard.png": {
+    "bytes": 173331,
+    "sha256": "c16b51d852225a504572909582f8b9085e40dcb556f71eb9b9f9f4030d9f780e"
+  },
+  "windows-browser.json": {
+    "bytes": 754,
+    "sha256": "eb145d7a93a8c75dd1490c246231186d5df6909d9ad47826f58687a1388b4991"
+  },
+  "windows-dashboard-real-baseline.png": {
+    "bytes": 136440,
+    "sha256": "4dcbaaaa00897af77dcdfd9ca1e30f85c30369b8f372d9561cc43889a276a0bf"
+  },
+  "windows-device-onboarding.png": {
+    "bytes": 157797,
+    "sha256": "c609558405d35dc72d19b6007136cb5cab6b682ec576a4ba1229ad4d7dc6fee6"
+  },
+  "windows-template-alerts.png": {
+    "bytes": 129344,
+    "sha256": "500b73d32d7510c2470b411c4b01edff4f5b3e7e3120fb59db54186a18e12aea"
+  },
+  "windows-template-card.png": {
+    "bytes": 122964,
+    "sha256": "21faa4fffea9172a4d9d3cbcd4930b16f103571bb13db20f28798df2455f424d"
+  },
+  "windows-template-metrics.png": {
+    "bytes": 171462,
+    "sha256": "305765ab1d64cb5b602d6c9b25deffe4e5da2d382a687966a8a1dd699cfd1d59"
+  }
+}

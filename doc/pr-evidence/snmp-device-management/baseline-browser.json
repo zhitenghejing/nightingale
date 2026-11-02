@@ -1,0 +1,14 @@
+{
+  "buildId": "20261102T073334Z-7888d2f2",
+  "frontendKind": "file-assets",
+  "checks": [
+    "anonymous API denied",
+    "wrong password rejected",
+    "private preview login succeeds",
+    "/dashboards loads and refreshes",
+    "/alert-rules loads and refreshes",
+    "invalid browser session returns to login"
+  ],
+  "errors": [],
+  "passed": true
+}

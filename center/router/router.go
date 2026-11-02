@@ -27,6 +27,7 @@ import (
 	"github.com/ccfos/nightingale/v6/models"
 	"github.com/ccfos/nightingale/v6/pkg/aop"
 	"github.com/ccfos/nightingale/v6/pkg/cmdb"
+	"github.com/ccfos/nightingale/v6/pkg/collection"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
 	"github.com/ccfos/nightingale/v6/pkg/ginx"
 	"github.com/ccfos/nightingale/v6/pkg/httpx"
@@ -66,7 +67,9 @@ type Router struct {
 	archivesOnce      sync.Once
 	archivesService   *archives.Service
 	// CMDB is initialized by center before Config; nil disables the optional routes for embedders.
-	CMDB *cmdb.API
+	CMDB             *cmdb.API
+	Collection       *collection.Store
+	CollectionStatus *collection.StatusService
 
 	// Pushgw is this deployment's forwarding config. It is only read to answer
 	// "which datasource do host metrics end up in" (categrafMeta), so it is set
@@ -286,6 +289,7 @@ func (rt *Router) Config(r *gin.Engine) {
 	pagesPrefix := "/api/n9e"
 	pages := r.Group(pagesPrefix)
 	rt.configArchiveRoutes(pages)
+	rt.configCollection(r, pages)
 	{
 
 		pages.DELETE("/datasource/series", rt.auth(), rt.admin(), rt.deleteDatasourceSeries)
@@ -470,6 +474,9 @@ func (rt *Router) Config(r *gin.Engine) {
 
 		pages.GET("/targets", rt.auth(), rt.user(), rt.targetGets)
 		pages.GET("/targets/stats", rt.auth(), rt.user(), rt.targetStats)
+		pages.GET("/targets/device-detail", rt.auth(), rt.user(), rt.targetDeviceDetail)
+		pages.GET("/targets/device-alerts", rt.auth(), rt.user(), rt.targetDeviceAlerts)
+		pages.GET("/targets/device-metrics", rt.auth(), rt.user(), rt.targetDeviceMetrics)
 		pages.POST("/target-update", rt.auth(), rt.targetUpdate)
 		pages.GET("/target/extra-meta", rt.auth(), rt.user(), rt.targetExtendInfoByIdent)
 		pages.POST("/target/list", rt.auth(), rt.user(), rt.targetGetsByHostFilter)

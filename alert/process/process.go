@@ -1,10 +1,8 @@
 package process
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"sort"
 	"strings"
 	"sync"
@@ -20,7 +18,6 @@ import (
 	"github.com/ccfos/nightingale/v6/models"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
 	"github.com/ccfos/nightingale/v6/pkg/evallog"
-	"github.com/ccfos/nightingale/v6/pkg/tplx"
 
 	"github.com/google/uuid"
 	"github.com/robfig/cron/v3"
@@ -725,43 +722,10 @@ func (p *Processor) fillTags(anomalyPoint models.AnomalyPoint) {
 		tagsMap[string(label)] = string(value)
 	}
 
-	var e = &models.AlertCurEvent{
-		TagsMap: tagsMap,
-	}
-
-	// handle rule tags
-	tags := p.rule.AppendTagsJSON
-	tags = append(tags, "rulename="+p.rule.Name)
-	for _, tag := range tags {
-		arr := strings.SplitN(tag, "=", 2)
-
-		var defs = []string{
-			"{{$labels := .TagsMap}}",
-			"{{$value := .TriggerValue}}",
-		}
-		tagValue := arr[1]
-		text := strings.Join(append(defs, tagValue), "")
-		t, err := template.New(fmt.Sprint(p.rule.Id)).Funcs(template.FuncMap(tplx.TemplateFuncMap)).Parse(text)
-		if err != nil {
-			tagValue = fmt.Sprintf("parse tag value failed, err:%s", err)
-			tagsMap[arr[0]] = tagValue
-			continue
-		}
-
-		var body bytes.Buffer
-		err = t.Execute(&body, e)
-		if err != nil {
-			tagValue = fmt.Sprintf("parse tag value failed, err:%s", err)
-			tagsMap[arr[0]] = tagValue
-			continue
-		}
-
-		tagsMap[arr[0]] = body.String()
-	}
-	p.tagsMap = tagsMap
+	p.tagsMap = p.rule.RenderEventTags(tagsMap)
 
 	// handle tagsArr
-	p.tagsArr = labelMapToArr(tagsMap)
+	p.tagsArr = labelMapToArr(p.tagsMap)
 }
 
 func (p *Processor) mayHandleIdent(event *models.AlertCurEvent) {

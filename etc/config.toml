@@ -285,6 +285,16 @@ ForceUseServerTS = true
 Enable = true
 RPCListen = "0.0.0.0:20090"
 
+# Center-owned SNMP devices. Generate and back up a private AES-256 keyring before enabling.
+[Center.Collection]
+Enable = false
+ProviderEnable = false
+KeyFile = "etc.local/collection-keys.json"
+MaxDevices = 1000
+MaxConfigBytes = 8388608
+StaleSeconds = 90
+FutureSeconds = 30
+
 # Optional center-only override. The file is provisioned separately, outside Git.
 # The default reference platform10-v1 uses /etc/n9e/secrets/platform10.key.
 # Restart center after changing this path registry; keep each version immutable.

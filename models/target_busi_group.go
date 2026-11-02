@@ -66,6 +66,9 @@ func TargetGroupIdsGetByIdents(ctx *ctx.Context, idents []string) ([]int64, erro
 }
 
 func TargetBindBgids(ctx *ctx.Context, idents []string, bgids []int64, tags []string) error {
+	if err := MonitorGuardTargets(DB(ctx), idents); err != nil {
+		return err
+	}
 	lst := make([]TargetBusiGroup, 0, len(bgids)*len(idents))
 	updateAt := time.Now().Unix()
 	for _, bgid := range bgids {
@@ -115,6 +118,9 @@ func TargetBindBgids(ctx *ctx.Context, idents []string, bgids []int64, tags []st
 }
 
 func TargetUnbindBgids(ctx *ctx.Context, idents []string, bgids []int64) error {
+	if err := MonitorGuardTargets(DB(ctx), idents); err != nil {
+		return err
+	}
 	return DB(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("target_ident in ? and group_id in ?",
 			idents, bgids).Delete(&TargetBusiGroup{}).Error; err != nil {
@@ -130,6 +136,9 @@ func TargetDeleteBgids(tx *gorm.DB, idents []string) error {
 }
 
 func TargetOverrideBgids(ctx *ctx.Context, idents []string, bgids []int64, tags []string) error {
+	if err := MonitorGuardTargets(DB(ctx), idents); err != nil {
+		return err
+	}
 	return DB(ctx).Transaction(func(tx *gorm.DB) error {
 		// 先删除旧的关联
 		if err := tx.Where("target_ident IN ?", idents).Delete(&TargetBusiGroup{}).Error; err != nil {

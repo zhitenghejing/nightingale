@@ -14,8 +14,8 @@ import (
 	"github.com/ccfos/nightingale/v6/memsto"
 	"github.com/ccfos/nightingale/v6/models"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
-	"github.com/ccfos/nightingale/v6/pushgw/idents"
 	"github.com/ccfos/nightingale/v6/pkg/ginx"
+	"github.com/ccfos/nightingale/v6/pushgw/idents"
 
 	"github.com/gin-gonic/gin"
 	"github.com/toolkits/pkg/logger"
@@ -60,6 +60,12 @@ func HandleHeartbeat(c *gin.Context, ctx *ctx.Context, engineName string, metaSe
 
 	if req.Hostname == "" {
 		return req, errors.New("hostname is required")
+	}
+
+	if ctx.IsCenter {
+		if err := models.MonitorGuardTargets(models.DB(ctx), []string{req.Hostname}); err != nil {
+			return req, err
+		}
 	}
 
 	// maybe from pushgw

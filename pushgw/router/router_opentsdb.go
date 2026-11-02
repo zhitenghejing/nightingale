@@ -193,6 +193,9 @@ func (rt *Router) openTSDBPut(c *gin.Context) {
 			continue
 		}
 
+		if !rt.collectionSampleAllowed(c, pt) {
+			continue
+		}
 		host, has := arr[i].Tags["ident"]
 		if has {
 			if rt.Pushgw.GetHeartbeatFromMetric {

@@ -43,6 +43,10 @@ var proxyInflight atomic.Int64
 const proxyDrainOnRejectBytes = 64 * 1024
 
 func (rt *Router) proxyRemoteWrite(c *gin.Context) {
+	if rt.Collection != nil {
+		rt.remoteWrite(c)
+		return
+	}
 	pstat.CounterProxyRemoteWriteTotal.Inc()
 
 	// 背压：CAS 抢占一个 in-flight slot。

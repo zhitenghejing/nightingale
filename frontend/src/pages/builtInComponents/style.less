@@ -27,7 +27,8 @@
 
 .builtin-cates-grid-item {
   position: relative;
-  background-color: var(--fc-fill-2);
+  background-color: #fff;
+  color: #17243d;
   border: 1px solid var(--fc-border-color);
   border-radius: var(--fc-border-radius-base);
   padding: 24px 0;
@@ -41,12 +42,125 @@
     display: none;
   }
 
-  &:hover {
-    background-color: var(--fc-fill-3);
+  &:hover,
+  &:focus-within {
+    background-color: #fff;
+    border-color: #8761df;
 
     .builtin-cates-grid-item-operations {
       display: block;
     }
+  }
+}
+
+.builtin-catalog-card-body {
+  width: 100%;
+  min-height: 142px;
+  padding: 24px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  cursor: pointer;
+  img {
+    height: 42px;
+    width: 68px;
+    object-fit: contain;
+  }
+  span {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  &:focus-visible {
+    outline: 2px solid #8761df;
+    outline-offset: -3px;
+  }
+}
+.builtin-catalog {
+  display: flex;
+  gap: 20px;
+}
+.builtin-catalog-tree {
+  flex: 0 0 350px;
+  max-height: calc(100vh - 150px);
+  overflow: auto;
+  padding: 12px;
+  border-right: 1px solid var(--fc-border-color);
+}
+.builtin-category-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.builtin-category-hint { color: var(--fc-text-3); font-size: 12px; }
+.builtin-catalog-breadcrumb { margin: 0 0 12px; color: var(--fc-text-2); }
+.builtin-catalog-tree .ant-tree {
+  .ant-tree-indent-unit { width: 12px; }
+  .ant-tree-switcher { width: 18px; }
+  .ant-tree-node-content-wrapper { flex: 1; min-width: 0; }
+  .ant-tree-title { display: block; }
+}
+.builtin-category-row {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  gap: 4px;
+  border: 1px solid transparent;
+  &.is-drop-target { background: #f6ffed; border: 1px dashed #52c41a; border-radius: 4px; }
+}
+.builtin-category-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.builtin-category-count { color: var(--fc-text-3); font-size: 11px; }
+.builtin-category-actions {
+  display: flex;
+  flex-shrink: 0;
+  .ant-btn { width: 22px; padding: 0; }
+}
+.builtin-cates-grid-item[draggable='true'] { cursor: grab; }
+.builtin-catalog-card-body img { pointer-events: none; }
+.builtin-catalog-content {
+  flex: 1;
+  min-width: 0;
+}
+.builtin-catalog-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.builtin-field-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+@media (hover: none) {
+  .builtin-cates-grid-item .builtin-cates-grid-item-operations {
+    display: block;
+  }
+}
+@media (max-width: 1100px) {
+  .builtin-cates-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .builtin-catalog-tree {
+    flex-basis: 210px;
+  }
+}
+@media (max-width: 700px) {
+  .builtin-catalog {
+    flex-direction: column;
+  }
+  .builtin-catalog-tree {
+    flex-basis: auto;
+    max-height: 260px;
+    border-right: 0;
+  }
+  .builtin-cates-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 }
 
@@ -104,7 +218,7 @@
   }
 
   .w-md-editor-text-pre,
-  .w-md-editor-text-pre>code,
+  .w-md-editor-text-pre > code,
   .w-md-editor-text-input {
     font-family: unset !important;
     font-size: 12px !important;
@@ -122,5 +236,39 @@
 
   .ant-tabs-content {
     height: 100%;
+  }
+}
+
+.builtin-catalog .builtin-cates-grid-item {
+  padding: 0;
+}
+
+.template-package-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--fc-border-color);
+}
+.template-package-layout {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 24px;
+  padding-top: 20px;
+}
+.template-package-layout > .ant-menu {
+  border-right: 1px solid var(--fc-border-color);
+}
+.template-package-content {
+  min-width: 0;
+  padding-right: 12px;
+}
+@media (max-width: 900px) {
+  .template-package-layout {
+    grid-template-columns: 1fr;
+  }
+  .template-package-toolbar {
+    flex-wrap: wrap;
   }
 }

@@ -1,0 +1,467 @@
+{
+  "Linux": [
+    "操作系统",
+    "Linux 社区",
+    "Linux 通用"
+  ],
+  "Linux_SNMP": [
+    "操作系统",
+    "Linux 社区",
+    "Linux 通用"
+  ],
+  "Windows": [
+    "操作系统",
+    "微软",
+    "Windows 通用"
+  ],
+  "Windows_SNMP": [
+    "操作系统",
+    "微软",
+    "Windows 通用"
+  ],
+  "Dameng": [
+    "数据库",
+    "达梦",
+    "Dameng 通用"
+  ],
+  "Greenplum": [
+    "数据库",
+    "Greenplum",
+    "Greenplum 通用"
+  ],
+  "Kingbase": [
+    "数据库",
+    "人大金仓",
+    "Kingbase 通用"
+  ],
+  "MySQL": [
+    "数据库",
+    "甲骨文",
+    "MySQL 通用"
+  ],
+  "Oracle": [
+    "数据库",
+    "甲骨文",
+    "Oracle 通用"
+  ],
+  "PostgreSQL": [
+    "数据库",
+    "PostgreSQL",
+    "PostgreSQL 通用"
+  ],
+  "SQLServer": [
+    "数据库",
+    "微软",
+    "SQLServer 通用"
+  ],
+  "ClickHouse": [
+    "数据库",
+    "ClickHouse",
+    "ClickHouse 通用"
+  ],
+  "Doris": [
+    "数据库",
+    "Apache",
+    "Doris 通用"
+  ],
+  "TDEngine": [
+    "数据库",
+    "TDEngine",
+    "TDEngine 通用"
+  ],
+  "TiDB": [
+    "数据库",
+    "TiDB",
+    "TiDB 通用"
+  ],
+  "Elasticsearch": [
+    "缓存、文档与搜索",
+    "Elasticsearch",
+    "Elasticsearch 通用"
+  ],
+  "MongoDB": [
+    "缓存、文档与搜索",
+    "MongoDB",
+    "MongoDB 通用"
+  ],
+  "Redis": [
+    "缓存、文档与搜索",
+    "Redis",
+    "Redis 通用"
+  ],
+  "AutoMQ": [
+    "消息中间件",
+    "AutoMQ",
+    "AutoMQ 通用"
+  ],
+  "EMQX": [
+    "消息中间件",
+    "EMQX",
+    "EMQX 通用"
+  ],
+  "Kafka": [
+    "消息中间件",
+    "Apache",
+    "Kafka 通用"
+  ],
+  "NSQ": [
+    "消息中间件",
+    "NSQ",
+    "NSQ 通用"
+  ],
+  "RabbitMQ": [
+    "消息中间件",
+    "RabbitMQ",
+    "RabbitMQ 通用"
+  ],
+  "Apache": [
+    "应用与 Web 服务",
+    "Apache",
+    "Apache 通用"
+  ],
+  "Gitlab": [
+    "应用与 Web 服务",
+    "Gitlab",
+    "Gitlab 通用"
+  ],
+  "HAProxy": [
+    "应用与 Web 服务",
+    "HAProxy",
+    "HAProxy 通用"
+  ],
+  "IIS": [
+    "应用与 Web 服务",
+    "微软",
+    "IIS 通用"
+  ],
+  "Jenkins": [
+    "应用与 Web 服务",
+    "Jenkins",
+    "Jenkins 通用"
+  ],
+  "Nginx": [
+    "应用与 Web 服务",
+    "Nginx",
+    "Nginx 通用"
+  ],
+  "PHP": [
+    "应用与 Web 服务",
+    "PHP",
+    "PHP 通用"
+  ],
+  "Tomcat": [
+    "应用与 Web 服务",
+    "Apache",
+    "Tomcat 通用"
+  ],
+  "Java": [
+    "应用运行时",
+    "OpenJDK 社区",
+    "Java 通用"
+  ],
+  "Jolokia_Agent": [
+    "应用运行时",
+    "Jolokia 社区",
+    "Jolokia_Agent 通用"
+  ],
+  "SpringBoot": [
+    "应用运行时",
+    "Spring 社区",
+    "SpringBoot 通用"
+  ],
+  "Docker": [
+    "容器与编排",
+    "Docker",
+    "Docker 通用"
+  ],
+  "Kubernetes": [
+    "容器与编排",
+    "Kubernetes",
+    "Kubernetes 通用"
+  ],
+  "cAdvisor": [
+    "容器与编排",
+    "cAdvisor 社区",
+    "cAdvisor 通用"
+  ],
+  "Ceph": [
+    "存储",
+    "Ceph",
+    "Ceph 通用"
+  ],
+  "MinIO": [
+    "存储",
+    "MinIO",
+    "MinIO 通用"
+  ],
+  "XSKYApi": [
+    "存储",
+    "星辰天合",
+    "XSKYApi 通用"
+  ],
+  "vSphere": [
+    "虚拟化",
+    "VMware",
+    "vSphere 通用"
+  ],
+  "IPMI": [
+    "服务器",
+    "通用品牌",
+    "通用 IPMI 设备"
+  ],
+  "Redfish": [
+    "服务器",
+    "通用品牌",
+    "通用 Redfish 设备"
+  ],
+  "SNMP": [
+    "网络设备",
+    "通用品牌",
+    "标准 MIB 设备"
+  ],
+  "Switch_Legacy": [
+    "网络设备",
+    "未知品牌",
+    "交换机（型号待确认）"
+  ],
+  "Akamai": [
+    "云平台与 SaaS",
+    "Akamai",
+    "Akamai 通用"
+  ],
+  "AliYun": [
+    "云平台与 SaaS",
+    "阿里云",
+    "AliYun 通用"
+  ],
+  "Azure": [
+    "云平台与 SaaS",
+    "微软",
+    "Azure 通用"
+  ],
+  "CloudWatch": [
+    "云平台与 SaaS",
+    "亚马逊",
+    "CloudWatch 通用"
+  ],
+  "Cloudflare": [
+    "云平台与 SaaS",
+    "Cloudflare",
+    "Cloudflare 通用"
+  ],
+  "GoogleCloud": [
+    "云平台与 SaaS",
+    "谷歌",
+    "GoogleCloud 通用"
+  ],
+  "Huawei": [
+    "云平台与 SaaS",
+    "华为",
+    "Huawei 通用"
+  ],
+  "Meraki": [
+    "云平台与 SaaS",
+    "思科",
+    "Meraki 通用"
+  ],
+  "OpenStack": [
+    "云平台与 SaaS",
+    "OpenStack",
+    "OpenStack 通用"
+  ],
+  "Tencent": [
+    "云平台与 SaaS",
+    "腾讯云",
+    "Tencent 通用"
+  ],
+  "CDN": [
+    "拨测与外部目标",
+    "通用品牌",
+    "CDN 通用"
+  ],
+  "Dns_Query": [
+    "拨测与外部目标",
+    "通用品牌",
+    "Dns_Query 通用"
+  ],
+  "HTTP_Response": [
+    "拨测与外部目标",
+    "通用品牌",
+    "HTTP_Response 通用"
+  ],
+  "Net_Response": [
+    "拨测与外部目标",
+    "通用品牌",
+    "Net_Response 通用"
+  ],
+  "Ping": [
+    "拨测与外部目标",
+    "通用品牌",
+    "Ping 通用"
+  ],
+  "Whois": [
+    "拨测与外部目标",
+    "通用品牌",
+    "Whois 通用"
+  ],
+  "X509_Cert": [
+    "拨测与外部目标",
+    "通用品牌",
+    "X509_Cert 通用"
+  ],
+  "AMD_ROCm_SMI": [
+    "主机专项",
+    "AMD",
+    "AMD_ROCm_SMI 通用"
+  ],
+  "Exec": [
+    "主机专项",
+    "通用品牌",
+    "Exec 通用"
+  ],
+  "Filecount": [
+    "主机专项",
+    "通用品牌",
+    "Filecount 通用"
+  ],
+  "HUATUO": [
+    "主机专项",
+    "通用品牌",
+    "HUATUO 通用"
+  ],
+  "IPVS": [
+    "主机专项",
+    "通用品牌",
+    "IPVS 通用"
+  ],
+  "Mtail": [
+    "主机专项",
+    "通用品牌",
+    "Mtail 通用"
+  ],
+  "NFSClient": [
+    "主机专项",
+    "通用品牌",
+    "NFSClient 通用"
+  ],
+  "NVIDIA": [
+    "主机专项",
+    "NVIDIA",
+    "NVIDIA 通用"
+  ],
+  "Netstat_Filter": [
+    "主机专项",
+    "通用品牌",
+    "Netstat_Filter 通用"
+  ],
+  "Procstat": [
+    "主机专项",
+    "通用品牌",
+    "Procstat 通用"
+  ],
+  "SMART": [
+    "主机专项",
+    "通用品牌",
+    "SMART 通用"
+  ],
+  "Systemd": [
+    "主机专项",
+    "通用品牌",
+    "Systemd 通用"
+  ],
+  "Bind": [
+    "基础服务",
+    "Bind",
+    "Bind 通用"
+  ],
+  "Canal": [
+    "基础服务",
+    "Canal",
+    "Canal 通用"
+  ],
+  "Consul": [
+    "基础服务",
+    "Consul",
+    "Consul 通用"
+  ],
+  "Ldap": [
+    "基础服务",
+    "Ldap",
+    "Ldap 通用"
+  ],
+  "Radius": [
+    "基础服务",
+    "Radius",
+    "Radius 通用"
+  ],
+  "ZooKeeper": [
+    "基础服务",
+    "Apache",
+    "ZooKeeper 通用"
+  ],
+  "AppDynamics": [
+    "可观测平台",
+    "AppDynamics",
+    "AppDynamics 通用"
+  ],
+  "LLM": [
+    "可观测平台",
+    "LLM",
+    "LLM 通用"
+  ],
+  "Logstash": [
+    "可观测平台",
+    "Logstash",
+    "Logstash 通用"
+  ],
+  "N9E": [
+    "可观测平台",
+    "N9E",
+    "N9E 通用"
+  ],
+  "Prometheus": [
+    "可观测平台",
+    "Prometheus",
+    "Prometheus 通用"
+  ],
+  "RocketMQ": [
+    "消息中间件",
+    "Apache",
+    "RocketMQ 通用"
+  ],
+  "Skywalking": [
+    "可观测平台",
+    "Apache",
+    "Skywalking 通用"
+  ],
+  "VictoriaMetrics": [
+    "可观测平台",
+    "VictoriaMetrics",
+    "VictoriaMetrics 通用"
+  ],
+  "Zabbix": [
+    "可观测平台",
+    "Zabbix",
+    "Zabbix 通用"
+  ],
+  "jjj": [
+    "待归类",
+    "通用品牌",
+    "自定义设备（型号待确认）"
+  ],
+  "Windows (snmp)": [
+    "操作系统",
+    "微软",
+    "Windows 通用"
+  ],
+  "MySQL_84_Remote": [
+    "数据库",
+    "甲骨文",
+    "MySQL 8.4 LTS"
+  ],
+  "Windows_SNMP_Extended": [
+    "操作系统",
+    "微软",
+    "Windows 通用"
+  ]
+}

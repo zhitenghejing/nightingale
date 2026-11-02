@@ -1,0 +1,104 @@
+=== Before: outage, native customization, MySQL rollback ===
+=== RUN   TestArmedPackageKeepsOutageRulesActiveAfterFailedReconfiguration
+    arming_test.go:86: 
+        	Error Trace:	<worktree>/pkg/collection/arming_test.go:86
+        	Error:      	Should be zero, but was 1
+        	Test:       	TestArmedPackageKeepsOutageRulesActiveAfterFailedReconfiguration
+        	Messages:   	previously armed rules remain active after collection failure
+--- FAIL: TestArmedPackageKeepsOutageRulesActiveAfterFailedReconfiguration (0.15s)
+=== RUN   TestNativeRuleEditsBeforeAndDuringInitialSuspensionRemainDistinct
+    arming_test.go:116: 
+        	Error Trace:	<worktree>/pkg/collection/arming_test.go:116
+        	Error:      	Not equal: 
+        	            	expected: 0
+        	            	actual  : 1
+        	Test:       	TestNativeRuleEditsBeforeAndDuringInitialSuspensionRemainDistinct
+--- FAIL: TestNativeRuleEditsBeforeAndDuringInitialSuspensionRemainDistinct (0.11s)
+=== RUN   TestMySQLRollbackIgnoresHistoricalProbeEntries
+    mysql_package_test.go:128: 
+        	Error Trace:	<worktree>/pkg/collection/mysql_package_test.go:128
+        	Error:      	Received unexpected error:
+        	            	historical MySQL ownership mismatch
+        	Test:       	TestMySQLRollbackIgnoresHistoricalProbeEntries
+--- FAIL: TestMySQLRollbackIgnoresHistoricalProbeEntries (0.10s)
+FAIL
+FAIL	github.com/ccfos/nightingale/v6/pkg/collection	0.428s
+FAIL
+
+=== Before: datasource ACL after shared-cache warmup ===
+=== RUN   TestCollectionReadsRespectDatasourcePermissionAfterStatusCacheWarmup
+    router_collection_datasource_test.go:69: 
+        	Error Trace:	<worktree>/center/router/router_collection_datasource_test.go:69
+        	            				<worktree>/center/router/router_collection_datasource_test.go:75
+        	            				<worktree>/center/router/router_collection_datasource_test.go:75
+        	            				<worktree>/center/router/router_collection_datasource_test.go:83
+        	            				<worktree>/center/router/router_collection_datasource_test.go:89
+        	            				<go-toolchain>/src/runtime/asm_amd64.s:1264
+        	Error:      	Expected nil, but got: 37
+        	Test:       	TestCollectionReadsRespectDatasourcePermissionAfterStatusCacheWarmup
+--- FAIL: TestCollectionReadsRespectDatasourcePermissionAfterStatusCacheWarmup (0.03s)
+FAIL
+FAIL	github.com/ccfos/nightingale/v6/center/router	0.115s
+FAIL
+
+=== Before: native enable, paused metadata save, resume ===
+--- FAIL: TestNativeEnableDuringPauseSurvivesMetadataSave (0.36s)
+    arming_test.go:239: 
+        	Error Trace:	<worktree>/pkg/collection/arming_test.go:239
+        	Error:      	Should be zero, but was 1
+        	Test:       	TestNativeEnableDuringPauseSurvivesMetadataSave
+        	Messages:   	native enable is restored after the renewed system pause
+FAIL
+FAIL	github.com/ccfos/nightingale/v6/pkg/collection	0.428s
+FAIL
+
+=== After: all five affected packages ===
+ok  	github.com/ccfos/nightingale/v6/pkg/collection	4.801s
+ok  	github.com/ccfos/nightingale/v6/center/router	2.198s
+ok  	github.com/ccfos/nightingale/v6/models	0.513s
+ok  	github.com/ccfos/nightingale/v6/pushgw/router	0.988s
+ok  	github.com/ccfos/nightingale/v6/alert/process	0.087s
+
+=== After: explicit pause/arming regressions ===
+ok  	github.com/ccfos/nightingale/v6/pkg/collection	1.011s
+
+=== After: sql-dialects.log ===
+=== RUN   TestCollectionSQLDialects
+=== RUN   TestCollectionSQLDialects/postgres
+=== RUN   TestCollectionSQLDialects/postgres/gorm
+=== RUN   TestCollectionSQLDialects/postgres/sql
+=== RUN   TestCollectionSQLDialects/mysql
+=== RUN   TestCollectionSQLDialects/mysql/gorm
+=== RUN   TestCollectionSQLDialects/mysql/sql
+--- PASS: TestCollectionSQLDialects (41.04s)
+    --- PASS: TestCollectionSQLDialects/postgres (13.19s)
+        --- PASS: TestCollectionSQLDialects/postgres/gorm (6.47s)
+        --- PASS: TestCollectionSQLDialects/postgres/sql (6.72s)
+    --- PASS: TestCollectionSQLDialects/mysql (27.84s)
+        --- PASS: TestCollectionSQLDialects/mysql/gorm (13.16s)
+        --- PASS: TestCollectionSQLDialects/mysql/sql (14.68s)
+PASS
+ok  	github.com/ccfos/nightingale/v6/pkg/collection	41.121s
+
+=== After: mysql-provider.log ===
+=== RUN   TestCategrafMySQLPackage
+    provider_mysql_external_test.go:47: published native MySQL 8.4 package -> authenticated HTTP Provider -> actual pinned collector -> managed Remote Write -> complete required metric contract
+--- PASS: TestCategrafMySQLPackage (1.30s)
+PASS
+ok  	github.com/ccfos/nightingale/v6/pkg/collection	1.348s
+
+=== After: windows-live.log ===
+=== RUN   TestWindowsExtendedLiveCategraf
+    windows_extended_test.go:86: live Windows metrics: 35 names; CPU=8 storage=4 process CPU=144 routes=9; no TSDB writes
+--- PASS: TestWindowsExtendedLiveCategraf (40.14s)
+PASS
+ok  	github.com/ccfos/nightingale/v6/pkg/collection	40.213s
+
+=== After: pinned HTTP Provider ===
+=== RUN   TestCategrafHTTPProvider
+    provider_external_test.go:42: binary version: v0.5.18-3af14ebe568108c22ea7ee78d1c64becd03f1076-provider-redact1
+    provider_external_test.go:46: binary sha256: 64fce5331d1093a76b4990e0a1225e1e68fbc9dfc39033dc3b4b598c89638e99
+    provider_external_test.go:346: collector logs contain community: false
+--- PASS: TestCategrafHTTPProvider (47.19s)
+PASS
+ok  	github.com/ccfos/nightingale/v6/pkg/collection	47.351s

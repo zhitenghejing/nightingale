@@ -1,0 +1,155 @@
+{
+  "buildId": "20261102T073334Z-7888d2f2",
+  "errors": [],
+  "rendered": [
+    {
+      "name": "CPU usage",
+      "type": "timeseries"
+    },
+    {
+      "name": "CPU per core",
+      "type": "timeseries"
+    },
+    {
+      "name": "Logical processors",
+      "type": "timeseries"
+    },
+    {
+      "name": "System uptime",
+      "type": "timeseries"
+    },
+    {
+      "name": "Memory usage",
+      "type": "timeseries"
+    },
+    {
+      "name": "Memory total",
+      "type": "timeseries"
+    },
+    {
+      "name": "Memory used",
+      "type": "timeseries"
+    },
+    {
+      "name": "Memory free",
+      "type": "timeseries"
+    },
+    {
+      "name": "Volume usage",
+      "type": "timeseries"
+    },
+    {
+      "name": "Volume total",
+      "type": "timeseries"
+    },
+    {
+      "name": "Volume used",
+      "type": "timeseries"
+    },
+    {
+      "name": "Volume free",
+      "type": "timeseries"
+    },
+    {
+      "name": "Network in",
+      "type": "timeseries"
+    },
+    {
+      "name": "Network out",
+      "type": "timeseries"
+    },
+    {
+      "name": "Network in utilization",
+      "type": "timeseries"
+    },
+    {
+      "name": "Network out utilization",
+      "type": "timeseries"
+    },
+    {
+      "name": "in errors per second",
+      "type": "timeseries"
+    },
+    {
+      "name": "out errors per second",
+      "type": "timeseries"
+    },
+    {
+      "name": "in discards per second",
+      "type": "timeseries"
+    },
+    {
+      "name": "out discards per second",
+      "type": "timeseries"
+    },
+    {
+      "name": "Interface speed",
+      "type": "timeseries"
+    },
+    {
+      "name": "Interface oper status",
+      "type": "timeseries"
+    },
+    {
+      "name": "Interface admin status",
+      "type": "timeseries"
+    },
+    {
+      "name": "Interface duplex",
+      "type": "timeseries"
+    },
+    {
+      "name": "Interface information",
+      "type": "table"
+    },
+    {
+      "name": "Process CPU utilization",
+      "type": "timeseries"
+    },
+    {
+      "name": "Process memory",
+      "type": "timeseries"
+    },
+    {
+      "name": "Process CPU share",
+      "type": "timeseries"
+    },
+    {
+      "name": "Processes present",
+      "type": "table"
+    },
+    {
+      "name": "TCP Established",
+      "type": "timeseries"
+    },
+    {
+      "name": "TCP Time wait",
+      "type": "timeseries"
+    },
+    {
+      "name": "TCP Fin wait 2",
+      "type": "timeseries"
+    },
+    {
+      "name": "IPv4 listening endpoints",
+      "type": "table"
+    },
+    {
+      "name": "Modern listener PID",
+      "type": "table"
+    },
+    {
+      "name": "Service connection relationships",
+      "type": "table"
+    },
+    {
+      "name": "Route information",
+      "type": "table"
+    }
+  ],
+  "temporaryBoardDeleted": true,
+  "temporaryBoardId": 35,
+  "realBaselineCharts": true,
+  "optionalEnhancedFields": "No current TSDB samples; existing device stays on its original template. Optional/disabled absence is not fabricated.",
+  "passed": true
+}

@@ -104,6 +104,13 @@ func Init(ctx *ctx.Context, builtinIntegrationsDir string) {
 			logger.Warningf("read builtin component markdown dir fail %s %v", component.Ident, err)
 		}
 
+		if handled, seedErr := seedCollectionPack(ctx, componentDir, component); handled {
+			if seedErr != nil {
+				logger.Warningf("seed collection pack %s: %v", component.Ident, seedErr)
+			}
+			continue
+		}
+
 		exists, _ := models.BuiltinComponentExists(ctx, &component)
 		if !exists {
 			err = component.Add(ctx, SYSTEM)

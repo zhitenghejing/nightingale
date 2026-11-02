@@ -1,0 +1,71 @@
+{
+  "buildId": "20261102T073334Z-7888d2f2",
+  "checks": [
+    "fff: shared metadata, four tabs, actual dashboard/events/metrics and authorized rule links",
+    "dev01: shared metadata, four tabs, actual dashboard/events/metrics and authorized rule links",
+    "detail Edit retains the existing three-stage configuration editor and cancellation returns to details",
+    "192.168.0.106: shared metadata, four tabs, actual dashboard/events/metrics and authorized rule links",
+    "跳板机: shared metadata, four tabs, actual dashboard/events/metrics and authorized rule links",
+    "categraf01: shared metadata, four tabs, actual dashboard/events/metrics and authorized rule links",
+    "native explicit Edit retains the original host metadata controls",
+    "persistent table Edit still opens the editor directly",
+    "native green collection/ICMP tags and resizable list with fixed actions retained",
+    "browsing and editor cancellation caused no device writes or browser errors"
+  ],
+  "devices": [
+    {
+      "name": "fff",
+      "ident": "123.22.33.22",
+      "deviceType": "数据库",
+      "deviceModel": "MySQL 8.4 LTS",
+      "metrics": 7,
+      "currentAlerts": 0,
+      "rules": 3,
+      "dashboard": "existing template board"
+    },
+    {
+      "name": "dev01",
+      "ident": "192.168.0.151",
+      "deviceType": "操作系统",
+      "deviceModel": "Windows",
+      "metrics": 5,
+      "currentAlerts": 0,
+      "rules": 0,
+      "dashboard": "real collected charts"
+    },
+    {
+      "name": "192.168.0.106",
+      "ident": "192.168.0.106",
+      "deviceType": "操作系统",
+      "deviceModel": "Windows",
+      "metrics": 6,
+      "currentAlerts": 2,
+      "rules": 4,
+      "dashboard": "existing template board"
+    },
+    {
+      "name": "跳板机",
+      "ident": "jump",
+      "deviceType": "操作系统",
+      "deviceModel": "Windows 通用",
+      "metrics": 48,
+      "currentAlerts": 0,
+      "rules": 4,
+      "dashboard": "existing template board"
+    },
+    {
+      "name": "categraf01",
+      "ident": "categraf01",
+      "deviceType": "操作系统",
+      "deviceModel": "Ubuntu 24.04.4 LTS (Noble Numbat)",
+      "metrics": 5,
+      "currentAlerts": 2,
+      "rules": 2,
+      "dashboard": "real collected charts"
+    }
+  ],
+  "errors": [],
+  "mutations": [],
+  "readFailures": [],
+  "passed": true
+}

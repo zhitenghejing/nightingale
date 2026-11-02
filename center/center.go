@@ -29,6 +29,7 @@ import (
 	"github.com/ccfos/nightingale/v6/models"
 	"github.com/ccfos/nightingale/v6/models/migrate"
 	"github.com/ccfos/nightingale/v6/pkg/cmdb"
+	"github.com/ccfos/nightingale/v6/pkg/collection"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
 	"github.com/ccfos/nightingale/v6/pkg/evallog"
 	"github.com/ccfos/nightingale/v6/pkg/externalpush"
@@ -46,6 +47,7 @@ import (
 	"github.com/ccfos/nightingale/v6/tsdb"
 	tsdbrt "github.com/ccfos/nightingale/v6/tsdb/router"
 	"github.com/flashcatcloud/ibex/src/cmd/ibex"
+	"github.com/prometheus/common/model"
 )
 
 func Initialize(configDir string, cryptoKey string) (func(), error) {
@@ -215,6 +217,43 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 	centerRouter.Pushgw = config.Pushgw
 	centerRouter.CMDB = &cmdb.API{Store: cmdbStore}
 	pushgwRouter := pushgwrt.New(config.HTTP, config.Pushgw, config.Alert, targetCache, busiGroupCache, idents, metas, writers, ctx)
+	collectionCancel := func() {}
+	collectionWait := func() {}
+	if config.Center.Collection.Enable {
+		keys, keyErr := collection.LoadKeyring(config.Center.Collection.KeyFile)
+		if keyErr != nil {
+			return nil, keyErr
+		}
+		collectionStore := &collection.Store{DB: db, Keys: keys, Writers: map[string]bool{}, MaxDevices: config.Center.Collection.MaxDevices, MaxBytes: config.Center.Collection.MaxConfigBytes, FutureSeconds: config.Center.Collection.FutureSeconds}
+		for username := range config.HTTP.APIForAgent.BasicAuth {
+			if _, sharedServiceIdentity := config.HTTP.APIForService.BasicAuth[username]; !sharedServiceIdentity {
+				collectionStore.Writers[username] = true
+			}
+		}
+		if err = collectionStore.Migrate(); err != nil {
+			return nil, fmt.Errorf("initialize collection schema: %w", err)
+		}
+		if err = collectionStore.SyncReachability(); err != nil {
+			return nil, fmt.Errorf("initialize default ICMP collection: %w", err)
+		}
+		centerRouter.Collection = collectionStore
+		centerRouter.CollectionStatus = &collection.StatusService{Store: collectionStore, StaleSeconds: config.Center.Collection.StaleSeconds, FutureSeconds: config.Center.Collection.FutureSeconds,
+			Query: func(queryContext context.Context, datasourceID int64, query string, at time.Time) (model.Value, error) {
+				client := promClients.GetCli(datasourceID)
+				if client == nil {
+					return nil, fmt.Errorf("collection datasource unavailable")
+				}
+				result, _, queryErr := client.Query(queryContext, query, at)
+				return result, queryErr
+			},
+		}
+		pushgwRouter.Collection = collectionStore
+		workerContext, cancel := context.WithCancel(context.Background())
+		collectionCancel = cancel
+		waitProbes := collectionStore.Run(workerContext)
+		waitArming := centerRouter.CollectionStatus.Run(workerContext)
+		collectionWait = func() { waitProbes(); waitArming() }
+	}
 
 	r := httpx.GinEngine(config.Global.RunMode, config.HTTP, configCvalCache.PrintBodyPaths, configCvalCache.PrintAccessLog)
 
@@ -243,6 +282,9 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 		// httpClean 优雅关闭：等在途请求处理完才返回，之后不再有 remote write
 		// 请求进到本地 tsdb，Close 不会与写入竞态
 		httpClean()
+		collectionCancel()
+		collectionWait()
+
 		externalPushClean()
 		if tsdbInstance != nil {
 			if err := tsdbInstance.Close(); err != nil {

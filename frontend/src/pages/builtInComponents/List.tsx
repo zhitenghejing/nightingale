@@ -16,6 +16,9 @@ import Dashboards from './Dashboards';
 import ComponentSteps from './ComponentSteps';
 import { getComponents, Component, deleteComponents, putComponent } from './services';
 import ComponentFormModal from './components/ComponentFormModal';
+import CatalogBrowser from './CatalogBrowser';
+import CatalogEditor from './CatalogEditor';
+import { collectionEnabled } from '@/services/collection';
 import { IS_ENT } from '@/utils/constant';
 
 // @ts-ignore
@@ -31,6 +34,12 @@ export default function index() {
   const query = queryString.parse(search);
   const defaultComponent = query.component as string;
   const [searchValue, setSearchValue] = useState(localStorage.getItem(LIST_SEARCH_VALUE) || '');
+  const [catalogEnabled, setCatalogEnabled] = useState(false);
+  useEffect(() => {
+    collectionEnabled()
+      .then(setCatalogEnabled)
+      .catch(() => {});
+  }, []);
   const [data, setData] = useState<Component[]>([]);
   const [activeComponent, setActiveComponent] = useState<Component>();
   const [readme, setReadme] = useState('');
@@ -61,117 +70,130 @@ export default function index() {
 
   return (
     <PageLayout title={t('title')} icon={<SafetyCertificateOutlined />} doc='https://flashcat.cloud/docs/content/flashcat-monitor/nightingale-v9/usage/integrations/templates/'>
-      <div>
-        <div style={{ background: 'unset' }}>
-          <div className='mb-4' style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Input
-              prefix={<SearchOutlined />}
-              style={{ width: 300 }}
-              value={searchValue}
-              onChange={(e) => {
-                setSearchValue(e.target.value);
-                localStorage.setItem(LIST_SEARCH_VALUE, e.target.value);
-              }}
-              allowClear
-              placeholder={t('common:search_placeholder')}
-            />
-            <AuthorizationWrapper allowedPerms={['/components/add']}>
-              <Button
-                type='primary'
-                onClick={() => {
-                  ComponentFormModal({
-                    components: data,
-                    action: 'create',
-                    onOk: () => {
-                      fetchData();
-                    },
-                  });
+      {catalogEnabled ? (
+        <CatalogBrowser
+          components={data}
+          reload={fetchData}
+          onOpen={(item) => {
+            history.replace({ search: queryString.stringify({ ...query, component: item.ident }) });
+            setActiveComponent(item);
+            setReadme(item.readme);
+            setActiveTab('tab_onboarding');
+          }}
+        />
+      ) : (
+        <div>
+          <div style={{ background: 'unset' }}>
+            <div className='mb-4' style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Input
+                prefix={<SearchOutlined />}
+                style={{ width: 300 }}
+                value={searchValue}
+                onChange={(e) => {
+                  setSearchValue(e.target.value);
+                  localStorage.setItem(LIST_SEARCH_VALUE, e.target.value);
                 }}
-              >
-                {t('common:btn.create')}
-              </Button>
-            </AuthorizationWrapper>
-          </div>
-          <div className='builtin-cates-grid'>
-            {_.map(
-              _.filter(data, (item) => {
-                return _.includes(_.toUpper(item.ident), _.toUpper(searchValue));
-              }),
-              (item) => {
-                return (
-                  <div
-                    key={item.ident}
-                    className='builtin-cates-grid-item'
-                    onClick={() => {
-                      history.replace({
-                        search: queryString.stringify({
-                          ...query,
-                          component: item.ident,
-                        }),
-                      });
-                      setActiveComponent(item);
-                      setReadme(item.readme);
-                    }}
-                  >
-                    <img src={item.logo} style={{ height: 42, maxWidth: '60%' }} />
-                    <div>{item.ident}</div>
-                    <div className='builtin-cates-grid-item-operations'>
-                      <Space size={0}>
-                        <AuthorizationWrapper allowedPerms={['/components/put']}>
-                          <Button
-                            size='small'
-                            type='link'
-                            className='p-0'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              ComponentFormModal({
-                                components: data,
-                                action: 'edit',
-                                initialValues: item,
-                                onOk: () => {
-                                  fetchData();
-                                },
-                              });
-                            }}
-                            icon={<EditOutlined />}
-                          />
-                        </AuthorizationWrapper>
-                        <AuthorizationWrapper allowedPerms={['/components/del']}>
-                          <Button
-                            size='small'
-                            type='link'
-                            danger
-                            className='p-0'
-                            icon={<DeleteOutlined />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              Modal.confirm({
-                                title: t('common:confirm.delete'),
-                                onOk: () => {
-                                  deleteComponents([item.id]).then(() => {
+                allowClear
+                placeholder={t('common:search_placeholder')}
+              />
+              <AuthorizationWrapper allowedPerms={['/components/add']}>
+                <Button
+                  type='primary'
+                  onClick={() => {
+                    ComponentFormModal({
+                      components: data,
+                      action: 'create',
+                      onOk: () => {
+                        fetchData();
+                      },
+                    });
+                  }}
+                >
+                  {t('common:btn.create')}
+                </Button>
+              </AuthorizationWrapper>
+            </div>
+            <div className='builtin-cates-grid'>
+              {_.map(
+                _.filter(data, (item) => {
+                  return _.includes(_.toUpper(item.ident), _.toUpper(searchValue));
+                }),
+                (item) => {
+                  return (
+                    <div
+                      key={item.ident}
+                      className='builtin-cates-grid-item'
+                      onClick={() => {
+                        history.replace({
+                          search: queryString.stringify({
+                            ...query,
+                            component: item.ident,
+                          }),
+                        });
+                        setActiveComponent(item);
+                        setReadme(item.readme);
+                      }}
+                    >
+                      <img src={item.logo} style={{ height: 42, maxWidth: '60%' }} />
+                      <div>{item.ident}</div>
+                      <div className='builtin-cates-grid-item-operations'>
+                        <Space size={0}>
+                          <AuthorizationWrapper allowedPerms={['/components/put']}>
+                            <Button
+                              size='small'
+                              type='link'
+                              className='p-0'
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                ComponentFormModal({
+                                  components: data,
+                                  action: 'edit',
+                                  initialValues: item,
+                                  onOk: () => {
                                     fetchData();
-                                  });
-                                },
-                              });
-                            }}
-                          />
-                        </AuthorizationWrapper>
-                      </Space>
+                                  },
+                                });
+                              }}
+                              icon={<EditOutlined />}
+                            />
+                          </AuthorizationWrapper>
+                          <AuthorizationWrapper allowedPerms={['/components/del']}>
+                            <Button
+                              size='small'
+                              type='link'
+                              danger
+                              className='p-0'
+                              icon={<DeleteOutlined />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                Modal.confirm({
+                                  title: t('common:confirm.delete'),
+                                  onOk: () => {
+                                    deleteComponents([item.id]).then(() => {
+                                      fetchData();
+                                    });
+                                  },
+                                });
+                              }}
+                            />
+                          </AuthorizationWrapper>
+                        </Space>
+                      </div>
+                      {item.disabled === 1 && (
+                        <Tooltip title={t('disabled')}>
+                          <div className='builtin-cates-grid-item-status'>
+                            <StopOutlined />
+                          </div>
+                        </Tooltip>
+                      )}
                     </div>
-                    {item.disabled === 1 && (
-                      <Tooltip title={t('disabled')}>
-                        <div className='builtin-cates-grid-item-status'>
-                          <StopOutlined />
-                        </div>
-                      </Tooltip>
-                    )}
-                  </div>
-                );
-              },
-            )}
+                  );
+                },
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
       <Drawer
         width='90%'
         visible={!!activeComponent}
@@ -180,7 +202,7 @@ export default function index() {
         title={
           <Space>
             <img src={activeComponent?.logo} style={{ height: 24, width: 24 }} />
-            <div>{activeComponent?.ident}</div>
+            <div>{activeComponent?.display_name || activeComponent?.ident}</div>
           </Space>
         }
         extra={
@@ -193,6 +215,7 @@ export default function index() {
                 }),
               });
               setActiveComponent(undefined);
+              fetchData();
               setReadmeEditabled(false);
               setReadme(activeComponent?.readme || '');
             }}
@@ -206,10 +229,12 @@ export default function index() {
             }),
           });
           setActiveComponent(undefined);
+          fetchData();
           setReadmeEditabled(false);
           setReadme(activeComponent?.readme || '');
         }}
         footer={
+          !catalogEnabled &&
           activeTab === 'tab_instructions' &&
           (readmeEditabled ? (
             <Space>
@@ -250,7 +275,7 @@ export default function index() {
         }
         className='n9e-antd-drawer'
       >
-        {activeComponent && (
+        {activeComponent && !catalogEnabled && (
           <ComponentSteps
             ident={activeComponent.ident}
             componentId={activeComponent.id}
@@ -262,45 +287,54 @@ export default function index() {
             }}
           />
         )}
-        {activeComponent && (
-          <Tabs
-            className='builtin-drawer-tabs'
-            activeKey={activeTab}
-            onChange={(activeKey) => {
-              setActiveTab(activeKey);
-              localStorage.setItem(BUILT_IN_ACTIVE_TAB_KEY, activeKey);
-            }}
-          >
-            <Tabs.TabPane tab={t('tab_instructions')} key='tab_instructions' className='builtin-drawer-tab-pane'>
-              <Instructions
-                value={readme}
-                onChange={(newValue) => {
-                  setReadme(newValue);
-                }}
-                editabled={readmeEditabled}
-                setReadmeEditabled={setReadmeEditabled}
-              />
-            </Tabs.TabPane>
-            {IS_PLUS && (
-              <Tabs.TabPane tab={t('tab_collectTpls')} key='tab_collectTpls'>
-                <CollectTpls component={activeComponent.ident} component_id={activeComponent.id} />
+        {activeComponent && catalogEnabled ? (
+          <CatalogEditor componentId={activeComponent.id} />
+        ) : (
+          activeComponent && (
+            <Tabs
+              className='builtin-drawer-tabs'
+              activeKey={activeTab}
+              onChange={(activeKey) => {
+                setActiveTab(activeKey);
+                localStorage.setItem(BUILT_IN_ACTIVE_TAB_KEY, activeKey);
+              }}
+            >
+              {catalogEnabled && activeComponent && (
+                <Tabs.TabPane tab='设备接入配置' key='tab_onboarding'>
+                  <CatalogEditor componentId={activeComponent.id} />
+                </Tabs.TabPane>
+              )}
+              <Tabs.TabPane tab={t('tab_instructions')} key='tab_instructions' className='builtin-drawer-tab-pane'>
+                <Instructions
+                  value={readme}
+                  onChange={(newValue) => {
+                    setReadme(newValue);
+                  }}
+                  editabled={readmeEditabled}
+                  setReadmeEditabled={setReadmeEditabled}
+                />
               </Tabs.TabPane>
-            )}
-            <Tabs.TabPane tab={t('tab_metrics')} key='tab_metrics'>
-              <Metrics component={activeComponent.ident} />
-            </Tabs.TabPane>
-            <Tabs.TabPane tab={t('tab_dashboards')} key='tab_dashboards'>
-              <Dashboards component_id={activeComponent.id} componentIdent={activeComponent.ident} onPackStepDone={() => setPackFlag((prev) => prev + 1)} />
-            </Tabs.TabPane>
-            <Tabs.TabPane tab={t('tab_alertRules')} key='tab_alertRules'>
-              <AlertRules component_id={activeComponent.id} componentIdent={activeComponent.ident} onPackStepDone={() => setPackFlag((prev) => prev + 1)} />
-            </Tabs.TabPane>
-            {IS_ENT && (
-              <Tabs.TabPane tab={t('tab_firemap')} key='tab_firemap'>
-                <Firemap component_id={activeComponent.id} />
+              {IS_PLUS && (
+                <Tabs.TabPane tab={t('tab_collectTpls')} key='tab_collectTpls'>
+                  <CollectTpls component={activeComponent.ident} component_id={activeComponent.id} />
+                </Tabs.TabPane>
+              )}
+              <Tabs.TabPane tab={t('tab_metrics')} key='tab_metrics'>
+                <Metrics component={activeComponent.ident} />
               </Tabs.TabPane>
-            )}
-          </Tabs>
+              <Tabs.TabPane tab={t('tab_dashboards')} key='tab_dashboards'>
+                <Dashboards component_id={activeComponent.id} componentIdent={activeComponent.ident} onPackStepDone={() => setPackFlag((prev) => prev + 1)} />
+              </Tabs.TabPane>
+              <Tabs.TabPane tab={t('tab_alertRules')} key='tab_alertRules'>
+                <AlertRules component_id={activeComponent.id} componentIdent={activeComponent.ident} onPackStepDone={() => setPackFlag((prev) => prev + 1)} />
+              </Tabs.TabPane>
+              {IS_ENT && (
+                <Tabs.TabPane tab={t('tab_firemap')} key='tab_firemap'>
+                  <Firemap component_id={activeComponent.id} />
+                </Tabs.TabPane>
+              )}
+            </Tabs>
+          )
         )}
       </Drawer>
     </PageLayout>

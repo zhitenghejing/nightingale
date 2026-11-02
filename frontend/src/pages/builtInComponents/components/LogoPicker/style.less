@@ -4,12 +4,15 @@
   gap: 8px;
 }
 .n9e-logo-picker-item {
+  background: transparent;
+  padding: 0;
   border-radius: 42px;
   border: 8px solid transparent;
   cursor: pointer;
   img {
     width: 42px;
     height: 42px;
+    object-fit: contain;
   }
   &:hover {
     border-color: var(--fc-fill-4);
@@ -17,4 +20,18 @@
 }
 .n9e-logo-picker-trigger {
   display: inline-block;
+}
+.n9e-logo-picker-library {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--fc-border-color);
+}
+.n9e-logo-picker-add {
+  margin-top: 12px;
+  height: 64px;
+}
+.n9e-logo-picker-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--fc-text-3);
 }

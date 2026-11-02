@@ -61,6 +61,24 @@ class PreviewTest(unittest.TestCase):
                 self.assertEqual(config["Redis"]["RedisType"], "miniredis")
                 self.assertFalse(config["EmbeddedTSDB"]["Enable"])
 
+    def test_collection_preview_retains_private_keys_and_gates_provider(self):
+        binding = {"instance": "collection-instance", "role": "development"}
+        directory = preview.instance(binding)
+        directory.mkdir(parents=True)
+        (directory / "postgres.json").write_text(json.dumps({"dsn": "isolated-preview"}))
+        (directory / "collection.json").write_text(json.dumps({"enable": True}))
+        first = tomllib.loads(preview.app_config(binding, 30310))
+        self.assertTrue(first["Center"]["Collection"]["Enable"])
+        self.assertFalse(first["Center"]["Collection"]["ProviderEnable"])
+        key = Path(first["Center"]["Collection"]["KeyFile"])
+        original = key.read_bytes()
+        self.assertEqual(key.stat().st_mode & 0o077, 0)
+        preview.app_config(binding, 30312)
+        self.assertEqual(key.read_bytes(), original)
+        binding["role"] = "stable"
+        with self.assertRaisesRegex(ValueError, "private development collection"):
+            preview.app_config(binding, 30312)
+
     def test_private_collector_uses_authenticated_agent_and_opted_in_shared_prometheus(self):
         binding = {"instance": "collector-instance", "role": "development", "profile": "basic"}
         directory = preview.instance(binding)

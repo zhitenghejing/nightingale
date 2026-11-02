@@ -1,0 +1,22 @@
+flowchart TB
+  browser["浏览器 / API"] --> gateway
+  subgraph host["本地主机 192.168.0.152 · dev4 隔离预览"]
+    gateway["Preview Gateway<br/>入口 30304、代理、健康与构建身份"] --> n9e
+    subgraph n9e["n9e / Center 单进程"]
+      api["Web / API / Provider / 业务管理"]
+      runtime["Pushgw / 查询适配 / 告警引擎"]
+      miniredis["进程内 miniredis"]
+    end
+    pg["宿主机 PostgreSQL<br/>本实例独立数据库 / 角色"]
+    prom["宿主机共享 Prometheus<br/>本分支授权采集写入"]
+    files["实例专有目录<br/>档案、Skills、密钥、日志<br/>导出按需启动 Node CLI / LibreOffice"]
+    api --- pg & files
+    runtime -->|"指标写入"| prom
+    runtime <-->|"查询 / 告警"| prom
+  end
+  collector["独立 Categraf<br/>本地插件与受管 SNMP"] -->|"经 30304 Remote Write"| runtime
+  api -. "经入口拉取配置" .-> collector
+  collector <-->|"SNMP"| device["远程 SNMP Agent"]
+  optional["可选而未部署<br/>n9e-edge / n9e-alert / n9e-pushgw<br/>Ibex=false；EmbeddedTSDB=false"]
+  external["外部服务按配置连接<br/>通知、LLM、SSO；本轮未验证投递 / 连通"]
+  n9e -.-> external

@@ -75,6 +75,26 @@ SSO/外部 OAuth 客户端需按实际地址单独验证。公网 HTTPS 入口�
 
 ## 隔离与身份
 
+### SNMP 分支本地测试约定
+
+`feat/snmp-device-management` 按用户要求固定部署到 `http://192.168.0.152:30304`。
+后续每次修改后刷新该实例，UI、API、浏览器和端到端测试均通过此局域网入口执行。
+单元测试和构建仍在本机执行；采集器继续使用已有的本地 Docker 网桥采集入口。
+
+```bash
+python3 -B scripts/preview.py refresh --lan-host 192.168.0.152 --local-only
+python3 -B scripts/preview.py status --local-only
+```
+
+交付要求 running、local.ok、lan.ok 为 true，sourceChanged/frontendChanged 为 false，
+并核对 LAN 响应的 build ID。该分支使用这些本地检查作为运行实例门禁，跳过公网探测。
+Playwright 使用 `N9E_E2E_BASE_URL=http://192.168.0.152:30304`，从本次 status 取得
+`N9E_E2E_BUILD_ID` 和私有 `N9E_E2E_CREDENTIALS_FILE`，清除 `N9E_E2E_PROXY_SERVER` 后
+在 frontend 目录运行 `pnpm exec playwright test --config playwright.migration.config.ts`。
+通用 `make frontend-e2e` 仍包含公网门禁，因此本分支按上述方式执行本地测试。
+`scripts/collection-e2e.cjs` 从实例 manifest 的 lanHost/port 读取入口；其写入型测试
+需要独立的测试设备和采集器，已有真实采集器的实例使用只读检查和对应业务场景。
+
 Python 管理器用主机文件锁串行变更和重型构建。每个绑定具有随机实例 ID，位于
 `STATE/instances/<id>/`，包含 manifest.json、credentials.json、build.log、
 preview.log、postgres.json、database-bootstrap.log、bin/ 和独立 run/ 工作目录
@@ -206,3 +226,10 @@ QA 前端语料固定来自同仓 `frontend/src/`，不再通过 FE_REF/FE_LOCAL
 共享指标查询与写入拒绝、槽位所有权、源码/前端漂移、刷新、停止、销毁和槽位重用，
 最后删除测试实例、共享测试容器和数据卷；不会修改日常预览绑定。此检查包含多次构建，不在每次
 make verify 中机械重复。
+
+SNMP 功能开发可在同一私有实例目录创建权限为 `0600` 的 `collection.json`，
+内容为 `{"enable":true}`。刷新会启用采集管理并生成实例独有的
+`collection-keys.json`；后续刷新保留此密钥。实际 Provider 路由还要求上面的
+`collector.json` 和采集入口启用，公开网关继续阻断该路由。stable 拒绝此开发覆盖。
+销毁前先撤销该实例的采集及探测任务；有配置 API 断连时先在采集器侧停止任务，
+不能把删除令牌或销毁实例当作远端任务已停止。完整协议见 [SNMP 接口](api/collection.md)。

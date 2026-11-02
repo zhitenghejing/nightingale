@@ -1,3 +1,4 @@
+import type { CollectionState } from '@/services/collection';
 export interface Item {
   id: number;
   name: string;
@@ -26,6 +27,20 @@ export interface Item {
   beat_time: number;
   unixtime: number;
   update_at: number;
+  collection?: CollectionState;
+  inventory?: {
+    name: string;
+    device_type: string;
+    device_model: string;
+    collection_ok: boolean;
+    last_sample_at?: number;
+    template_path: string[];
+    method: string;
+    plugin?: string;
+    reachability: 'up' | 'down' | 'unknown' | 'error' | 'conflict';
+    reachability_at: number;
+    current_alerts: { critical: number; warning: number; info: number } | null;
+  };
 }
 
 export interface Stats {

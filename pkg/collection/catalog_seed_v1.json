@@ -1,0 +1,462 @@
+{
+  "Linux": [
+    "操作系统",
+    "Linux",
+    "Agent 基础包（版本待核验）"
+  ],
+  "Linux_SNMP": [
+    "操作系统",
+    "Linux",
+    "通用 SNMP"
+  ],
+  "Windows": [
+    "操作系统",
+    "Windows",
+    "Agent 基础包（版本待核验）"
+  ],
+  "Windows_SNMP": [
+    "操作系统",
+    "Windows",
+    "通用 SNMP"
+  ],
+  "Dameng": [
+    "数据库",
+    "Dameng",
+    "待核验版本"
+  ],
+  "Greenplum": [
+    "数据库",
+    "Greenplum",
+    "待核验版本"
+  ],
+  "Kingbase": [
+    "数据库",
+    "Kingbase",
+    "待核验版本"
+  ],
+  "MySQL": [
+    "数据库",
+    "MySQL",
+    "先验证 8.0，再扩展其他版本"
+  ],
+  "Oracle": [
+    "数据库",
+    "Oracle",
+    "待核验版本"
+  ],
+  "PostgreSQL": [
+    "数据库",
+    "PostgreSQL",
+    "待核验版本"
+  ],
+  "SQLServer": [
+    "数据库",
+    "SQLServer",
+    "待核验版本"
+  ],
+  "ClickHouse": [
+    "数据库",
+    "ClickHouse",
+    "待核验版本与部署方式"
+  ],
+  "Doris": [
+    "数据库",
+    "Doris",
+    "待核验版本与部署方式"
+  ],
+  "TDEngine": [
+    "数据库",
+    "TDEngine",
+    "待核验版本与部署方式"
+  ],
+  "TiDB": [
+    "数据库",
+    "TiDB",
+    "待核验版本与部署方式"
+  ],
+  "Elasticsearch": [
+    "缓存、文档与搜索",
+    "Elasticsearch",
+    "待核验版本"
+  ],
+  "MongoDB": [
+    "缓存、文档与搜索",
+    "MongoDB",
+    "待核验版本"
+  ],
+  "Redis": [
+    "缓存、文档与搜索",
+    "Redis",
+    "待核验版本"
+  ],
+  "AutoMQ": [
+    "消息中间件",
+    "AutoMQ",
+    "待核验版本"
+  ],
+  "EMQX": [
+    "消息中间件",
+    "EMQX",
+    "待核验版本"
+  ],
+  "Kafka": [
+    "消息中间件",
+    "Kafka",
+    "待核验版本"
+  ],
+  "NSQ": [
+    "消息中间件",
+    "NSQ",
+    "待核验版本"
+  ],
+  "RabbitMQ": [
+    "消息中间件",
+    "RabbitMQ",
+    "待核验版本"
+  ],
+  "Apache": [
+    "应用与 Web 服务",
+    "Apache",
+    "待核验版本"
+  ],
+  "Gitlab": [
+    "应用与 Web 服务",
+    "Gitlab",
+    "待核验版本"
+  ],
+  "HAProxy": [
+    "应用与 Web 服务",
+    "HAProxy",
+    "待核验版本"
+  ],
+  "IIS": [
+    "应用与 Web 服务",
+    "IIS",
+    "待核验版本"
+  ],
+  "Jenkins": [
+    "应用与 Web 服务",
+    "Jenkins",
+    "待核验版本"
+  ],
+  "Nginx": [
+    "应用与 Web 服务",
+    "Nginx",
+    "待核验版本"
+  ],
+  "PHP": [
+    "应用与 Web 服务",
+    "PHP",
+    "待核验版本"
+  ],
+  "Tomcat": [
+    "应用与 Web 服务",
+    "Tomcat",
+    "待核验版本"
+  ],
+  "Java": [
+    "应用运行时",
+    "Java",
+    "待核验接入方式"
+  ],
+  "Jolokia_Agent": [
+    "应用运行时",
+    "Jolokia_Agent",
+    "待核验接入方式"
+  ],
+  "SpringBoot": [
+    "应用运行时",
+    "SpringBoot",
+    "待核验接入方式"
+  ],
+  "Docker": [
+    "容器与编排",
+    "Docker",
+    "待核验版本与部署方式"
+  ],
+  "Kubernetes": [
+    "容器与编排",
+    "Kubernetes",
+    "待核验版本与部署方式"
+  ],
+  "cAdvisor": [
+    "容器与编排",
+    "cAdvisor",
+    "待核验版本与部署方式"
+  ],
+  "Ceph": [
+    "存储与虚拟化",
+    "Ceph",
+    "待核验版本"
+  ],
+  "MinIO": [
+    "存储与虚拟化",
+    "MinIO",
+    "待核验版本"
+  ],
+  "XSKYApi": [
+    "存储与虚拟化",
+    "XSKYApi",
+    "待核验版本"
+  ],
+  "vSphere": [
+    "存储与虚拟化",
+    "vSphere",
+    "待核验版本"
+  ],
+  "IPMI": [
+    "服务器",
+    "通用 BMC",
+    "IPMI 协议资料（待按厂商 / 型号拆包）"
+  ],
+  "Redfish": [
+    "服务器",
+    "通用 BMC",
+    "Redfish 协议资料（待按厂商 / 型号拆包）"
+  ],
+  "SNMP": [
+    "网络设备",
+    "通用设备",
+    "标准 MIB（待按厂商 / 型号拆包）"
+  ],
+  "Switch_Legacy": [
+    "网络设备",
+    "原交换机资料",
+    "厂商 / 型号待核验"
+  ],
+  "Akamai": [
+    "云平台与 SaaS",
+    "Akamai",
+    "待拆分产品包"
+  ],
+  "AliYun": [
+    "云平台与 SaaS",
+    "AliYun",
+    "待拆分产品包"
+  ],
+  "Azure": [
+    "云平台与 SaaS",
+    "Azure",
+    "待拆分产品包"
+  ],
+  "CloudWatch": [
+    "云平台与 SaaS",
+    "CloudWatch",
+    "待拆分产品包"
+  ],
+  "Cloudflare": [
+    "云平台与 SaaS",
+    "Cloudflare",
+    "待拆分产品包"
+  ],
+  "GoogleCloud": [
+    "云平台与 SaaS",
+    "GoogleCloud",
+    "待拆分产品包"
+  ],
+  "Huawei": [
+    "云平台与 SaaS",
+    "Huawei",
+    "待拆分产品包"
+  ],
+  "Meraki": [
+    "云平台与 SaaS",
+    "Meraki",
+    "待拆分产品包"
+  ],
+  "OpenStack": [
+    "云平台与 SaaS",
+    "OpenStack",
+    "待拆分产品包"
+  ],
+  "Tencent": [
+    "云平台与 SaaS",
+    "Tencent",
+    "待拆分产品包"
+  ],
+  "CDN": [
+    "拨测与外部目标",
+    "CDN",
+    "协议基础包"
+  ],
+  "Dns_Query": [
+    "拨测与外部目标",
+    "Dns_Query",
+    "协议基础包"
+  ],
+  "HTTP_Response": [
+    "拨测与外部目标",
+    "HTTP_Response",
+    "协议基础包"
+  ],
+  "Net_Response": [
+    "拨测与外部目标",
+    "Net_Response",
+    "协议基础包"
+  ],
+  "Ping": [
+    "拨测与外部目标",
+    "Ping",
+    "协议基础包"
+  ],
+  "Whois": [
+    "拨测与外部目标",
+    "Whois",
+    "协议基础包"
+  ],
+  "X509_Cert": [
+    "拨测与外部目标",
+    "X509_Cert",
+    "协议基础包"
+  ],
+  "AMD_ROCm_SMI": [
+    "主机专项",
+    "AMD_ROCm_SMI",
+    "本机 Agent 模式"
+  ],
+  "Exec": [
+    "主机专项",
+    "Exec",
+    "本机 Agent 模式"
+  ],
+  "Filecount": [
+    "主机专项",
+    "Filecount",
+    "本机 Agent 模式"
+  ],
+  "HUATUO": [
+    "主机专项",
+    "HUATUO",
+    "本机 Agent 模式"
+  ],
+  "IPVS": [
+    "主机专项",
+    "IPVS",
+    "本机 Agent 模式"
+  ],
+  "Mtail": [
+    "主机专项",
+    "Mtail",
+    "本机 Agent 模式"
+  ],
+  "NFSClient": [
+    "主机专项",
+    "NFSClient",
+    "本机 Agent 模式"
+  ],
+  "NVIDIA": [
+    "主机专项",
+    "NVIDIA",
+    "本机 Agent 模式"
+  ],
+  "Netstat_Filter": [
+    "主机专项",
+    "Netstat_Filter",
+    "本机 Agent 模式"
+  ],
+  "Procstat": [
+    "主机专项",
+    "Procstat",
+    "本机 Agent 模式"
+  ],
+  "SMART": [
+    "主机专项",
+    "SMART",
+    "本机 Agent 模式"
+  ],
+  "Systemd": [
+    "主机专项",
+    "Systemd",
+    "本机 Agent 模式"
+  ],
+  "Bind": [
+    "基础服务",
+    "Bind",
+    "待核验版本"
+  ],
+  "Canal": [
+    "基础服务",
+    "Canal",
+    "待核验版本"
+  ],
+  "Consul": [
+    "基础服务",
+    "Consul",
+    "待核验版本"
+  ],
+  "Ldap": [
+    "基础服务",
+    "Ldap",
+    "待核验版本"
+  ],
+  "Radius": [
+    "基础服务",
+    "Radius",
+    "待核验版本"
+  ],
+  "ZooKeeper": [
+    "基础服务",
+    "ZooKeeper",
+    "待核验版本"
+  ],
+  "AppDynamics": [
+    "可观测平台",
+    "AppDynamics",
+    "待核验接入模式"
+  ],
+  "LLM": [
+    "可观测平台",
+    "LLM",
+    "待核验接入模式"
+  ],
+  "Logstash": [
+    "可观测平台",
+    "Logstash",
+    "待核验接入模式"
+  ],
+  "N9E": [
+    "可观测平台",
+    "N9E",
+    "待核验接入模式"
+  ],
+  "Prometheus": [
+    "可观测平台",
+    "Prometheus",
+    "待核验接入模式"
+  ],
+  "RocketMQ": [
+    "消息中间件",
+    "RocketMQ",
+    "版本 / 接入方式待核验"
+  ],
+  "Skywalking": [
+    "可观测平台",
+    "Skywalking",
+    "待核验接入模式"
+  ],
+  "VictoriaMetrics": [
+    "可观测平台",
+    "VictoriaMetrics",
+    "待核验接入模式"
+  ],
+  "Zabbix": [
+    "可观测平台",
+    "Zabbix",
+    "待核验接入模式"
+  ],
+  "jjj": [
+    "待归类",
+    "jjj",
+    "原自建组件"
+  ],
+  "Windows (snmp)": [
+    "待归类",
+    "Windows (snmp)",
+    "原自建组件"
+  ],
+  "MySQL_84_Remote": [
+    "数据库",
+    "MySQL",
+    "8.4 LTS"
+  ]
+}

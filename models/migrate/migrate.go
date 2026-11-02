@@ -271,6 +271,9 @@ func MigrateTables(db *gorm.DB) error {
 		tableOptions = "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci"
 	}
 	db = migrationDB(db, tableOptions)
+	if err := models.MigrateMonitorAddressConstraints(db); err != nil {
+		return err
+	}
 	dts := []interface{}{&RecordingRule{}, &AlertRule{}, &AlertSubscribe{}, &AlertMute{},
 		&TaskRecord{}, &TaskTpl{}, &ChartShare{}, &Target{}, &Configs{}, &Datasource{}, &NotifyTpl{},
 		&Board{}, &BoardBusigroup{}, &Users{}, &SsoConfig{}, &models.BuiltinMetric{},
@@ -282,6 +285,7 @@ func MigrateTables(db *gorm.DB) error {
 		&models.AssistantChatRow{}}
 
 	dts = append(dts, models.ArchiveTables()...)
+	dts = append(dts, models.MonitorTables()...)
 
 	if isPostgres(db) {
 		dts = append(dts, &models.AssistantMessageRow{}) // PostgreSQL: text is unlimited

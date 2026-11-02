@@ -206,6 +206,63 @@ func TestAlertRuleTestFire_RealSample(t *testing.T) {
 	}
 }
 
+func TestAlertRuleTestFire_AppendTagsRendered(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		sample *TestFireSample
+		ident  string
+	}{
+		{
+			name: "real sample",
+			sample: &TestFireSample{
+				Labels: map[string]string{"ident": "categraf01", "env": "test"},
+				Value:  32.78705,
+				Query:  "mem_used_percent > 1",
+			},
+			ident: "categraf01",
+		},
+		{name: "mock sample", ident: "mock-host-01"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			rt, _, bgid := setupTestFire(t)
+			resp, panicked := callTestFire(t, rt, bgid, AlertRuleTestFireForm{
+				SkipSend: true,
+				Sample:   tc.sample,
+				Config: models.AlertRule{
+					Name:            "memory high",
+					NotifyVersion:   1,
+					AppendTagsJSON:  []string{"device_name={{$labels.ident}}", "env=prod", "rulename=ignored"},
+					AnnotationsJSON: map[string]string{"summary": "device {{$labels.device_name}}"},
+				},
+			})
+			if panicked || resp == nil || resp.Err != "" {
+				t.Fatalf("test fire failed: panicked=%v response=%+v", panicked, resp)
+			}
+			tags, ok := resp.Dat.Event["tags_map"].(map[string]interface{})
+			if !ok {
+				t.Fatalf("missing tags_map: %v", resp.Dat.Event)
+			}
+			for key, want := range map[string]string{
+				"ident": tc.ident, "device_name": tc.ident, "env": "prod", "rulename": "memory high",
+			} {
+				if got := tags[key]; got != want {
+					t.Errorf("tag %s: got %q, want %q", key, got, want)
+				}
+			}
+			if got := fmt.Sprint(resp.Dat.Event["tags"]); !strings.Contains(got, "device_name="+tc.ident) || strings.Contains(got, "{{$labels") {
+				t.Errorf("event tags should contain rendered values: %s", got)
+			}
+			annotations, _ := resp.Dat.Event["annotations"].(map[string]interface{})
+			if got := annotations["summary"]; got != "device "+tc.ident {
+				t.Errorf("annotation should use the rendered label: got %q", got)
+			}
+			if stageByName(t, resp, "synthesize").Status != "pass" {
+				t.Fatal("synthesize should pass")
+			}
+		})
+	}
+}
+
 // annotations 中的 {{$value}} 模板变量应被渲染
 func TestAlertRuleTestFire_AnnotationsRendered(t *testing.T) {
 	rt, _, bgid := setupTestFire(t)

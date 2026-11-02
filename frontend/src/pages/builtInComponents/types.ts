@@ -1,4 +1,5 @@
 export interface Component {
+  display_name?: string;
   id: number;
   ident: string;
   logo: string;

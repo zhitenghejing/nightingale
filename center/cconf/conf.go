@@ -34,6 +34,7 @@ type Center struct {
 	RSA                   httpx.RSAConfig
 	AIAgent               AIAgent
 	Archives              ArchiveConfig
+	Collection            CollectionConfig
 
 	// Sandbox isolates execution of user-uploaded Skill Python/Bash scripts
 	// (pkg/sandbox). Fail-open: non-Linux / insufficient kernel capabilities
@@ -129,4 +130,15 @@ type ArchiveConfig struct {
 	NodePath             string
 	LibreOfficePath      string
 	ExportTimeoutSeconds int
+}
+
+// CollectionConfig gates center-owned SNMP management and its dedicated provider route.
+type CollectionConfig struct {
+	Enable         bool
+	ProviderEnable bool
+	KeyFile        string
+	MaxDevices     int
+	MaxConfigBytes int
+	StaleSeconds   int
+	FutureSeconds  int
 }

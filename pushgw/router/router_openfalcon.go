@@ -199,6 +199,9 @@ func (rt *Router) falconPush(c *gin.Context) {
 			continue
 		}
 
+		if !rt.collectionSampleAllowed(c, pt) {
+			continue
+		}
 		if ident != "" {
 			if rt.Pushgw.GetHeartbeatFromMetric {
 				// register host

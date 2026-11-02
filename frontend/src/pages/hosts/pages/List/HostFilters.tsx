@@ -13,6 +13,8 @@ import { NS } from '../../constants';
 const downtimeOptions = [1, 2, 3, 5, 10, 30];
 
 export interface HostFilterValues {
+  collection_kind?: string;
+  collector_id?: string;
   query?: string;
   hosts?: string;
   downtime?: number;

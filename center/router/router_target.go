@@ -33,11 +33,11 @@ func (rt *Router) targetGetsByHostFilter(c *gin.Context) {
 
 	query := models.GetHostsQuery(f.Filters)
 
-	hosts, err := models.TargetGetsByFilter(rt.Ctx, query, f.Limit, (f.P-1)*f.Limit)
-	ginx.Dangerous(err)
-
-	total, err := models.TargetCountByFilter(rt.Ctx, query)
-	ginx.Dangerous(err)
+	base := rt.collectionTargetFilter(c)(models.TargetFilterQueryBuild(rt.Ctx, query, 0, 0))
+	var total int64
+	ginx.Dangerous(base.Count(&total).Error)
+	var hosts []*models.Target
+	ginx.Dangerous(base.Limit(f.Limit).Offset((max(f.P, 1) - 1) * f.Limit).Find(&hosts).Error)
 
 	models.FillTargetsBeatTime(rt.Redis, hosts)
 	now := time.Now().Unix()
@@ -49,6 +49,8 @@ func (rt *Router) targetGetsByHostFilter(c *gin.Context) {
 		}
 	}
 
+	ginx.Dangerous(rt.collectionTargets(c, hosts))
+	ginx.Dangerous(rt.targetInventory(c, hosts))
 	ginx.NewRender(c).Data(gin.H{
 		"list":  hosts,
 		"total": total,
@@ -88,6 +90,7 @@ func (rt *Router) targetGets(c *gin.Context) {
 	}
 
 	options := []models.BuildTargetWhereOption{
+		rt.collectionTargetFilter(c),
 		models.BuildTargetWhereWithBgids(bgids),
 		models.BuildTargetWhereWithDsIds(dsIds),
 		models.BuildTargetWhereWithQuery(query),
@@ -96,7 +99,7 @@ func (rt *Router) targetGets(c *gin.Context) {
 
 	// downtime 筛选：从缓存获取心跳时间，选择较小的集合用 IN 或 NOT IN 过滤
 	if downtime != 0 {
-		downtimeOpt, hasMatch := rt.downtimeFilter(downtime)
+		downtimeOpt, hasMatch := rt.collectionDowntimeFilter(c, downtime)
 		if !hasMatch {
 			ginx.NewRender(c).Data(gin.H{
 				"list":  []*models.Target{},
@@ -170,6 +173,8 @@ func (rt *Router) targetGets(c *gin.Context) {
 
 	}
 
+	ginx.Dangerous(rt.collectionTargets(c, list))
+	ginx.Dangerous(rt.targetInventory(c, list))
 	ginx.NewRender(c).Data(gin.H{
 		"list":  list,
 		"total": total,
@@ -738,6 +743,8 @@ func (rt *Router) targetStats(c *gin.Context) {
 	}
 
 	targets := rt.TargetCache.GetAll()
+	managed, collectionStates := rt.collectionStatistics(c, bgids)
+	collectionCounts := map[string]int64{}
 	now := time.Now().Unix()
 
 	var count, aliveCount, deadCount int64
@@ -752,6 +759,10 @@ func (rt *Router) targetStats(c *gin.Context) {
 	hasBgidFilter := len(bgids) > 0
 
 	for _, t := range targets {
+		kind := c.Query("collection_kind")
+		if managed[t.Ident] || (rt.Collection != nil && (kind == "snmp" || kind == "mysql" || kind == "managed" || c.Query("collector_id") != "")) {
+			continue
+		}
 		if hasBgidFilter {
 			matched := false
 			if _, ok := bgidSet[0]; ok && len(t.GroupIds) == 0 {
@@ -793,7 +804,28 @@ func (rt *Router) targetStats(c *gin.Context) {
 		versions[ver]++
 	}
 
+	for _, state := range collectionStates {
+		count++
+		collectionCounts[state.Health]++
+		if state.Health == "healthy" || state.Health == "partial" {
+			aliveCount++
+		}
+		if state.Health == "failed" || state.Health == "interrupted" {
+			deadCount++
+		}
+		if state.CPUPercent != nil {
+			cpuUsage[usageBucket(*state.CPUPercent)]++
+		} else {
+			cpuUsage["-1"]++
+		}
+		if state.MemoryPercent != nil {
+			memUsage[usageBucket(*state.MemoryPercent)]++
+		} else {
+			memUsage["-1"]++
+		}
+	}
 	ginx.NewRender(c).Data(gin.H{
+		"collection":  collectionCounts,
 		"count":       count,
 		"alive_count": aliveCount,
 		"dead_count":  deadCount,
