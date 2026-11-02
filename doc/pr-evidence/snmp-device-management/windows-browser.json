@@ -1,0 +1,22 @@
+{
+  "buildId": "20261102T073334Z-7888d2f2",
+  "checks": [
+    "native template card opens published package editor",
+    "editable collection TOML, instructions and 48 metric definitions",
+    "one editable native dashboard containing 36 panels; cancel does not mutate",
+    "four default alert rules and configurable native notification preset",
+    "direct template link refresh persists",
+    "device wizard selects type, brand, model and enhanced template, then shows correct SNMP form without creating a device"
+  ],
+  "errors": [],
+  "mutations": [],
+  "template": {
+    "id": 108,
+    "name": "Windows SNMP 增强",
+    "metrics": 48,
+    "panels": 36,
+    "rules": 4,
+    "release": "23811fbf-3d14-40fc-9762-ffece40d77f0"
+  },
+  "passed": true
+}

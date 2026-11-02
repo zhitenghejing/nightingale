@@ -1,0 +1,39 @@
+{
+  "monitor_device": {
+    "before": 32,
+    "after": 32,
+    "changedOriginalConfigurationCount": 0
+  },
+  "monitor_template_version": {
+    "before": 17,
+    "after": 17,
+    "changedOriginalConfigurationCount": 0
+  },
+  "monitor_catalog": {
+    "before": 94,
+    "after": 94,
+    "changedOriginalConfigurationCount": 0
+  },
+  "publications": {
+    "unchangedPrimaryProtocolTasks": 4,
+    "icmpTasks": 5,
+    "updatedCollectorPublications": 0
+  },
+  "unchangedServedDesignFiles": 38,
+  "unchangedDesignSourceFiles": 29,
+  "menu": {
+    "categories": 176,
+    "allActiveTemplatesAtDepthThree": true,
+    "migration": {
+      "moved_templates": 88
+    },
+    "editedCategoriesPreserved": true,
+    "temporaryFixturesRemoved": true
+  },
+  "board": {
+    "unchangedRows": 20
+  },
+  "alert_rule": {
+    "unchangedRows": 77
+  }
+}

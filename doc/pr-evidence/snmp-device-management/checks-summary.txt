@@ -1,0 +1,73 @@
+Code reviewed/tested: be590b73
+Base: a053043a64a821d8001407e6d757083d18c86866
+Command: make verify-all
+Exit: 0
+Go: 1.27.2; Node: 24.22.0; pnpm: 10.32.1
+
+Go tests (including subtests): 3014 passed, 0 failed, 55 skipped.
+Test Suites: 229 passed, 229 total
+Tests:       1914 passed, 1914 total
+规则总数 773，带 action 773，缺 action 0
+OK: 没有新增缺 action 的内置告警规则
+TOTAL p0: 0, p1: 0, other: 0, readme: 0 (scope=all)
+OK: no chinese text in rendered en_US builtin templates
+Requested checks passed; skipped tests are listed above and were not validated.
+
+Default-run skipped cases (not passes):
+TestArchiveDatabaseDialects/postgres (0.00s)
+TestArchiveDatabaseDialects/mysql (0.00s)
+TestArchiveRendererAndAnnotationExports (0.00s)
+TestArchiveInformationPrintForm (0.00s)
+TestFeishuAppProviderNotify (0.00s)
+TestFeishuCardProviderNotifyWithImage (0.00s)
+TestJiraLive (0.00s)
+TestDiscordLive (0.00s)
+TestJSMAlertLive (0.00s)
+TestSlackWebhookLive (0.00s)
+TestMattermostWebhookLive (0.00s)
+TestSendDingTalkNotification (0.00s)
+TestSendWecomNotificationWithImage (0.00s)
+TestSendTencentVoiceNotification (0.00s)
+TestSendTencentSMSNotification (0.00s)
+TestSendAliYunVoiceNotification (0.00s)
+TestSendAliYunSMSNotification (0.00s)
+TestSendFlashDuty (0.00s)
+TestTeamsLive (0.00s)
+TestWecomAppProviderNotifyLive (0.00s)
+TestPostgresBootstrapIsolationAndRefresh (0.00s)
+TestPostgresSQLiteImportAndSequence (0.00s)
+Test_Timeseries (0.00s)
+TestNewConn (0.00s)
+TestShowDatabases (0.00s)
+TestShowTables (0.00s)
+TestDescTable (0.00s)
+TestExecQuery (0.00s)
+TestSelectRows (0.00s)
+TestQuery (0.00s)
+TestQueryTimeseries (0.00s)
+TestVictoriaLogs_Query (0.00s)
+TestVictoriaLogs_StatsQuery (0.00s)
+TestVictoriaLogs_StatsQueryRange (0.00s)
+TestVictoriaLogs_HitsLogs (0.00s)
+TestVictoriaLogs_QueryWithFilter (0.00s)
+TestVictoriaLogs_StatsQueryByField (0.00s)
+TestMySQLConcurrentPlacement (0.00s)
+TestPostgresSchemaAndConcurrentPlacement (0.00s)
+TestExternalPushDatabaseDialects/postgres (0.00s)
+TestExternalPushDatabaseDialects/mysql (0.00s)
+TestCheckDatabaseExist/mysql (0.00s)
+TestCheckDatabaseExist/postgres (0.00s)
+TestDataBaseInit/mysql (0.00s)
+TestDataBaseInit/postgres (0.00s)
+TestEgressEndToEndReal (0.00s)
+TestEgressThroughBwrapNetns (0.00s)
+TestNetworkNoneHasNoEgress (0.00s)
+TestDumpSeccompBPF (0.00s)
+TestCategrafHTTPProvider (0.00s)
+TestCollectionPreviewFixture (0.00s)
+TestCategrafMySQLPackage (0.00s)
+TestCollectionSQLDialects/postgres (0.00s)
+TestCollectionSQLDialects/mysql (0.00s)
+TestWindowsExtendedLiveCategraf (0.00s)
+
+Collection SQL, Categraf HTTP/MySQL, and Windows read-only gates were run separately with explicit environments; see behavior-checks.txt. Other external/namespace tests remain unverified locally.
