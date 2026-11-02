@@ -1364,6 +1364,39 @@ func TestQueryByteBudgetTruncates(t *testing.T) {
 	}
 }
 
+func TestStartupSweepUsesFixedWriterHourBoundary(t *testing.T) {
+	cfg := Config{Dir: t.TempDir()}
+	hour := truncHour(time.Now()).Add(-time.Hour)
+	path := hourPath(cfg, 91, hour) + ".jsonl"
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("{}\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// The writer started in this hour; delay its sweep until the next hour.
+	// This path can already be active and must not be queued for compression.
+	w := &Writer{cfg: cfg, sweepBefore: hour, gzCh: make(chan string, 1), gzInflight: make(map[string]chan struct{})}
+	w.sweepLeftovers()
+	if len(w.gzInflight) != 0 {
+		t.Fatal("startup sweep used wall clock instead of the writer's fixed boundary")
+	}
+}
+
+func TestPruneKeepsRuleParentDuringAppenderCreation(t *testing.T) {
+	root := t.TempDir()
+	rulePath := filepath.Join(root, "90_1")
+	if err := os.Mkdir(rulePath, 0755); err != nil {
+		t.Fatal(err)
+	}
+	// Interleave the cleaner after MkdirAll creates the rule parent but before
+	// it creates today's child. Removing that empty parent makes Mkdir fail.
+	pruneEmptyDirs(root)
+	if err := os.Mkdir(filepath.Join(rulePath, time.Now().Format(dateLayout)), 0755); err != nil {
+		t.Fatalf("cleaner removed a parent needed by an in-progress appender: %v", err)
+	}
+}
+
 // 回归：解码次数应正比于**返回条数**，而不是区间内的记录总数。
 //
 // 原实现对每条命中记录都做整条 json.Unmarshal（含 labels map 分配），再靠环形缓冲丢掉

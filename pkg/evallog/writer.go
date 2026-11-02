@@ -38,11 +38,13 @@ var writeFailCooldown = 30 * time.Second
 // Writer 单 goroutine 消费队列、按 {rule_ds}/{date}/{hour}.jsonl 追加写入，
 // 整点滚动后异步 gzip。所有 appender / budgets 状态仅在消费 goroutine 内访问，无锁。
 type Writer struct {
-	cfg      Config
-	ch       chan *EvalRecord
-	done     chan struct{} // 消费 goroutine 退出信号
-	closing  sync.Once
-	dropHook func()
+	cfg         Config
+	ch          chan *EvalRecord
+	done        chan struct{} // 消费 goroutine 退出信号
+	sweepDone   chan struct{} // 启动扫描完成登记后关闭；历史追加不能抢在登记之前
+	sweepBefore time.Time     // 固定扫描上界，避免扫描启动跨整点时误碰新写入的文件
+	closing     sync.Once
+	dropHook    func()
 
 	appenders map[string]*appender   // key: {rule_id}_{ds_id}
 	budgets   map[string]*ruleBudget // key: {rule_id}（跨该规则的全部数据源共用）；生命周期独立于 appender
@@ -98,20 +100,25 @@ func NewWriter(cfg Config, dropHook func()) (*Writer, error) {
 	}
 
 	w := &Writer{
-		cfg:        cfg,
-		ch:         make(chan *EvalRecord, cfg.QueueSize),
-		done:       make(chan struct{}),
-		dropHook:   dropHook,
-		appenders:  make(map[string]*appender),
-		budgets:    make(map[string]*ruleBudget),
-		gzCh:       make(chan string, 1024),
-		gzInflight: make(map[string]chan struct{}),
+		cfg:         cfg,
+		ch:          make(chan *EvalRecord, cfg.QueueSize),
+		done:        make(chan struct{}),
+		sweepDone:   make(chan struct{}),
+		sweepBefore: truncHour(time.Now()),
+		dropHook:    dropHook,
+		appenders:   make(map[string]*appender),
+		budgets:     make(map[string]*ruleBudget),
+		gzCh:        make(chan string, 1024),
+		gzInflight:  make(map[string]chan struct{}),
 	}
 
 	w.gzWg.Add(1)
 	go w.gzLoop()
 	go w.loop()
-	go w.sweepLeftovers()
+	go func() {
+		defer close(w.sweepDone)
+		w.sweepLeftovers()
+	}()
 	return w, nil
 }
 
@@ -158,6 +165,9 @@ func (w *Writer) Close() {
 		close(w.gzCh)
 		w.gzMu.Unlock()
 
+		if w.sweepDone != nil {
+			<-w.sweepDone
+		}
 		w.gzWg.Wait()
 	})
 }
@@ -373,6 +383,12 @@ func (w *Writer) budgetFor(key, date string, now time.Time) *ruleBudget {
 // getAppender 取出/创建目标小时文件的 appender，必要时滚动旧文件。
 func (w *Writer) getAppender(key string, r *EvalRecord) *appender {
 	t := msTime(r.Ts)
+	// 扫描会为历史 .jsonl 登记压缩任务。若历史追加先打开文件，扫描可能随后将
+	// 活跃文件压缩并 unlink，缓冲中的记录随之丢失。等登记结束，再由 waitGzDone
+	// 等待该路径的压缩；当前小时不在扫描范围内，无需等待整个目录遍历。
+	if w.sweepDone != nil && t.Before(w.sweepBefore) {
+		<-w.sweepDone
+	}
 	hourKey := t.Format(dateLayout) + "/" + t.Format(hourLayout)
 
 	a, ok := w.appenders[key]
@@ -567,7 +583,10 @@ func (w *Writer) waitGzDone(path string) {
 // 后缀遍历整棵子树，Dir 一旦误配成某个已有目录，该目录下所有非当前小时的 .jsonl 都会
 // 被改写并删除——这正是 cleaner 用 ownHourFile 守住的那条线，写入侧同样不能少。
 func (w *Writer) sweepLeftovers() {
-	currentHour := truncHour(time.Now())
+	currentHour := w.sweepBefore
+	if currentHour.IsZero() {
+		currentHour = truncHour(time.Now())
+	}
 	_ = filepath.Walk(w.cfg.Dir, func(path string, info os.FileInfo, err error) error {
 		if w.gzStopped() {
 			// Writer 已关闭（进程退出 / 重新 Init），继续遍历已无意义
