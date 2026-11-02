@@ -153,6 +153,7 @@ func TestCollectionSQLDialects(t *testing.T) {
 					}
 					verifyNativeProfileSQL(t, s, scope, c, cred)
 					verifyCatalogSQL(t, s, scope)
+					verifyIconLibrary(t, s, scope)
 					verifyCatalogOnboardingSQL(t, s, scope)
 				})
 			}

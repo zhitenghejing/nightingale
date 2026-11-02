@@ -768,3 +768,6 @@ CREATE TABLE IF NOT EXISTS `monitor_audit` (`id` varchar(36),`actor_id` bigint,`
 -- Template catalog: display metadata, categories and unpublished drafts.
 CREATE TABLE IF NOT EXISTS `monitor_category` (`id` varchar(36),`parent_id` varchar(36),`name` varchar(128),`sort` bigint,`disabled` boolean,`record_version` bigint,INDEX `idx_monitor_category_parent_id` (`parent_id`),PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 CREATE TABLE IF NOT EXISTS `monitor_catalog` (`component_id` bigint,`name` varchar(128),`logo` LONGTEXT,`category_id` varchar(36),`disabled` boolean,`deleted` boolean,`draft` LONGTEXT,`published_version_id` varchar(64),`record_version` bigint,INDEX `idx_monitor_catalog_category_id` (`category_id`),PRIMARY KEY (`component_id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Reusable template icon materials.
+CREATE TABLE IF NOT EXISTS `monitor_icon` (`id` varchar(64),`name` varchar(128),`mime` varchar(32),`data` LONGTEXT,`size` bigint,`created_at` bigint,PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

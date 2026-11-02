@@ -60,7 +60,7 @@ async function main() {
         assert(route.length <= 3);
       }
       assert.equal(route.length, 3, entry.ident);
-      for (let i = 0; i < 3; i++) await select(['设备类型', '产品 / 厂商', '版本 / 型号'][i], route[i].name + (route[i].disabled ? '（已停用）' : ''));
+      for (let i = 0; i < 3; i++) await select(['设备类型', '品牌', '设备型号'][i], route[i].name + (route[i].disabled ? '（已停用）' : ''));
       const related = catalog.entries.filter((e) => e.category_id === entry.category_id);
       const status = entry.disabled || entry.onboarding.state === 'disabled' ? '已停用' : entry.onboarding.ready ? `可自动接入 · v${entry.published.version}` : '尚未发布 / 待接入';
       if (related.length > 1) await select('适用模板', `${entry.name} · ${status}`);
@@ -88,7 +88,7 @@ async function main() {
     assert(redis);
     const route = [];
     for (let id = redis.category_id; id;) { const c = byID.get(id); route.unshift(c); id = c.parent_id; }
-    for (let i = 0; i < 3; i++) await select(['设备类型', '产品 / 厂商', '版本 / 型号'][i], route[i].name);
+    for (let i = 0; i < 3; i++) await select(['设备类型', '品牌', '设备型号'][i], route[i].name);
     await editor.getByText('查看原模板的采集说明、仪表盘与告警规则', { exact: true }).click();
     await expect(editor.locator('pre')).toContainText('info');
     await expect(editor.getByLabel('SNMP 版本', { exact: true })).toHaveCount(0);

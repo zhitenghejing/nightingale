@@ -147,11 +147,11 @@ async function main() {
     const editor=page.getByRole('dialog',{name:/^(新增采集设备|Add collection device)$/});
     for (const step of ['设备类型与采集配置','仪表盘与告警通知','确认添加']) await expect(editor.getByText(step,{exact:true})).toBeVisible();
     await expect(editor.getByRole('button',{name:'确认添加设备'})).toHaveCount(0);
-    await expect(editor.getByRole('combobox',{name:'产品 / 厂商'})).toBeDisabled();
+    await expect(editor.getByRole('combobox',{name:'品牌'})).toBeDisabled();
     await editor.locator('#name').fill(seed);
     await select(editor.getByRole('combobox',{name:'设备类型'}),'待归类');
-    await select(editor.getByRole('combobox',{name:'产品 / 厂商'}),seed);
-    await select(editor.getByRole('combobox',{name:'版本 / 型号'}),'通用');
+    await select(editor.getByRole('combobox',{name:'品牌'}),seed);
+    await select(editor.getByRole('combobox',{name:'设备型号'}),'通用');
     await expect(editor.getByText('模板指定 SNMP 端口',{exact:true})).toBeVisible();
     await editor.locator('#address').fill('192.0.2.91');
     await editor.locator('#ident').fill(seed);
@@ -163,8 +163,8 @@ async function main() {
     await select(editor.getByRole('combobox',{name:'设备类型'}),'操作系统');
     await expect(editor.locator('#name')).toHaveValue(seed);
     await select(editor.getByRole('combobox',{name:'设备类型'}),'待归类');
-    await select(editor.getByRole('combobox',{name:'产品 / 厂商'}),seed);
-    await select(editor.getByRole('combobox',{name:'版本 / 型号'}),'通用');
+    await select(editor.getByRole('combobox',{name:'品牌'}),seed);
+    await select(editor.getByRole('combobox',{name:'设备型号'}),'通用');
     await expect(editor.getByLabel('团体字',{exact:true})).toHaveValue('');
     await editor.getByLabel('团体字',{exact:true}).fill(privateValue);
     await editor.locator('#enabled').click(); // Test objects never contact a target.
@@ -196,8 +196,8 @@ async function main() {
     const databaseEditor=mysqlPage.getByRole('dialog',{name:/^(新增采集设备|Add collection device)$/});
     assert.equal(await databaseEditor.locator('.collection-wizard-layout').evaluate((e)=>getComputedStyle(e).display),'grid');
     await mysqlSelect(databaseEditor.getByRole('combobox',{name:'设备类型'}),'数据库');
-    await mysqlSelect(databaseEditor.getByRole('combobox',{name:'产品 / 厂商'}),'MySQL');
-    await mysqlSelect(databaseEditor.getByRole('combobox',{name:'版本 / 型号'}),'8.4 LTS');
+    await mysqlSelect(databaseEditor.getByRole('combobox',{name:'品牌'}),'甲骨文');
+    await mysqlSelect(databaseEditor.getByRole('combobox',{name:'设备型号'}),'MySQL 8.4 LTS');
     await expect(databaseEditor.getByLabel('MySQL 端口',{exact:true})).toHaveValue('3306');
     await expect(databaseEditor.getByLabel('监控账号',{exact:true})).toBeVisible();
     assert.equal(await databaseEditor.getByLabel('监控密码',{exact:true}).getAttribute('type'),'password');

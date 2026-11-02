@@ -168,6 +168,9 @@ func (rt *Router) targetDeviceDetail(c *gin.Context) {
 		target.Inventory.CollectionOK = false
 		if out.Device.Profile != nil && out.Device.Profile.Catalog != nil {
 			target.Inventory.DeviceType, target.Inventory.DeviceModel = inventoryClassification(out.Device.Profile.Catalog.CategoryPath)
+			if out.Device.Profile.Catalog.Taxonomy == collection.TypeBrandModelTaxonomy && len(out.Device.Profile.Catalog.CategoryPath) == 3 {
+				target.Inventory.DeviceModel = inventoryText(out.Device.Profile.Catalog.CategoryPath[2])
+			}
 		} else if device.TemplateVersionID == collection.WindowsTemplate {
 			target.Inventory.DeviceType = "操作系统"
 			target.Inventory.DeviceModel = "Windows"

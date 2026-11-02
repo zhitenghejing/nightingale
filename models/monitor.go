@@ -143,5 +143,5 @@ type MonitorAudit struct {
 
 func (MonitorAudit) TableName() string { return "monitor_audit" }
 func MonitorTables() []interface{} {
-	return []interface{}{&MonitorCategory{}, &MonitorCatalog{}, &MonitorCollector{}, &MonitorCollectorGroup{}, &MonitorCredential{}, &MonitorDevice{}, &MonitorTemplateVersion{}, &MonitorPublication{}, &MonitorProbe{}, &MonitorAudit{}}
+	return []interface{}{&MonitorCategory{}, &MonitorCatalog{}, &MonitorIcon{}, &MonitorCollector{}, &MonitorCollectorGroup{}, &MonitorCredential{}, &MonitorDevice{}, &MonitorTemplateVersion{}, &MonitorPublication{}, &MonitorProbe{}, &MonitorAudit{}}
 }

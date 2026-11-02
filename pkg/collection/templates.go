@@ -18,6 +18,7 @@ import (
 // TemplateConfig is deliberately smaller than a Categraf instance: endpoints,
 // credentials, ownership labels and execution settings are always server-owned.
 type TemplateConfig struct {
+	DisabledTables  []string    `json:"disabled_tables,omitempty" toml:"disabled_tables,omitempty"`
 	ProducedMetrics []string    `json:"produced_metrics,omitempty" toml:"produced_metrics,omitempty"`
 	RequiredMetrics []string    `json:"required_metrics" toml:"required_metrics"`
 	Fields          []snmpField `json:"fields" toml:"field,omitempty"`
@@ -134,7 +135,7 @@ func (c TemplateConfig) MetricNames() []string {
 func parseTemplate(config string) (TemplateConfig, error) {
 	var c TemplateConfig
 	if len(config) > 65536 || toml.NewDecoder(strings.NewReader(config)).DisallowUnknownFields().Decode(&c) != nil {
-		return c, bad("invalid SNMP template TOML; only field, table and required_metrics are allowed")
+		return c, bad("invalid SNMP template TOML; only field, table, disabled_tables and required_metrics are allowed")
 	}
 	if len(c.ProducedMetrics) != 0 {
 		return c, bad("SNMP metric names must be derived from OIDs")
@@ -150,7 +151,7 @@ func parseTemplate(config string) (TemplateConfig, error) {
 			if table != "" {
 				name = table + "_" + name
 			}
-			if !snmpName.MatchString(f.Name) || !validNumericOID(f.OID) || seen[f.Name] || (!f.IsTag && names[name]) {
+			if !snmpName.MatchString(f.Name) || !validNumericOID(f.OID) || seen[f.Name] || (!f.IsTag && names[name]) || (f.Conversion != "" && (f.Conversion != "hwaddr" || !f.IsTag)) {
 				return bad("invalid or duplicate SNMP field name or numeric OID")
 			}
 			if f.IsTag && reservedLabel(f.Name) && f.Name != "type" {
@@ -189,6 +190,24 @@ func parseTemplate(config string) (TemplateConfig, error) {
 		}
 	}
 	c.RequiredMetrics = sortedUnique(append(c.RequiredMetrics, "snmp_uptime"))
+	disabled := map[string]bool{}
+	for _, name := range c.DisabledTables {
+		if !tables[name] || disabled[name] {
+			return c, bad("invalid disabled SNMP table")
+		}
+		disabled[name] = true
+	}
+	for _, table := range c.Tables {
+		if disabled[table.Name] {
+			for _, field := range table.Fields {
+				for _, required := range c.RequiredMetrics {
+					if !field.IsTag && required == "snmp_"+table.Name+"_"+field.Name {
+						return c, bad("required SNMP metrics cannot be disabled")
+					}
+				}
+			}
+		}
+	}
 	available := map[string]bool{}
 	for _, name := range c.MetricNames() {
 		available[name] = true

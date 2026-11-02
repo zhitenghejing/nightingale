@@ -50,6 +50,7 @@ type CatalogDefinition struct {
 }
 type CatalogRelease struct {
 	Version      int               `json:"version"`
+	Taxonomy     string            `json:"taxonomy,omitempty"`
 	CategoryPath []string          `json:"category_path"`
 	Definition   CatalogDefinition `json:"definition"`
 }
@@ -89,7 +90,20 @@ func seedCategory(tx *gorm.DB, path []string) (string, error) {
 	parent := ""
 	for _, name := range path {
 		name = catalogLabel(name)
+		var existing models.MonitorCategory
+		if err := tx.Where("parent_id = ? AND name = ?", parent, name).First(&existing).Error; err == nil {
+			parent = existing.ID
+			continue
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", err
+		}
 		id := uuid.NewSHA1(uuid.NameSpaceOID, []byte("nightingale-template-category:"+parent+":"+name)).String()
+		// A user may have renamed/moved the old deterministic seed ID.
+		if err := tx.First(&existing, "id = ?", id).Error; err == nil {
+			id = uuid.NewString()
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", err
+		}
 		c := models.MonitorCategory{ID: id, ParentID: parent, Name: name, RecordVersion: 1}
 		if err := tx.Clauses(clause.OnConflict{DoNothing: true}).Create(&c).Error; err != nil {
 			return "", err
@@ -103,6 +117,9 @@ func seedCategory(tx *gorm.DB, path []string) (string, error) {
 // user metadata, drafts, category moves or immutable release selections.
 func (s *Store) EnsureCatalog() error {
 	return s.write(func(tx *gorm.DB) error {
+		if err := s.migrateCatalogTaxonomy(tx); err != nil {
+			return err
+		}
 		var components []models.BuiltinComponent
 		if err := tx.Where("id NOT IN (?)", tx.Model(&models.MonitorCatalog{}).Select("component_id")).Find(&components).Error; err != nil {
 			return err
@@ -114,7 +131,7 @@ func (s *Store) EnsureCatalog() error {
 		for _, c := range components {
 			path := paths[c.Ident]
 			if len(path) != 3 {
-				path = []string{"待归类", catalogLabel(c.Ident), "通用"}
+				path = []string{"待归类", "未知品牌", catalogLabel(c.Ident)}
 			}
 			category, err := seedCategory(tx, path)
 			if err != nil {
@@ -159,7 +176,7 @@ func (s *Store) EnsureCatalog() error {
 				if err := validatePublishedResources(doc); err != nil {
 					continue
 				}
-				doc.Catalog = &CatalogRelease{Version: 1, CategoryPath: path, Definition: d}
+				doc.Catalog = &CatalogRelease{Version: 1, Taxonomy: TypeBrandModelTaxonomy, CategoryPath: path, Definition: d}
 				version := catalogVersion(row, doc, 1)
 				if len(version.Definition) > 2<<20 {
 					continue
@@ -419,7 +436,7 @@ func (s *Store) SaveCatalogDraft(scope Scope, id uint64, f CatalogDraftInput, pu
 				}
 				next = prior.Version + 1
 			}
-			doc.Catalog = &CatalogRelease{Version: next, CategoryPath: path, Definition: f.Definition}
+			doc.Catalog = &CatalogRelease{Version: next, Taxonomy: TypeBrandModelTaxonomy, CategoryPath: path, Definition: f.Definition}
 			if err = validatePublishedResources(doc); err != nil {
 				return err
 			}

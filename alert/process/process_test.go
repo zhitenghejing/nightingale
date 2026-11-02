@@ -9,6 +9,34 @@ import (
 	"github.com/ccfos/nightingale/v6/models"
 )
 
+func TestFillTagsRendersAppendTags(t *testing.T) {
+	p := &Processor{rule: &models.AlertRule{
+		Name:           "memory high",
+		AppendTagsJSON: []string{"device_name={{$labels.ident}}", "env=prod", "rulename=ignored"},
+	}}
+	point := models.NewAnomalyPoint("mem_used_percent", map[string]string{"ident": "categraf01", "env": "test"}, 1, 32.78705, 2)
+	p.fillTags(point)
+	for key, want := range map[string]string{
+		"ident": "categraf01", "device_name": "categraf01", "env": "prod", "rulename": "memory high",
+	} {
+		if got := p.tagsMap[key]; got != want {
+			t.Errorf("tag %s: got %q, want %q", key, got, want)
+		}
+	}
+	if point.Labels["env"] != "test" {
+		t.Fatal("rendering rule tags must not change query sample labels")
+	}
+	found := false
+	for _, tag := range p.tagsArr {
+		if tag == "device_name=categraf01" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("event tag array missing rendered device_name: %v", p.tagsArr)
+	}
+}
+
 func TestRecoverSingleSetsRecoverTime(t *testing.T) {
 	const now int64 = 200
 	for _, tc := range []struct {

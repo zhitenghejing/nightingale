@@ -75,6 +75,7 @@ func (rt *Router) targetInventory(c *gin.Context, targets []*models.Target) erro
 			}
 		}
 		paths := map[string][]string{}
+		taxonomies := map[string]string{}
 		for _, release := range releases {
 			var doc struct {
 				Catalog   *collection.CatalogRelease `json:"catalog"`
@@ -85,6 +86,7 @@ func (rt *Router) targetInventory(c *gin.Context, targets []*models.Target) erro
 			}
 			if doc.Catalog != nil {
 				paths[release.ID] = doc.Catalog.CategoryPath
+				taxonomies[release.ID] = doc.Catalog.Taxonomy
 			} else if release.TemplateKey == "windows_basic" {
 				// Exact key of the original immutable WindowsTemplate seed.
 				// It predates component/category metadata in the release document.
@@ -120,6 +122,9 @@ func (rt *Router) targetInventory(c *gin.Context, targets []*models.Target) erro
 			item.TemplatePath = append([]string{}, paths[device.TemplateVersionID]...)
 			if len(item.TemplatePath) > 0 {
 				item.DeviceType, item.DeviceModel = inventoryClassification(item.TemplatePath)
+				if taxonomies[device.TemplateVersionID] == collection.TypeBrandModelTaxonomy && len(item.TemplatePath) == 3 {
+					item.DeviceModel = inventoryText(item.TemplatePath[2])
+				}
 			}
 			item.Method, item.Plugin = inventoryMethod(device.Protocol)
 			item.CollectionOK = false

@@ -64,7 +64,7 @@ test('existing unpublished templates remain selectable through all three categor
     ],
   };
   render(<Fixture data={existing} />);
-  for (const [label, option] of [['设备类型', '缓存、文档与搜索'], ['产品 / 厂商', 'Redis'], ['版本 / 型号', '待核验版本']]) {
+  for (const [label, option] of [['设备类型', '缓存、文档与搜索'], ['品牌', 'Redis'], ['设备型号', '待核验版本']]) {
     fireEvent.mouseDown(screen.getByRole('combobox', { name: label }).closest('.ant-select')!.querySelector('.ant-select-selector')!);
     fireEvent.click(await screen.findByText(option, { selector: '.ant-select-item-option-content' }));
   }

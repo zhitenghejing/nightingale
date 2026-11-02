@@ -1,14 +1,20 @@
-import React, { useEffect, useState } from 'react';
-import { Button, Empty, Input, message, Modal, Select, Space, Table, Tag, Tree, Form, TreeSelect, InputNumber, Switch } from 'antd';
-import { AppstoreOutlined, UnorderedListOutlined, EditOutlined, DeleteOutlined, SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import React, { useContext, useEffect, useState } from 'react';
+import { Button, Empty, Input, message, Modal, Select, Space, Table, Tag, Form, TreeSelect } from 'antd';
+import { AppstoreOutlined, UnorderedListOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import AuthorizationWrapper from '@/components/AuthorizationWrapper';
 import { Component } from './types';
 import TemplateLogo from './TemplateLogo';
 import ComponentFormModal from './components/ComponentFormModal';
-import { Catalog, CatalogEntry, Category, categoryPath, categoryTree, getCatalog, matchingEntries, removeCatalog, saveCategory, removeCategory, createCatalog } from './catalog';
+import { Catalog, CatalogEntry, categoryPath, categoryTree, getCatalog, matchingEntries, removeCatalog, createCatalog } from './catalog';
+import { CommonStateContext } from '@/App';
+import CatalogCategoryMenu from './CatalogCategoryMenu';
+import { TEMPLATE_DRAG_TYPE } from './catalogDrag';
 import { errorText } from '@/pages/collection/errors';
 
 export default function CatalogBrowser({ components, onOpen, reload }: { components: Component[]; onOpen: (component: Component) => void; reload: () => void }) {
+  const commonState = useContext(CommonStateContext);
+  const { profile } = commonState;
+  const canEdit = !!profile.admin;
   const [creating, setCreating] = useState(false);
   const [createForm] = Form.useForm();
   const [catalog, setCatalog] = useState<Catalog>();
@@ -17,10 +23,6 @@ export default function CatalogBrowser({ components, onOpen, reload }: { compone
   const [category, setCategory] = useState('');
   const [status, setStatus] = useState('all');
   const [layout, setLayout] = useState(localStorage.getItem('builtin-catalog-layout') || 'grid');
-  const [expanded, setExpanded] = useState<string[]>([]);
-  const [expandAll, setExpandAll] = useState(true);
-  const [categoryEdit, setCategoryEdit] = useState<Partial<Category>>();
-  const [categoryForm] = Form.useForm();
   const fetchCatalog = () =>
     getCatalog()
       .then((c) => {
@@ -31,16 +33,20 @@ export default function CatalogBrowser({ components, onOpen, reload }: { compone
   useEffect(() => {
     fetchCatalog();
   }, [components]);
-  useEffect(() => {
-    if (expandAll) setExpanded(catalog?.categories.map((c) => c.id) || []);
-  }, [catalog?.categories]);
-  const changed = () => {
-    fetchCatalog();
+  const changed = async () => {
+    await fetchCatalog();
     reload();
   };
+  const draggable = (entry: CatalogEntry): React.HTMLAttributes<HTMLElement> => ({
+    draggable: canEdit,
+    onDragStart: (event) => {
+      event.dataTransfer.setData(TEMPLATE_DRAG_TYPE, JSON.stringify({ component_id: entry.component_id, record_version: entry.record_version }));
+      event.dataTransfer.effectAllowed = 'move';
+    },
+  });
   const edit = (entry: CatalogEntry) => {
     const component = components.find((c) => c.id === entry.component_id);
-    if (component) ComponentFormModal({ components, action: 'edit', initialValues: component, catalogEntry: entry, categories: catalog?.categories, onOk: changed });
+    if (component) ComponentFormModal({ components, action: 'edit', initialValues: component, catalogEntry: entry, categories: catalog?.categories, onOk: changed, commonState });
   };
   const open = (entry: CatalogEntry) => {
     const component = components.find((c) => c.id === entry.component_id);
@@ -72,101 +78,16 @@ export default function CatalogBrowser({ components, onOpen, reload }: { compone
   return (
     <div className='builtin-catalog'>
       <aside className='builtin-catalog-tree'>
-        <Space className='mb-2'>
-          <strong>设备分类</strong>
-          <AuthorizationWrapper allowedPerms={['/components/put']}>
-            <Button
-              size='small'
-              type='text'
-              title='新建分类'
-              icon={<PlusOutlined />}
-              onClick={() => {
-                const parent = catalog?.categories.find((c) => c.id === category);
-                const value = { parent_id: parent && categoryPath(catalog!.categories, parent.id).length < 3 ? parent.id : '' };
-                categoryForm.setFieldsValue({ ...value, name: '' });
-                setCategoryEdit(value);
-              }}
-            />
-          </AuthorizationWrapper>
-        </Space>
-        <Space className='mb-2'>
-          <Button
-            size='small'
-            onClick={() => {
-              setExpandAll(true);
-              setExpanded(catalog?.categories.map((c) => c.id) || []);
-            }}
-          >
-            全部展开
-          </Button>
-          <Button
-            size='small'
-            onClick={() => {
-              setExpandAll(false);
-              setExpanded([]);
-            }}
-          >
-            全部折叠
-          </Button>
-        </Space>
-        <Button block type={!category ? 'primary' : 'text'} onClick={() => setCategory('')}>
-          全部模板 ({catalog?.entries.length || 0})
-        </Button>
-        <Tree
-          treeData={categoryTree(catalog?.categories || []).map(function makeSelectable(node): any {
-            return { ...node, selectable: true, children: node.children?.map(makeSelectable) };
-          })}
-          selectedKeys={category ? [category] : []}
-          expandedKeys={expanded}
-          autoExpandParent={false}
-          onExpand={(keys) => {
-            setExpandAll(false);
-            setExpanded(keys.map(String));
-          }}
-          onSelect={(keys) => setCategory(String(keys[0] || ''))}
-        />
-        {category && (
-          <AuthorizationWrapper allowedPerms={['/components/put']}>
-            <Space>
-              <Button
-                type='link'
-                onClick={() => {
-                  const c = catalog?.categories.find((x) => x.id === category);
-                  categoryForm.setFieldsValue(c);
-                  setCategoryEdit(c);
-                }}
-              >
-                编辑分类
-              </Button>
-              <Button
-                type='link'
-                danger
-                onClick={() => {
-                  const c = catalog?.categories.find((x) => x.id === category);
-                  if (c)
-                    Modal.confirm({
-                      title: '删除此分类？',
-                      content: '请先移出模板并删除子分类。',
-                      onOk: () =>
-                        removeCategory(c)
-                          .then(() => {
-                            setCategory('');
-                            changed();
-                          })
-                          .catch((e) => {
-                            message.error(errorText(e, '删除失败'));
-                            return Promise.reject(e);
-                          }),
-                    });
-                }}
-              >
-                删除分类
-              </Button>
-            </Space>
-          </AuthorizationWrapper>
-        )}
+        <CatalogCategoryMenu catalog={catalog} selected={category} onSelect={setCategory} onChanged={changed} canEdit={canEdit} canDelete={canEdit} />
       </aside>
       <main className='builtin-catalog-content'>
+        <div className='builtin-catalog-breadcrumb'>
+          {category
+            ? categoryPath(catalog?.categories || [], category)
+                .map((c) => c.name)
+                .join(' → ')
+            : '全部模板'}
+        </div>
         <div className='builtin-catalog-toolbar'>
           <Space wrap>
             <Input
@@ -234,7 +155,7 @@ export default function CatalogBrowser({ components, onOpen, reload }: { compone
         {layout === 'grid' ? (
           <div className='builtin-cates-grid'>
             {entries.map((entry) => (
-              <article key={entry.component_id} className='builtin-cates-grid-item' data-template-id={entry.component_id}>
+              <article key={entry.component_id} className='builtin-cates-grid-item' data-template-id={entry.component_id} {...draggable(entry)}>
                 <button className='builtin-catalog-card-body' onClick={() => open(entry)} aria-label={`配置模板 ${entry.name}`}>
                   <TemplateLogo src={entry.logo} />
                   <span>{entry.name}</span>
@@ -246,6 +167,7 @@ export default function CatalogBrowser({ components, onOpen, reload }: { compone
         ) : (
           <Table
             rowKey='component_id'
+            onRow={(entry) => ({ ...draggable(entry), 'data-template-id': entry.component_id })}
             dataSource={entries}
             pagination={{ pageSize: 20 }}
             columns={[
@@ -298,51 +220,6 @@ export default function CatalogBrowser({ components, onOpen, reload }: { compone
           </Form.Item>
           <Form.Item name='base_component_id' label='基于已有模板新建（可选；复制完整草稿）'>
             <Select allowClear showSearch optionFilterProp='label' options={catalog?.entries.map((e) => ({ value: e.component_id, label: e.name }))} />
-          </Form.Item>
-        </Form>
-      </Modal>
-      <Modal
-        visible={!!categoryEdit}
-        title={categoryEdit?.id ? '编辑分类' : '新建分类'}
-        onCancel={() => setCategoryEdit(undefined)}
-        onOk={async () => {
-          try {
-            const values = await categoryForm.validateFields();
-            await saveCategory({ ...categoryEdit, ...values });
-            setCategoryEdit(undefined);
-            changed();
-          } catch (e) {
-            if (!(e as any).errorFields) message.error(errorText(e, '保存失败'));
-          }
-        }}
-      >
-        <Form form={categoryForm} layout='vertical'>
-          <Form.Item name='name' label='分类名称' rules={[{ required: true }]}>
-            <Input maxLength={128} />
-          </Form.Item>
-          <Space>
-            <Form.Item name='sort' label='排序'>
-              <InputNumber />
-            </Form.Item>
-            <Form.Item name='disabled' label='停用分类' valuePropName='checked'>
-              <Switch />
-            </Form.Item>
-          </Space>
-          <Form.Item name='parent_id' label='上级分类'>
-            <Select
-              allowClear
-              options={[
-                { value: '', label: '无（第一级）' },
-                ...(catalog?.categories || [])
-                  .filter((c) => c.id !== categoryEdit?.id && categoryPath(catalog!.categories, c.id).length < 3)
-                  .map((c) => ({
-                    value: c.id,
-                    label: categoryPath(catalog!.categories, c.id)
-                      .map((x) => x.name)
-                      .join(' / '),
-                  })),
-              ]}
-            />
           </Form.Item>
         </Form>
       </Modal>

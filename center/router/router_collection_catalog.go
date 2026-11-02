@@ -25,6 +25,34 @@ func (rt *Router) configCollectionCatalog(group *gin.RouterGroup) {
 	// Catalog authors reuse the existing component permissions; device writers
 	// may read published definitions but cannot publish or alter global templates.
 	admin := rt.admin()
+	group.PUT("/categories/:id/move", rt.perm("/components/put"), admin, func(c *gin.Context) {
+		var f collection.CategoryMoveInput
+		if err := collectionBody(c, &f); err != nil {
+			collectionReply(c, nil, err)
+			return
+		}
+		scope, err := rt.collectionScope(c)
+		if err == nil {
+			err = rt.Collection.MoveCategory(scope, c.Param("id"), f)
+		}
+		collectionReply(c, nil, err)
+	})
+	group.PUT("/catalog/:id/category", rt.perm("/components/put"), admin, func(c *gin.Context) {
+		var f collection.CatalogMoveInput
+		if err := collectionBody(c, &f); err != nil {
+			collectionReply(c, nil, err)
+			return
+		}
+		scope, err := rt.collectionScope(c)
+		if err == nil {
+			var id uint64
+			id, err = catalogID(c)
+			if err == nil {
+				err = rt.Collection.MoveCatalog(scope, id, f)
+			}
+		}
+		collectionReply(c, nil, err)
+	})
 	group.POST("/catalog", rt.perm("/components/add"), admin, func(c *gin.Context) {
 		var f collection.CatalogCreateInput
 		if err := catalogBody(c, &f); err != nil {

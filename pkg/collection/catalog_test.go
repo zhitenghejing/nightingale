@@ -27,6 +27,7 @@ func TestCatalogPublicationAndDevicePinning(t *testing.T) {
 	s, scope, c, cred, _ := testStore(t)
 	e := catalogFixture(t, s)
 	require.NotNil(t, e.Published)
+	require.Equal(t, TypeBrandModelTaxonomy, e.Published.Taxonomy)
 	require.Equal(t, 1, e.Published.Version)
 	original := e.PublishedVersionID
 	var before models.BuiltinComponent
@@ -162,7 +163,7 @@ func TestCatalogValidationAndCategoryLifecycle(t *testing.T) {
 	require.Empty(t, view.Entries)
 	var raw map[string][]string
 	require.NoError(t, json.Unmarshal(catalogSeed, &raw))
-	require.Len(t, raw, 92)
+	require.Len(t, raw, 93)
 	for key, path := range raw {
 		require.Len(t, path, 3, key)
 		require.NotContains(t, strings.Join(path, "/"), "iDRAC 地址")

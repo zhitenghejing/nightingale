@@ -1,0 +1,3616 @@
+{
+  "name": "Windows SNMP Extended overview",
+  "uuid": 1850000000100000,
+  "tags": "SNMP Windows",
+  "configs": {
+    "version": "3.1.0",
+    "panels": [
+      {
+        "type": "timeseries",
+        "id": "e6796140-1261-524e-af92-4f64e23d7de6",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 0,
+          "i": "e6796140-1261-524e-af92-4f64e23d7de6",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "avg by (ident, collection_device_id, collection_revision, device_name) (snmp_cpu_load{collection_mode=\"managed\"})",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "CPU usage",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "percent",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "1331baa5-4c52-55e6-88ec-701e38e46fec",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 0,
+          "i": "1331baa5-4c52-55e6-88ec-701e38e46fec",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_cpu_load{collection_mode=\"managed\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "CPU per core",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "percent",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "6f6f0912-2bb3-5353-8b0d-6db63e9c4fab",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 7,
+          "i": "6f6f0912-2bb3-5353-8b0d-6db63e9c4fab",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "count by (ident, collection_device_id, collection_revision, device_name) (snmp_cpu_load{collection_mode=\"managed\"})",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Logical processors",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "bc462525-90dc-594d-b4b4-97bde6c2aa4b",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 7,
+          "i": "bc462525-90dc-594d-b4b4-97bde6c2aa4b",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_system_uptime{collection_mode=\"managed\"} / 100",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "System uptime",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "seconds",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "e5000288-6f2f-563e-bca5-15db7cf945c3",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 14,
+          "i": "e5000288-6f2f-563e-bca5-15db7cf945c3",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "100 * snmp_storage_used{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.2\"} / (snmp_storage_size{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.2\"} > 0)",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Memory usage",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "percent",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "1ff0973c-ad91-595a-b0ea-f6a6c0747e7d",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 14,
+          "i": "1ff0973c-ad91-595a-b0ea-f6a6c0747e7d",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_storage_size{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.2\"} * snmp_storage_allocation_units{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.2\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Memory total",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bytes",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "e6d29786-4d9d-5031-bb3f-de8c104e744c",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 21,
+          "i": "e6d29786-4d9d-5031-bb3f-de8c104e744c",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_storage_used{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.2\"} * snmp_storage_allocation_units{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.2\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Memory used",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bytes",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "1db970dc-bd6c-5470-a6dd-da4af084e740",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 21,
+          "i": "1db970dc-bd6c-5470-a6dd-da4af084e740",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "(snmp_storage_size{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.2\"} - snmp_storage_used{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.2\"}) * snmp_storage_allocation_units{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.2\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Memory free",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bytes",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "804ea26f-59c8-5925-961e-f5c59ca79597",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 28,
+          "i": "804ea26f-59c8-5925-961e-f5c59ca79597",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "100 * snmp_storage_used{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.4\"} / (snmp_storage_size{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.4\"} > 0)",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Volume usage",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "percent",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "c556c871-4034-55d1-8e5a-3f62be821895",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 28,
+          "i": "c556c871-4034-55d1-8e5a-3f62be821895",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_storage_size{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.4\"} * snmp_storage_allocation_units{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.4\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Volume total",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bytes",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "2fc26d0f-9623-5823-a122-140f07b9fcb0",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 35,
+          "i": "2fc26d0f-9623-5823-a122-140f07b9fcb0",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_storage_used{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.4\"} * snmp_storage_allocation_units{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.4\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Volume used",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bytes",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "d7accb5a-7020-5ea1-82e8-97e9ab2eaac1",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 35,
+          "i": "d7accb5a-7020-5ea1-82e8-97e9ab2eaac1",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "(snmp_storage_size{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.4\"} - snmp_storage_used{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.4\"}) * snmp_storage_allocation_units{collection_mode=\"managed\",type=~\"\\\\.?1\\\\.3\\\\.6\\\\.1\\\\.2\\\\.1\\\\.25\\\\.2\\\\.1\\\\.4\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Volume free",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bytes",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "73195424-4a9c-52ad-ad0c-b0cfe31ea036",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 42,
+          "i": "73195424-4a9c-52ad-ad0c-b0cfe31ea036",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "8 * (rate(snmp_traffic64_in_octets{collection_mode=\"managed\"}[5m]) or on (ident, collection_device_id, collection_revision, device_name, index) rate(snmp_traffic32_in_octets{collection_mode=\"managed\"}[5m]))",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Network in",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bits/sec",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "f0622b75-f9e8-5c07-ba47-c44a4afc3dc4",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 42,
+          "i": "f0622b75-f9e8-5c07-ba47-c44a4afc3dc4",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "8 * (rate(snmp_traffic64_out_octets{collection_mode=\"managed\"}[5m]) or on (ident, collection_device_id, collection_revision, device_name, index) rate(snmp_traffic32_out_octets{collection_mode=\"managed\"}[5m]))",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Network out",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bits/sec",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "9674bf5d-b833-5ddf-b153-76bc03f5599f",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 49,
+          "i": "9674bf5d-b833-5ddf-b153-76bc03f5599f",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "100 * 8 * (rate(snmp_traffic64_in_octets{collection_mode=\"managed\"}[5m]) or on (ident, collection_device_id, collection_revision, device_name, index) rate(snmp_traffic32_in_octets{collection_mode=\"managed\"}[5m])) / on (ident, collection_device_id, collection_revision, device_name, index) (snmp_interface_speed{collection_mode=\"managed\"} * 1000000 > 0)",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Network in utilization",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "percent",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "88b6c442-5120-599a-9e11-4064f3e23f32",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 49,
+          "i": "88b6c442-5120-599a-9e11-4064f3e23f32",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "100 * 8 * (rate(snmp_traffic64_out_octets{collection_mode=\"managed\"}[5m]) or on (ident, collection_device_id, collection_revision, device_name, index) rate(snmp_traffic32_out_octets{collection_mode=\"managed\"}[5m])) / on (ident, collection_device_id, collection_revision, device_name, index) (snmp_interface_speed{collection_mode=\"managed\"} * 1000000 > 0)",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Network out utilization",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "percent",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "118c2d8e-71b1-5ffd-aff8-1a0b5834de4f",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 56,
+          "i": "118c2d8e-71b1-5ffd-aff8-1a0b5834de4f",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "rate(snmp_interface_in_errors{collection_mode=\"managed\"}[5m])",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "in errors per second",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "pps",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "07aac747-729b-5532-bcb7-8fb3b589ff11",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 56,
+          "i": "07aac747-729b-5532-bcb7-8fb3b589ff11",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "rate(snmp_interface_out_errors{collection_mode=\"managed\"}[5m])",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "out errors per second",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "pps",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "30464a09-b2d6-5e8d-9244-5d1c270a8950",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 63,
+          "i": "30464a09-b2d6-5e8d-9244-5d1c270a8950",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "rate(snmp_interface_in_discards{collection_mode=\"managed\"}[5m])",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "in discards per second",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "pps",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "b7fc0f22-2dd3-5f3d-8a8f-0a8fa0c17862",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 63,
+          "i": "b7fc0f22-2dd3-5f3d-8a8f-0a8fa0c17862",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "rate(snmp_interface_out_discards{collection_mode=\"managed\"}[5m])",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "out discards per second",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "pps",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "ff3d78e6-e412-5026-90d5-eac793c56b2d",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 70,
+          "i": "ff3d78e6-e412-5026-90d5-eac793c56b2d",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_interface_speed{collection_mode=\"managed\"} * 1000000",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Interface speed",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bits/sec",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "5b685963-9dbd-519c-9a10-eecb13a1da72",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 70,
+          "i": "5b685963-9dbd-519c-9a10-eecb13a1da72",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_interface_oper_status{collection_mode=\"managed\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Interface oper status",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "a45594e8-81bb-5237-87d6-584a73fbba90",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 77,
+          "i": "a45594e8-81bb-5237-87d6-584a73fbba90",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_interface_admin_status{collection_mode=\"managed\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Interface admin status",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "6ae60de8-dd02-5348-a2e8-0ce59cf5bc2c",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 77,
+          "i": "6ae60de8-dd02-5348-a2e8-0ce59cf5bc2c",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_interface_duplex{collection_mode=\"managed\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Interface duplex",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "table",
+        "id": "553914a3-5f29-577a-9b55-11384f72c170",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 84,
+          "i": "553914a3-5f29-577a-9b55-11384f72c170",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_interface_info_type{collection_mode=\"managed\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30,
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "collection_device_id": true,
+                "collection_revision": true,
+                "collection_collector_id": true,
+                "collection_mode": true
+              },
+              "indexByName": {},
+              "renameByName": {}
+            }
+          }
+        ],
+        "name": "Interface information",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5,
+          "tableLayout": "auto"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "10c4ea73-d561-579c-b509-47d0bc638d95",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 84,
+          "i": "10c4ea73-d561-579c-b509-47d0bc638d95",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "(rate(snmp_process_cpu_time{collection_mode=\"managed\"}[5m]) and on (ident, collection_device_id, collection_revision, device_name, index) (snmp_process_process_type{collection_mode=\"managed\"} == 4)) / on (ident, collection_device_id, collection_revision, device_name) group_left() (count by (ident, collection_device_id, collection_revision, device_name) (snmp_cpu_load{collection_mode=\"managed\"}))",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Process CPU utilization",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "percent",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "f3c8c649-f8c9-579f-a72d-73d8c4baf377",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 91,
+          "i": "f3c8c649-f8c9-579f-a72d-73d8c4baf377",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "(snmp_process_memory_kib{collection_mode=\"managed\"} and on (ident, collection_device_id, collection_revision, device_name, index) (snmp_process_process_type{collection_mode=\"managed\"} == 4)) * 1024",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Process memory",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "bytes",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "fc427cab-2a1f-500c-858b-f28b43c9bd3d",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 91,
+          "i": "fc427cab-2a1f-500c-858b-f28b43c9bd3d",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "100 * (rate(snmp_process_cpu_time{collection_mode=\"managed\"}[5m]) and on (ident, collection_device_id, collection_revision, device_name, index) (snmp_process_process_type{collection_mode=\"managed\"} == 4)) / on (ident, collection_device_id, collection_revision, device_name) group_left() (sum by (ident, collection_device_id, collection_revision, device_name) ((rate(snmp_process_cpu_time{collection_mode=\"managed\"}[5m]) and on (ident, collection_device_id, collection_revision, device_name, index) (snmp_process_process_type{collection_mode=\"managed\"} == 4))) > 0)",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "Process CPU share",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "percent",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "table",
+        "id": "96ccdf89-9376-5ad5-9ab5-c5eaaa26e328",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 98,
+          "i": "96ccdf89-9376-5ad5-9ab5-c5eaaa26e328",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_process_process_type{collection_mode=\"managed\"} == 4",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30,
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "collection_device_id": true,
+                "collection_revision": true,
+                "collection_collector_id": true,
+                "collection_mode": true
+              },
+              "indexByName": {},
+              "renameByName": {}
+            }
+          }
+        ],
+        "name": "Processes present",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5,
+          "tableLayout": "auto"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      },
+      {
+        "type": "timeseries",
+        "id": "cb69c8ec-6ecf-5549-a061-eaa24873d9fd",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 98,
+          "i": "cb69c8ec-6ecf-5549-a061-eaa24873d9fd",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "sum by (ident, collection_device_id, collection_revision, device_name) (snmp_tcp_state{collection_mode=\"managed\"} == bool 5)",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "TCP Established",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional TCP detail. Remove tcp/tcp6/listener from disabled_tables to collect this data."
+      },
+      {
+        "type": "timeseries",
+        "id": "6befd756-e878-54f3-8abe-837120b68594",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 105,
+          "i": "6befd756-e878-54f3-8abe-837120b68594",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "sum by (ident, collection_device_id, collection_revision, device_name) (snmp_tcp_state{collection_mode=\"managed\"} == bool 11)",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "TCP Time wait",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional TCP detail. Remove tcp/tcp6/listener from disabled_tables to collect this data."
+      },
+      {
+        "type": "timeseries",
+        "id": "ab14b5e7-61f2-5c22-ab2c-bc78a2b63c48",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 105,
+          "i": "ab14b5e7-61f2-5c22-ab2c-bc78a2b63c48",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "sum by (ident, collection_device_id, collection_revision, device_name) (snmp_tcp_state{collection_mode=\"managed\"} == bool 7)",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {}
+          }
+        ],
+        "name": "TCP Fin wait 2",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional TCP detail. Remove tcp/tcp6/listener from disabled_tables to collect this data."
+      },
+      {
+        "type": "table",
+        "id": "b0d4b946-6d91-5281-92dc-37100d30d5e6",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 112,
+          "i": "b0d4b946-6d91-5281-92dc-37100d30d5e6",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_tcp_state{collection_mode=\"managed\"} == 2",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30,
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "collection_device_id": true,
+                "collection_revision": true,
+                "collection_collector_id": true,
+                "collection_mode": true
+              },
+              "indexByName": {},
+              "renameByName": {}
+            }
+          }
+        ],
+        "name": "IPv4 listening endpoints",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5,
+          "tableLayout": "auto"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional TCP detail. Remove tcp/tcp6/listener from disabled_tables to collect this data."
+      },
+      {
+        "type": "table",
+        "id": "e91b8095-d39e-50ca-91a9-dd6e7423ae6e",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 112,
+          "i": "e91b8095-d39e-50ca-91a9-dd6e7423ae6e",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_listener_pid{collection_mode=\"managed\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30,
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "collection_device_id": true,
+                "collection_revision": true,
+                "collection_collector_id": true,
+                "collection_mode": true
+              },
+              "indexByName": {},
+              "renameByName": {}
+            }
+          }
+        ],
+        "name": "Modern listener PID",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5,
+          "tableLayout": "auto"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional TCP detail. Remove tcp/tcp6/listener from disabled_tables to collect this data."
+      },
+      {
+        "type": "table",
+        "id": "6e4802e4-fcee-5bca-ba4f-ed549a72faec",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 0,
+          "y": 119,
+          "i": "6e4802e4-fcee-5bca-ba4f-ed549a72faec",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "label_replace((snmp_tcp_state{collection_mode=\"managed\",remote_port=~\"80\"} == 5), \"service\", \"http\", \"remote_port\", \".*\") or label_replace((snmp_tcp_state{collection_mode=\"managed\",remote_port=~\"443\"} == 5), \"service\", \"https\", \"remote_port\", \".*\") or label_replace((snmp_tcp_state{collection_mode=\"managed\",remote_port=~\"8080\"} == 5), \"service\", \"tomcat\", \"remote_port\", \".*\") or label_replace((snmp_tcp_state{collection_mode=\"managed\",remote_port=~\"6379|6380\"} == 5), \"service\", \"redis\", \"remote_port\", \".*\") or label_replace((snmp_tcp_state{collection_mode=\"managed\",remote_port=~\"3306|3307\"} == 5), \"service\", \"mysql\", \"remote_port\", \".*\") or label_replace((snmp_tcp_state{collection_mode=\"managed\",remote_port=~\"1433\"} == 5), \"service\", \"sqlserver\", \"remote_port\", \".*\") or label_replace((snmp_tcp_state{collection_mode=\"managed\",remote_port=~\"1521\"} == 5), \"service\", \"oracle\", \"remote_port\", \".*\") or label_replace((snmp_tcp_state{collection_mode=\"managed\",remote_port=~\"9200\"} == 5), \"service\", \"elasticsearch\", \"remote_port\", \".*\") or label_replace((snmp_tcp_state{collection_mode=\"managed\",remote_port=~\"9092\"} == 5), \"service\", \"kafka\", \"remote_port\", \".*\") or label_replace((snmp_tcp_state{collection_mode=\"managed\",remote_port=~\"27017\"} == 5), \"service\", \"mongodb\", \"remote_port\", \".*\") or label_replace((snmp_tcp_state{collection_mode=\"managed\",remote_port=~\"2181\"} == 5), \"service\", \"zookeeper\", \"remote_port\", \".*\")",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30,
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "collection_device_id": true,
+                "collection_revision": true,
+                "collection_collector_id": true,
+                "collection_mode": true
+              },
+              "indexByName": {},
+              "renameByName": {}
+            }
+          }
+        ],
+        "name": "Service connection relationships",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5,
+          "tableLayout": "auto"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional TCP detail. Remove tcp/tcp6/listener from disabled_tables to collect this data."
+      },
+      {
+        "type": "table",
+        "id": "3019407d-cb0e-5ecb-b903-a502fe9495f8",
+        "layout": {
+          "h": 7,
+          "w": 12,
+          "x": 12,
+          "y": 119,
+          "i": "3019407d-cb0e-5ecb-b903-a502fe9495f8",
+          "isResizable": true
+        },
+        "version": "3.1.0",
+        "datasourceCate": "prometheus",
+        "datasourceValue": 0,
+        "targets": [
+          {
+            "expr": "snmp_route_route_type{collection_mode=\"managed\"}",
+            "refId": "A",
+            "legend": "{{name}} {{index}}",
+            "step": 30,
+            "instant": true
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "collection_device_id": true,
+                "collection_revision": true,
+                "collection_collector_id": true,
+                "collection_mode": true
+              },
+              "indexByName": {},
+              "renameByName": {}
+            }
+          }
+        ],
+        "name": "Route information",
+        "maxPerRow": 4,
+        "options": {
+          "tooltip": {
+            "mode": "all",
+            "sort": "desc"
+          },
+          "legend": {
+            "displayMode": "list",
+            "placement": "bottom",
+            "columns": [
+              "max",
+              "min",
+              "avg",
+              "last"
+            ],
+            "behaviour": "showItem",
+            "selectMode": "single"
+          },
+          "standardOptions": {
+            "util": "none",
+            "min": null,
+            "max": null,
+            "decimals": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "rgba(255, 101, 107, 1)",
+                "value": 80,
+                "type": ""
+              },
+              {
+                "color": "#634CD9",
+                "type": "base",
+                "value": null
+              }
+            ]
+          },
+          "thresholdsStyle": {
+            "mode": "dashed"
+          }
+        },
+        "custom": {
+          "drawStyle": "lines",
+          "lineInterpolation": "smooth",
+          "spanNulls": false,
+          "lineWidth": 2,
+          "fillOpacity": 0.03,
+          "gradientMode": "none",
+          "stack": "off",
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "none",
+          "pointSize": 5,
+          "tableLayout": "auto"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID"
+            },
+            "properties": {
+              "rightYAxisDisplay": "off"
+            }
+          }
+        ],
+        "description": "Optional OIDs may be absent. Device identity and revision are scoped automatically."
+      }
+    ]
+  }
+}

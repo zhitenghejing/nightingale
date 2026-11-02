@@ -109,6 +109,7 @@ export function connectionFields(adapter: Definition['adapter']): DeviceField[] 
 }
 export interface Release {
   version: number;
+  taxonomy?: 'type_brand_model';
   category_path: string[];
   definition: Definition;
 }
@@ -138,6 +139,14 @@ export interface Catalog {
   categories: Category[];
   entries: CatalogEntry[];
 }
+export interface TemplateIcon {
+  id: string;
+  name: string;
+  url: string;
+  created_at: number;
+}
+export const getTemplateIcons = (): Promise<TemplateIcon[]> => collectionRequest('icons');
+export const addTemplateIcon = (name: string, data_url: string): Promise<TemplateIcon> => collectionRequest('icons', RequestMethod.Post, { name, data_url });
 export const createCatalog = (values: { name: string; category_id: string; base_component_id?: number }) => collectionRequest('catalog', RequestMethod.Post, values);
 export const getCatalogEntry = (id: number): Promise<CatalogEntry> => collectionRequest(`catalog/${id}`);
 export const getCatalog = (): Promise<Catalog> => collectionRequest('catalog');
@@ -156,6 +165,10 @@ export const saveCategory = (category: Partial<Category>) =>
     record_version: category.record_version || 0,
   });
 export const removeCategory = (category: Category) => collectionRequest(`categories/${category.id}`, RequestMethod.Delete, { record_version: category.record_version });
+export const moveCategory = (category: Category, destination: { parent_id: string; before_id: string }) =>
+  collectionRequest(`categories/${category.id}/move`, RequestMethod.Put, { ...destination, record_version: category.record_version });
+export const moveTemplate = (entry: CatalogEntry, category_id: string) =>
+  collectionRequest(`catalog/${entry.component_id}/category`, RequestMethod.Put, { category_id, record_version: entry.record_version });
 
 export function categoryPath(categories: Category[], id: string): Category[] {
   const out: Category[] = [];

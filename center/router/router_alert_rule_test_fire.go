@@ -357,13 +357,7 @@ func (rt *Router) synthesizeTestEvent(cfg *models.AlertRule, f *AlertRuleTestFir
 	}
 
 	// 标签：series labels + 规则附加标签 + rulename，rulename 用原始规则名（[TEST] 前缀只加在通知标题上）
-	labels["rulename"] = cfg.Name
-	for _, pair := range cfg.AppendTagsJSON {
-		kv := strings.SplitN(pair, "=", 2)
-		if len(kv) == 2 && kv[0] != "" {
-			labels[kv[0]] = kv[1]
-		}
-	}
+	labels = cfg.RenderEventTags(labels)
 	tagKeys := make([]string, 0, len(labels))
 	for k := range labels {
 		tagKeys = append(tagKeys, k)

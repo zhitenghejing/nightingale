@@ -3,7 +3,7 @@ package i18nx
 var I18N = `{
   "zh_CN": {
     "unknown immutable template version": "所选采集模板版本不存在，请刷新后重新选择",
-    "invalid SNMP template TOML; only field, table and required_metrics are allowed": "采集模板 TOML 无效，仅支持 field、table 和 required_metrics",
+    "invalid SNMP template TOML; only field, table, disabled_tables and required_metrics are allowed": "采集模板 TOML 无效，仅支持 field、table、disabled_tables 和 required_metrics",
     "template needs fields or tables within the size limit": "模板需包含采集字段或表，标量字段最多 64 个，表最多 32 个",
     "invalid or duplicate SNMP field name or numeric OID": "采集字段名或数字 OID 无效，或指标名称重复",
     "scalar fields must be numeric metrics": "标量字段需作为数值指标，不支持标签或保留名称",
@@ -27,6 +27,12 @@ var I18N = `{
     "move or delete child categories first": "请先移动或删除子分类",
     "move templates out of this category first": "请先移出此分类中的模板",
     "enable the template before publishing": "请先启用模板再发布",
+    "move categories within the same level": "目录移动须保持层级：类型、品牌、型号",
+    "drop position is unavailable": "拖放位置已改变，请刷新后重试",
+    "invalid icon image": "请选择有效的 PNG、JPG、SVG 或 WebP 图片，大小不超过 2 MB，位图尺寸不超过 4096 像素",
+    "invalid icon name": "图标名称不能为空且不能超过 128 个字符",
+    "invalid disabled SNMP table": "停用的 SNMP 表不存在或重复",
+    "required SNMP metrics cannot be disabled": "不能停用必需指标所在的 SNMP 表",
     "invalid category name": "分类名称无效",
     "invalid default port": "默认端口无效",
     "only SNMP v2c is executable": "当前仅支持自动执行 SNMP v2c 采集",

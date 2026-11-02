@@ -47,7 +47,7 @@ type DeviceInput struct {
 var labelName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
 
 func reservedLabel(k string) bool {
-	return k == "host" || k == "type" || k == "ident" || k == "snmp_target" || k == "index" || k == "hostname" || k == "agent_hostname" || k == "probe_id" || strings.HasPrefix(k, "collection_") || strings.HasPrefix(k, "__")
+	return k == "device_name" || k == "host" || k == "type" || k == "ident" || k == "snmp_target" || k == "index" || k == "hostname" || k == "agent_hostname" || k == "probe_id" || strings.HasPrefix(k, "collection_") || strings.HasPrefix(k, "__")
 }
 func (f *DeviceInput) normalize() error {
 	f.Name = strings.TrimSpace(f.Name)
@@ -123,6 +123,8 @@ type snmpField struct {
 	Name  string `toml:"name"`
 	OID   string `toml:"oid"`
 	IsTag bool   `toml:"is_tag,omitempty"`
+	// Omit from old JSON snapshots to preserve their immutable digest.
+	Conversion string `toml:"conversion,omitempty" json:"Conversion,omitempty"`
 }
 type snmpTable struct {
 	Name        string      `toml:"name"`
@@ -163,10 +165,10 @@ type FullSnapshot struct {
 
 func windowsTables() []snmpTable {
 	table := func(name string, fields ...snmpField) snmpTable { return snmpTable{name, true, "partial", fields} }
-	field := func(name, oid string) snmpField { return snmpField{name, ".1.3.6.1.2.1." + oid, false} }
+	field := func(name, oid string) snmpField { return snmpField{Name: name, OID: ".1.3.6.1.2.1." + oid} }
 	return []snmpTable{
 		table("cpu", field("load", "25.3.3.1.2")),
-		table("storage", snmpField{"type", ".1.3.6.1.2.1.25.2.3.1.2", true}, field("allocation_units", "25.2.3.1.4"), field("size", "25.2.3.1.5"), field("used", "25.2.3.1.6")),
+		table("storage", snmpField{Name: "type", OID: ".1.3.6.1.2.1.25.2.3.1.2", IsTag: true}, field("allocation_units", "25.2.3.1.4"), field("size", "25.2.3.1.5"), field("used", "25.2.3.1.6")),
 		table("interface", field("type", "2.2.1.3"), field("oper_status", "2.2.1.8"), field("admin_status", "2.2.1.7")),
 		table("traffic64", field("in_octets", "31.1.1.1.6"), field("out_octets", "31.1.1.1.10")),
 		table("traffic32", field("in_octets", "2.2.1.10"), field("out_octets", "2.2.1.16")),
@@ -186,13 +188,21 @@ func compile(f DeviceInput, id, revision, community, mode string, templates ...T
 	} else {
 		labels["collection_device_id"] = id
 	}
-	ins := snmpInstance{Agents: []string{"udp://" + net.JoinHostPort(f.Address, fmt.Sprint(f.Port))}, Version: 2, Community: community, Timeout: fmt.Sprintf("%ds", f.TimeoutSeconds), Retries: f.Retries, AgentHostTag: "snmp_target", DisableICMP: true, Labels: labels, Fields: []snmpField{{"uptime", ".1.3.6.1.2.1.1.3.0", false}}}
+	ins := snmpInstance{Agents: []string{"udp://" + net.JoinHostPort(f.Address, fmt.Sprint(f.Port))}, Version: 2, Community: community, Timeout: fmt.Sprintf("%ds", f.TimeoutSeconds), Retries: f.Retries, AgentHostTag: "snmp_target", DisableICMP: true, Labels: labels, Fields: []snmpField{{Name: "uptime", OID: ".1.3.6.1.2.1.1.3.0"}}}
 	if mode == "managed" {
 		if len(templates) != 1 {
 			return ConfigContent{}, errors.New("collection template is required")
 		}
 		ins.Fields = append(ins.Fields, templates[0].Fields...)
-		ins.Tables = templates[0].Tables
+		disabled := map[string]bool{}
+		for _, name := range templates[0].DisabledTables {
+			disabled[name] = true
+		}
+		for _, table := range templates[0].Tables {
+			if !disabled[table.Name] {
+				ins.Tables = append(ins.Tables, table)
+			}
+		}
 		// The original built-in version is implicit in historical snapshots.
 		// Preserve its bytes so deploying template editing does not replace
 		// otherwise unchanged running tasks.

@@ -100,6 +100,17 @@ func TestInventoryExplicitClassification(t *testing.T) {
 	require.Equal(t, "Windows Server 2019", model)
 }
 
+func TestInventoryTypeBrandModelSnapshotDoesNotTreatBrandAsModel(t *testing.T) {
+	_, rt, _, _ := collectionRouterFixture(t)
+	require.NoError(t, rt.Ctx.DB.AutoMigrate(&models.AlertCurEvent{}))
+	require.NoError(t, rt.Ctx.DB.Create(&models.MonitorTemplateVersion{ID: "brand-model", TemplateKey: "brand-model", Version: 1, Definition: `{"catalog":{"taxonomy":"type_brand_model","category_path":["服务器","戴尔","R640"],"version":1}}`}).Error)
+	require.NoError(t, rt.Ctx.DB.Create(&models.MonitorDevice{ID: "brand-model-device", Ident: "dell", Protocol: "redfish", TemplateVersionID: "brand-model"}).Error)
+	target := &models.Target{Ident: "dell"}
+	require.NoError(t, rt.targetInventory(inventoryContext(&models.User{Id: 1, Roles: "Admin"}), []*models.Target{target}))
+	require.Equal(t, "服务器", target.Inventory.DeviceType)
+	require.Equal(t, "R640", target.Inventory.DeviceModel)
+}
+
 func TestManagedICMPUsesDeviceRevisionAndDatasource(t *testing.T) {
 	now := time.Now()
 	device := models.MonitorDevice{ID: "device", Ident: "one", Address: "192.0.2.10", CollectorID: "collector", DesiredRevision: "current", Enabled: true}

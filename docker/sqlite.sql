@@ -2156,3 +2156,6 @@ CREATE TABLE IF NOT EXISTS "monitor_category" ("id" varchar(36),"parent_id" varc
 CREATE INDEX IF NOT EXISTS "idx_monitor_category_parent_id" ON "monitor_category" ("parent_id");
 CREATE TABLE IF NOT EXISTS "monitor_catalog" ("component_id" bigint,"name" varchar(128),"logo" TEXT,"category_id" varchar(36),"disabled" boolean,"deleted" boolean,"draft" TEXT,"published_version_id" varchar(64),"record_version" bigint,PRIMARY KEY ("component_id"));
 CREATE INDEX IF NOT EXISTS "idx_monitor_catalog_category_id" ON "monitor_catalog" ("category_id");
+
+-- Reusable template icon materials.
+CREATE TABLE IF NOT EXISTS "monitor_icon" ("id" varchar(64),"name" varchar(128),"mime" varchar(32),"data" TEXT,"size" bigint,"created_at" bigint,PRIMARY KEY ("id"));

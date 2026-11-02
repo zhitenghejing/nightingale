@@ -117,6 +117,7 @@ func (rt *Router) configCollection(r *gin.Engine, pages *gin.RouterGroup) {
 		r.GET("/v1/n9e/collection/configs", rt.collectionConfigs)
 	}
 	group := pages.Group("/collection", rt.auth(), rt.user())
+	rt.configCollectionIcons(pages, group)
 	rt.configCollectionCatalog(group)
 	read := rt.perm("/collection/read")
 	write := rt.perm("/collection/write")

@@ -1,6 +1,7 @@
 package collection
 
 import (
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -9,6 +10,21 @@ import (
 	"github.com/prometheus/prometheus/prompb"
 	"gorm.io/gorm"
 )
+
+// Name is presentation metadata, read only after ownership validation. Existing
+// provider snapshots and ownership identifiers stay unchanged after a rename.
+func withDeviceName(ts prompb.TimeSeries, name string) prompb.TimeSeries {
+	labels := make([]prompb.Label, 0, len(ts.Labels)+1)
+	for _, label := range ts.Labels {
+		if label.Name != "device_name" {
+			labels = append(labels, label)
+		}
+	}
+	labels = append(labels, prompb.Label{Name: "device_name", Value: name})
+	sort.Slice(labels, func(i, j int) bool { return labels[i].Name < labels[j].Name })
+	ts.Labels = labels
+	return ts
+}
 
 // FilterSamples authenticates ownership before enrichment or metric-driven registration.
 // Rejected old samples still advance the withdrawal observation, without storing values or secrets.
@@ -111,7 +127,7 @@ func (s *Store) FilterSamples(writer string, series []prompb.TimeSeries) ([]prom
 			if labels["collection_mode"] == "agent" {
 				owner, ok := agentOwners[labels["ident"]]
 				if ok && isPing && owner.CollectorID == collector.ID && owner.Revision == labels["collection_revision"] && owner.Address == labels["target"] && labels["collection_device_id"] == "" && labels["probe_id"] == "" {
-					out = append(out, ts)
+					out = append(out, withDeviceName(ts, owner.Ident))
 				}
 				continue
 			} else if labels["collection_mode"] == "managed" {
@@ -143,7 +159,7 @@ func (s *Store) FilterSamples(writer string, series []prompb.TimeSeries) ([]prom
 				}
 				if isPing {
 					if labels["target"] == d.Address {
-						out = append(out, ts)
+						out = append(out, withDeviceName(ts, d.Name))
 					}
 					continue
 				}
@@ -157,7 +173,7 @@ func (s *Store) FilterSamples(writer string, series []prompb.TimeSeries) ([]prom
 						clockErrors[d.ID] = true
 					}
 				}
-				out = append(out, ts)
+				out = append(out, withDeviceName(ts, d.Name))
 			} else if labels["collection_mode"] == "probe" {
 				if isPing {
 					continue

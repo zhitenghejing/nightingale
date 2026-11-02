@@ -80,7 +80,7 @@ export default function TemplateSelection({
     <div className='mb-4'>
       <p>全部 {entries.length} 个模板均可按分类查看；自动接入状态以各模板的发布与采集能力为准。</p>
       <Space align='start' wrap>
-        {['设备类型', '产品 / 厂商', '版本 / 型号'].map((label, index) => {
+        {['设备类型', '品牌', '设备型号'].map((label, index) => {
           const eligible = new Set(entries.flatMap((e) => categoryPath(catalog?.categories || [], e.category_id).map((c) => c.id)));
           if (savedEntry) categoryPath(catalog?.categories || [], savedEntry.category_id).forEach((c) => eligible.add(c.id));
           return (

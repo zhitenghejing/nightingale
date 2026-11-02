@@ -5,6 +5,7 @@ import CatalogBrowser from './CatalogBrowser';
 import { getCatalog } from './catalog';
 import ComponentFormModal from './components/ComponentFormModal';
 
+jest.mock('@/App', () => ({ CommonStateContext: require('react').createContext({ profile: { admin: true }, perms: [] }) }));
 jest.mock('@/services/collection', () => ({ collectionRequest: jest.fn() }));
 
 jest.mock('@/components/AuthorizationWrapper', () => ({ __esModule: true, default: ({ children }) => children }));
@@ -38,7 +39,7 @@ test('card opens details and pencil independently opens only the metadata dialog
   await waitFor(() => expect(screen.getByRole('button', { name: '配置模板 Windows SNMP' })).toBeTruthy());
   fireEvent.click(screen.getByRole('button', { name: '编辑基本信息 Windows SNMP' }));
   expect(onOpen).not.toHaveBeenCalled();
-  expect(ComponentFormModal).toHaveBeenCalledWith(expect.objectContaining({ action: 'edit', catalogEntry: expect.objectContaining({ component_id: 1 }) }));
+  expect(ComponentFormModal).toHaveBeenCalledWith(expect.objectContaining({ action: 'edit', catalogEntry: expect.objectContaining({ component_id: 1 }), commonState: expect.objectContaining({ profile: { admin: true } }) }));
   fireEvent.click(screen.getByRole('button', { name: '配置模板 Windows SNMP' }));
   expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 1, display_name: 'Windows SNMP' }));
   expect(screen.queryByRole('button', { name: '添加设备' })).toBeNull();

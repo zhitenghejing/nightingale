@@ -35,6 +35,16 @@ Managed samples are sent to their managing Center at `/prometheus/v1/write` (the
 validated path). Other ingestion formats cannot submit managed collection labels.
 Unmanaged Linux samples keep their existing ingestion behavior.
 
+After validating collector, device, mode, address (for ping) and current revision,
+the Center adds the reserved `device_name` label from `MonitorDevice.Name` to all
+accepted managed SNMP, MySQL and ICMP samples. It replaces any incoming value;
+custom device labels and SNMP tag fields cannot set this name. This common ingest
+step also applies to old template bindings without republishing collector tasks.
+A metadata-only rename affects subsequent samples without a collector reload;
+historical samples retain their original label set. Query history using stable
+`ident` or `collection_device_id`. Authorized native Agent ICMP uses its list name
+(`ident`); native Agent CPU/memory ingestion remains unchanged.
+
 Use the fixed Categraf source commit `3af14ebe568108c22ea7ee78d1c64becd03f1076`
 (v0.5.18) with the supplied [Provider logging patch](../../third_party/categraf/v0.5.18-provider-redaction.patch).
 The stock binary logs SNMP communities during reload even with `print_configs=false`.
@@ -281,7 +291,17 @@ alerts until a pack is selected explicitly.
 | DELETE | `/catalog/:component_id` | 目录墓碑；存在设备引用时拒绝删除 |
 | PUT | `/categories` 或 `/categories/:id` | `{name,parent_id,sort,disabled,record_version}`；三级、无循环、同级名称唯一 |
 | DELETE | `/categories/:id` | 先移出模板并删除子分类 |
+| PUT | `/categories/:id/move` | `{parent_id,before_id,record_version}`；保持层级，事务内移动并重排目标同级目录 |
+| PUT | `/catalog/:component_id/category` | `{category_id,record_version}`；仅移动模板位置，必须选择第三级型号 |
 | GET | `/devices/:id/template-diff?version_id=...` | 旧包、当前实例、新包之间的更新字段和冲突 |
+
+目录的三级含义固定为“类型 → 品牌 → 型号”，如“操作系统 → 微软 → Windows Server 2019”“服务器 → 戴尔 → R640”。通用软件/协议包使用明确的通用型号，不假定已有精确版本或硬件适配。初始化包含服务器、数据库、操作系统、安全设备、网络设备、存储等类型，其余软件和云服务类型继续保留。型号下可以有多个采集模板。
+
+根目录加号添加类型；类型旁加号添加品牌；品牌旁加号添加型号；型号旁加号添加同级型号，不生成第四级。每一级旁均可编辑名称/属性或删除，已有子目录/模板时拒绝直接删除并提示先移出。保留展开、折叠、选择、搜索与列表/卡片切换。
+
+目录通过拖拽调整同级顺序，或拖入另一个上级目录（例如跨品牌移动型号、跨类型移动整个品牌）。后台锁定目录并验证深度、同级重名和版本；不允许改变类型/品牌/型号的层级。模板卡片、列表行均可拖到型号目录；只更新位置及版本锁，不把客户端旧名称、图标或草稿一并覆盖。只读用户不显示写操作或拖拽入口，服务端仍要求管理员及原生组件权限。失败时保留原位置并提示重试。
+
+首次升级仅整理仍在原始位置、且整条目录路径未经用户编辑的默认模板；保留自建/改动目录和主动移动过的模板。一次性完成标记保存在现有采集审计记录中，后续读取或重启不会重建已删除目录，不重复覆盖分类。清理无引用的未改动旧目录。此过程不修改设备、凭据、采集发布、仪表盘、告警规则、模板正文或已有不可变发布版本。新发布的分类快照带 `taxonomy:"type_brand_model"`，型号取第三级；旧发布保留原有解析，已有设备不会因菜单整理改变型号或模板绑定。无需新增 SQL 字段。
 
 分类禁用阻止新发布/新绑定，不中断已有设备。发布版本保存分类路径快照，后续改名/移动不改变历史路径。
 
@@ -305,7 +325,7 @@ alerts until a pack is selected explicitly.
 
 目录摘要和详情均返回 `onboarding:{state,ready,execution,issues}`，在剥离大型资源之前计算缺项。未发布模板可以在三级选择器内选中，查看设备表单草稿、原采集说明和资源清单；不可执行的模板明确阻止测试、下一步和保存，不套用默认 SNMP。原生模板的精确空白旧草稿会按已有采集说明一次性初始化部分连接字段和执行位置；不替换作者配置，不发布版本、不修改设备或下发配置。不明确的接入类型仍提示补齐表单，不能用统一账号密码表单冒充适配。
 
-新增/编辑设备在设备列表内打开：①三级分类与采集参数；②本设备的仪表盘、告警和通知；③脱敏确认。单方案自动匹配，多方案追加模板选择。返回保留输入，改变上级清空旧模板参数与秘密，通用对象信息保留。不强制测试连接；保存成功也不代表采集正常。
+新增/编辑设备在设备列表内打开：①类型、品牌、型号三级分类与采集参数；②本设备的仪表盘、告警和通知；③脱敏确认。单方案自动匹配，多方案追加模板选择。返回保留输入，改变上级清空旧模板参数与秘密，通用对象信息保留。不强制测试连接；保存成功也不代表采集正常。
 
 保存事务写入绑定、非秘密参数、加密凭据、资源快照、独立原生仪表盘/规则和本地加密下发版本；真实网络采集在事务外由采集器执行。只更改设备显示名称不产生采集修订。同 IP 绑定保持独立。
 
@@ -350,9 +370,35 @@ alerts until a pack is selected explicitly.
 ### 当前执行支持与迁移边界
 
 - Windows_SNMP / Linux_SNMP：SNMP v2c、类型化 OID 配置、原生独立资源。
+- Windows_SNMP_Extended（Windows SNMP 增强）：独立新增的 Windows 包，位于“操作系统 → 微软 → Windows 通用”，不替换原模板或设备绑定。包含 48 项指标说明、36 个仪表盘面板，以及 CPU/内存/磁盘 >90% 持续 5 分钟和 SNMP 中断共 4 条默认规则。配置使用数值 OID；进程、网卡说明、路由为可选扩展，TCP 明细三张表初始停用。实际兼容性取决于 Windows SNMP 代理。
 - MySQL_84_Remote：数据库 → MySQL → 8.4 LTS。已用 MySQL 8.4.11 与固定 Categraf 验证完整 Provider/Remote Write/指标契约。`metrics_pass` 声明精确指标名称，`required_metrics` 必须是其子集；类型化采集开关控制 process list、schema/table size、replication 等项。地址、密码、归属标签由设备参数绑定。
 - 其他数据库、SNMP v3、Redfish、Redis、HTTP 等可以定义完整草稿和条件表单，但执行编译器/能力验证未完成的类型不允许发布为自动接入包。硬件型号与固件的真实兼容性仍需逐项验收，不能用表单测试代替。
 
 保留原生仪表盘/规则导入到业务组的入口供手动接入资料包使用。当前目录在原 91 项盘点基础上增加上述 MySQL 版本包；原盘点和原型不因这次修正而改写。后续适配按[迁移清单](../design/template-driven-device-management/catalog-migration.md)推进。
 
+SNMP 类型化配置的 `disabled_tables` 是表名列表。编译时仅省略这些表；未知名、重复名和包含必需指标的表均拒绝。停用可选表不删除指标说明或可选面板，缺失的数据保持无数据。MAC 标签仅开放 `conversion="hwaddr"`；任意其他转换或数值字段上的转换均拒绝。新字段在空值时不参与序列化，保持旧发布版本的摘要及已下发配置字节不变。
+
 SQL 的十张 Center-only 表在 gorm、`doc/sql/collection.*.sql`、对应迁移及适用总脚本中同步维护。本次增加设备参数/通知文档、分类排序/禁用，并扩展 IPv6 地址宽度；不改变 edge/alert 的原生读取接口。完整包写入上限 8 MiB，发布快照上限 2 MiB，采集器配置上限沿用部署设置。
+
+## Reusable template icon library
+
+The metadata dialog's **Select logo** picker retains the built-in artwork and adds
+an **Add icon material (+)** button below it. Administrators can upload PNG, JPEG,
+SVG or WebP (up to 2 MiB; raster dimensions up to 4096 pixels per side), then select
+the uploaded icon and save the template metadata. Importing alone does not modify
+a template or publish collection configuration. Icons are reusable across templates
+and survive page refreshes and deployment refreshes in the Center database.
+
+* `GET /api/n9e/collection/icons`: authenticated list of `{id,name,url,created_at}`.
+* `POST /api/n9e/collection/icons`: administrator plus `/components/put`; JSON
+  `{name,data_url}`. Validates actual image content and deduplicates by content hash.
+* `GET /api/n9e/collection/icons/:id/content`: anonymous immutable artwork, like
+  existing built-in icon URLs; restrictive CSP sandbox and `nosniff` headers.
+
+Custom images live in `monitor_icon` (dialect-aware large text for base64 content),
+not the frontend build directory. Include this table in database backups. No edge
+or alert read path is introduced. The additive initialization/migration SQL is in
+`doc/sql/collection.{mysql,postgres,sqlite}.sql` and `docker/migratesql/collection.*.sql`.
+Built-in source icons remain in `integrations/<Component>/icon/<file>` (or
+`Center.BuiltinIntegrationsDir`) and are served at
+`/api/n9e/integrations/icon/<Component>/<file>`.
