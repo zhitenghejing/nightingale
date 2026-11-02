@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { test, expect, Page } from '@playwright/test';
 import { PDFDocument, PDFName, PDFNumber, PDFDict, PDFArray, StandardFonts, degrees } from 'pdf-lib';
+import JSZip from 'jszip';
 const png = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAEAAAAAoCAIAAADBrGu+AAABMUlEQVR4nO2YQQ7DIAwEnT6wl/YZ7Wv6jV7aF/YQCblAjLGXIEvsiRyyu0OcCGV73D4UWZfZBbxaALMVD+D1vvLLYAB7e84QCYD3TuswANnkPO/ffREGgCu1JyBAOZ1AcVvenlAAvD2cQTYEAJQBQIaj0U/yAgyamap52Z6cAEKAH0zTnjwA1QAUg7I9mQGUATYGfXuyAcgB2aVzluT2ZADQbI+HQfjkV9UHoH+4muymv0YdAF2jSf0vdK//Li2AzV3PYPMnJYDZXfaB+LcBnO2bL7TTvwEA2XuBwe8vAaAmR3mvzf8QANi+dCgP3mb/OgC8femDOsZWAAa1F+SJyAFGty8NnRF/AOfsPT94+yO27O90YjhhciDKRwi1MacpfwLhFPLHFtcCmK0FMFsLYLZ+hiSuX0B2nRwAAAAASUVORK5CYII=',
   'base64',
@@ -54,7 +55,7 @@ test.beforeAll(async ({ request }) => {
 
 test('training archive: materials, private autosave, lease, recovery, history and recycle bin', async ({ page, context }, testInfo) => {
   const errors: string[] = [];
-  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('pageerror', (e) => errors.push(e.stack || e.message));
   await login(page);
   const archiveID = await create(page, 'training', `培训验收 ${Date.now()}`);
   const rejected = page.waitForResponse((r) => r.url().endsWith(`/${archiveID}/archive`) && r.request().method() === 'POST');
@@ -124,14 +125,13 @@ test('training archive: materials, private autosave, lease, recovery, history an
     .filter({ hasText: current.title })
     .getByRole('button', { name: /恢\s*复/ })
     .click();
-  const restored = await api(page, `/${archiveID}`);
-  expect(restored.deleted).toBe(false);
+  await expect.poll(async () => (await api(page, `/${archiveID}`)).deleted).toBe(false);
   expect(errors).toEqual([]);
 });
 
 test('protected Markdown round-trip, real PDF reading/annotations and Word editable copy', async ({ page }, testInfo) => {
   const errors: string[] = [];
-  page.on('pageerror', (e) => errors.push(e.message));
+  page.on('pageerror', (e) => errors.push(e.stack || e.message));
   await login(page);
   const archiveID = await create(page, 'other', `文档验收 ${Date.now()}`);
   const asset = await page.evaluate(
@@ -294,6 +294,8 @@ test('inspection and incident fields, material purposes, main document and infor
   await expect(modal.getByLabel('服务器', { exact: true })).toBeChecked();
   await modal.getByRole('button', { name: '保存信息' }).click();
   await attach(page, 'inspection.png', png, 'image/png');
+  await attach(page, 'additional.png', png, 'image/png');
+  await attach(page, 'unselected.png', png, 'image/png');
   await page.getByRole('button', { name: /^归\s*档$/ }).click();
   await expect(page.locator('.archive-detail-heading')).toContainText('已归档');
   const inspect = await api(page, `/${inspectionID}`);
@@ -303,12 +305,39 @@ test('inspection and incident fields, material purposes, main document and infor
   const infoJob = await api(page, `/${inspectionID}/exports`, 'POST', { format: 'information_pdf' });
   await expect.poll(async () => (await api(page, `/exports/${infoJob.id}`)).state, { timeout: 30000 }).toBe('done');
   await page.getByRole('button', { name: '更多档案操作' }).click();
-  const [zipDownload] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), page.getByRole('menuitem', { name: '导出整份档案' }).click()]);
-  expect(
-    readFileSync((await zipDownload.path())!)
-      .subarray(0, 2)
-      .toString(),
-  ).toBe('PK');
+  let downloadRequests = 0;
+  page.on('request', (r) => {
+    if (r.url().endsWith(`/${inspectionID}/downloads`)) downloadRequests++;
+  });
+  await page.getByRole('menuitem', { name: '下载文档' }).click();
+  let downloadModal = page.locator('.ant-modal:visible');
+  await expect(downloadModal.getByRole('button', { name: '确认下载' })).toBeDisabled();
+  await downloadModal.getByRole('button', { name: /取\s*消/ }).click();
+  expect(downloadRequests).toBe(0);
+  await page.getByRole('button', { name: '更多档案操作' }).click();
+  await page.getByRole('menuitem', { name: '下载文档' }).click();
+  downloadModal = page.locator('.ant-modal:visible');
+  await downloadModal.getByRole('row').filter({ hasText: 'inspection.png' }).getByRole('checkbox').check();
+  await downloadModal.getByRole('row').filter({ hasText: 'additional.png' }).getByRole('checkbox').check();
+  let rejectDownload = true;
+  await page.route(`**/${inspectionID}/downloads`, (route) => {
+    if (rejectDownload) {
+      rejectDownload = false;
+      return route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ err: '测试下载失败，请重试' }) });
+    }
+    return route.continue();
+  });
+  await downloadModal.getByRole('button', { name: '确认下载' }).click();
+  await expect(downloadModal).toContainText('测试下载失败，请重试');
+  await expect(downloadModal.getByRole('row').filter({ hasText: 'inspection.png' }).getByRole('checkbox')).toBeChecked();
+  const [zipDownload] = await Promise.all([page.waitForEvent('download', { timeout: 40000 }), downloadModal.getByRole('button', { name: '确认下载' }).click()]);
+  const bundle = await JSZip.loadAsync(readFileSync((await zipDownload.path())!));
+  const files = Object.values(bundle.files).filter((entry) => !entry.dir);
+  expect(files).toHaveLength(2);
+  expect(files.map((file) => file.name).some((name) => name.endsWith('inspection.png'))).toBe(true);
+  expect(files.map((file) => file.name).some((name) => name.endsWith('additional.png'))).toBe(true);
+  for (const file of files) expect(await file.async('nodebuffer')).toEqual(png);
+  expect(Object.keys(bundle.files).some((name) => name.endsWith('.json') || name.includes('unselected'))).toBe(false);
   await page.goto('/archives?tab=incident');
   await page.getByRole('button', { name: '新建档案' }).click();
   modal = page.locator('.ant-modal:visible');
@@ -332,6 +361,50 @@ test('inspection and incident fields, material purposes, main document and infor
   await expect(page.locator('.ant-drawer:visible')).toContainText(/v\d/);
   await page.locator('.ant-drawer:visible .ant-drawer-close').click();
   await testInfo.attach('incident-detail', { body: await page.screenshot(), contentType: 'image/png' });
+});
+
+test('downloads honor each online document format and default to PDF only', async ({ page }, testInfo) => {
+  await login(page);
+  const archiveID = await create(page, 'other', `下载格式验收 ${Date.now()}`);
+  for (const title of ['测试文档甲', '测试文档乙']) {
+    await api(page, `/${archiveID}/documents`, 'POST', {
+      title,
+      purpose: 'other',
+      body: { schema_version: 1, data: { main: [{ value: `${title}：只下载选择的格式。` }], header: [], footer: [] } },
+    });
+  }
+  await page.reload();
+  const open = async () => {
+    await page.getByRole('button', { name: '更多档案操作' }).click();
+    await page.getByRole('menuitem', { name: '下载文档' }).click();
+    return page.locator('.ant-modal:visible');
+  };
+  const download = async () => {
+    const [file] = await Promise.all([page.waitForEvent('download', { timeout: 60000 }), page.locator('.ant-modal:visible').getByRole('button', { name: '确认下载' }).click()]);
+    const bundle = await JSZip.loadAsync(readFileSync((await file.path())!));
+    return Object.values(bundle.files).filter((entry) => !entry.dir);
+  };
+  let modal = await open();
+  await modal.getByRole('row').filter({ hasText: '测试文档甲' }).getByRole('checkbox').check();
+  let files = await download();
+  expect(files.map((f) => f.name)).toEqual([expect.stringMatching(/测试文档甲\.pdf$/)]);
+  expect((await files[0].async('nodebuffer')).subarray(0, 5).toString()).toBe('%PDF-');
+  modal = await open();
+  for (const title of ['测试文档甲', '测试文档乙']) await modal.getByRole('row').filter({ hasText: title }).getByRole('checkbox').check();
+  await modal.getByRole('row').filter({ hasText: '测试文档甲' }).locator('.ant-select-selector').click();
+  await page.locator('.ant-select-dropdown:visible').getByText('Word（DOCX）', { exact: true }).click();
+  await testInfo.attach('download-format-selection', { body: await page.screenshot(), contentType: 'image/png' });
+  files = await download();
+  expect(files).toHaveLength(2);
+  expect(files.some((f) => f.name.endsWith('测试文档甲.docx'))).toBe(true);
+  expect(files.some((f) => f.name.endsWith('测试文档乙.pdf'))).toBe(true);
+  modal = await open();
+  await modal.getByRole('row').filter({ hasText: '测试文档甲' }).getByRole('checkbox').check();
+  await modal.getByRole('row').filter({ hasText: '测试文档甲' }).locator('.ant-select-selector').click();
+  await page.locator('.ant-select-dropdown:visible').getByText('PDF + Word', { exact: true }).click();
+  files = await download();
+  expect(files).toHaveLength(2);
+  expect(files.map((f) => f.name)).toEqual([expect.stringMatching(/测试文档甲\.docx$/), expect.stringMatching(/测试文档甲\.pdf$/)]);
 });
 
 test('metadata edit keeps its opening revision and typed values during background uploads', async ({ page }) => {

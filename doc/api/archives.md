@@ -50,11 +50,19 @@ PDF 批注坐标以原始未旋转页面的左上角归一化到 0..1；页码�
 
 `POST /:id/exports` 请求体为 `format,document_id,version_id`。格式 `docx / pdf / annotated_pdf / information_pdf / zip`。轮询 `GET /exports/:export_id` 的 `queued / running / done / error`，完成后通过登录接口 `GET /exports/:export_id/file` 下载。中断任务不会发布半成品，重启后标记为可重试的失败。
 
+详情页“下载文档”先勾选一份或多份资料，并逐份选择格式，确认后请求 `POST /:id/downloads`，请求体为 `{"revision":9,"documents":[{"document_id":1,"format":"pdf"}]}`。在线文档支持 `pdf / docx / pdf_and_docx`，界面默认仅 PDF；上传 PDF 支持 `original / annotated_pdf`，默认原件；Word 和图片仅支持 `original`。ZIP 严格包含所选文档及所选格式，不自动附加另一格式、档案信息 PDF 或内部 JSON。
+
+修订号过期返回 409；空选择、重复 ID、非本档案当前资料或该文档不支持的格式返回 422。生成任务固定同一档案快照。兼容旧请求 `revision,document_ids`（在线文档仍包含 PDF/DOCX、PDF 另附适用批注版），但不能同时传入 `documents`。此接口复用上述任务状态和下载接口，文档及格式清单保存在操作日志中；重启后中断任务报错重试，不恢复内存中的选择任务。
+
 每个服务进程最多同时执行一份转换，同一账号最多 5 份待处理任务。任务使用独立临时目录与 LibreOffice profile，超时终止整个 Linux 子进程组。导出错误日志写服务日志；前端只显示可操作的错误信息。
 
 在线文档先生成 DOCX，再以独立 LibreOffice profile 生成 PDF；系统阅读页与打印使用这份 PDF。上传 Word 先展示可编辑转换结果，确认后形成在线副本，保留原件；不承诺与原 Word 的逐页版式一致。批注 PDF 保留原文件，使用标准 PDF 批注对象生成新文件。
 
-整份 ZIP 包含档案信息 PDF/JSON、当前原始附件、在线文档 PDF/DOCX 及适用的批注 PDF；不包含全部历史与私有草稿。`POST /:id/print` 记录“发起打印”，不代表物理打印完成。
+兼容 API 的整份 ZIP 包含档案信息 PDF、当前原始附件、在线文档 PDF/DOCX 及适用的批注 PDF；不再附加 JSON，不包含全部历史与私有草稿。`POST /:id/print` 记录“发起打印”，不代表物理打印完成。
+
+档案信息及文档打印先同步打开 HTML 预览窗口，再以本地 PDF.js 渲染所选已保存 PDF 的全部页面。渲染完成并记录打印发起后调用浏览器打印，不依赖浏览器内置 PDF 插件或 PDF 导航的 load 事件。预览保留手动打印按钮；弹窗被阻止时明确提示且不创建转换任务。操作系统打印对话框和物理打印仍需人工验收。
+
+档案信息 PDF 使用 A4 纵向 OA 表格式：居中表名、档案编号/状态/版本、按类别选择的业务字段、整行长文本、当前快照的资料名称/格式/版本清单及创建/更新时间，页脚显示页码。空值显示“未填写”，设备范围以中文分隔，日期按服务本地时区排版。长文本允许跨页；不打印其他类别的空字段，不包含正文、附件内容或私有草稿。
 
 ## 本机运行与交付
 

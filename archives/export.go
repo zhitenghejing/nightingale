@@ -52,10 +52,47 @@ func (s *Service) StartExports() {
 	})
 }
 func (s *Service) CreateExport(actor Actor, archiveID, documentID, versionID int64, format string, forReading ...bool) (*models.ArchiveExport, error) {
+	return s.createExport(actor, archiveID, documentID, versionID, format, len(forReading) > 0 && forReading[0], nil)
+}
+
+// CreateDownload pins the chosen documents to one saved archive revision. The
+// worker owns a copy of the selection; interrupted jobs are never resumed.
+func (s *Service) CreateDownload(actor Actor, archiveID, revision int64, documentIDs []int64) (*models.ArchiveExport, error) {
+	if revision <= 0 || len(documentIDs) == 0 || len(documentIDs) > MaxDocuments {
+		return nil, invalid("Choose documents to download and reload the archive if it has changed")
+	}
+	return s.createExport(actor, archiveID, 0, 0, "zip", false, &downloadSelection{revision: revision, documentIDs: append([]int64(nil), documentIDs...)})
+}
+
+type DocumentDownload struct {
+	DocumentID int64  `json:"document_id"`
+	Format     string `json:"format"`
+}
+
+// CreateFormattedDownload preserves the requested output format per document.
+func (s *Service) CreateFormattedDownload(actor Actor, archiveID, revision int64, documents []DocumentDownload) (*models.ArchiveExport, error) {
+	if revision <= 0 || len(documents) == 0 || len(documents) > MaxDocuments {
+		return nil, invalid("Choose documents to download and reload the archive if it has changed")
+	}
+	selection := &downloadSelection{revision: revision, formats: make(map[int64]string)}
+	for _, document := range documents {
+		selection.documentIDs = append(selection.documentIDs, document.DocumentID)
+		selection.formats[document.DocumentID] = document.Format
+	}
+	return s.createExport(actor, archiveID, 0, 0, "zip", false, selection)
+}
+
+type downloadSelection struct {
+	revision    int64
+	documentIDs []int64
+	formats     map[int64]string
+}
+
+func (s *Service) createExport(actor Actor, archiveID, documentID, versionID int64, format string, forReading bool, selection *downloadSelection) (*models.ArchiveExport, error) {
 	if format != "pdf" && format != "docx" && format != "annotated_pdf" && format != "zip" && format != "information_pdf" {
 		return nil, invalid("Unsupported export format")
 	}
-	if len(forReading) > 0 && forReading[0] && format != "pdf" {
+	if forReading && format != "pdf" {
 		return nil, invalid("Unsupported export format")
 	}
 	s.StartExports()
@@ -64,6 +101,9 @@ func (s *Service) CreateExport(actor Actor, archiveID, documentID, versionID int
 		var a models.ArchiveRecord
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&a, archiveID).Error; err != nil {
 			return missing()
+		}
+		if selection != nil && a.Revision != selection.revision {
+			return conflict("Archive changed; reload before downloading", a.Revision)
 		}
 		var active int64
 		if err := tx.Model(&models.ArchiveExport{}).Where("create_by = ? AND state IN ?", actor.ID, []string{"queued", "running"}).Count(&active).Error; err != nil {
@@ -82,6 +122,26 @@ func (s *Service) CreateExport(actor Actor, archiveID, documentID, versionID int
 				return missing()
 			}
 			job.ArchiveVersionID = v.ID
+			if selection != nil {
+				var snapshot Snapshot
+				if err := json.Unmarshal([]byte(v.Snapshot), &snapshot); err != nil {
+					return err
+				}
+				available := map[int64]string{}
+				for _, ref := range snapshot.Documents {
+					available[ref.Document.ID] = ref.Document.Kind
+				}
+				for _, id := range selection.documentIDs {
+					kind, exists := available[id]
+					if !exists {
+						return invalid("Selected document is unavailable or duplicated")
+					}
+					if selection.formats != nil && !validDownloadFormat(kind, selection.formats[id]) {
+						return invalid("Unsupported download format for selected document")
+					}
+					delete(available, id)
+				}
+			}
 		} else {
 			var d models.ArchiveDocument
 			if err := tx.Where("id = ? AND archive_id = ?", documentID, archiveID).First(&d).Error; err != nil {
@@ -113,16 +173,34 @@ func (s *Service) CreateExport(actor Actor, archiveID, documentID, versionID int
 		if err := tx.Create(job).Error; err != nil {
 			return err
 		}
-		if len(forReading) > 0 && forReading[0] {
+		if forReading {
 			return nil
 		}
-		return s.log(tx, actor, archiveID, documentID, "export_requested", map[string]interface{}{"job": job.ID, "format": format, "version_id": versionID})
+		detail := map[string]interface{}{"job": job.ID, "format": format, "version_id": versionID, "archive_version_id": job.ArchiveVersionID}
+		if selection != nil {
+			detail["document_ids"] = selection.documentIDs
+			if selection.formats != nil {
+				detail["download_formats"] = selection.formats
+			}
+		}
+		return s.log(tx, actor, archiveID, documentID, "export_requested", detail)
 	})
 	if err != nil {
 		return nil, err
 	}
-	go s.runExport(*job)
+	go s.runExport(*job, selection)
 	return job, nil
+}
+
+func validDownloadFormat(kind, format string) bool {
+	switch kind {
+	case "online":
+		return format == "pdf" || format == "docx" || format == "pdf_and_docx"
+	case "pdf":
+		return format == "original" || format == "annotated_pdf"
+	default:
+		return format == "original"
+	}
 }
 func (s *Service) Export(id string) (*models.ArchiveExport, string, error) {
 	if _, err := uuid.Parse(id); err != nil {
@@ -134,7 +212,7 @@ func (s *Service) Export(id string) (*models.ArchiveExport, string, error) {
 	}
 	return &j, filepath.Join(s.Root, "exports", j.StorageKey), nil
 }
-func (s *Service) runExport(job models.ArchiveExport) {
+func (s *Service) runExport(job models.ArchiveExport, selection *downloadSelection) {
 	runtime := s.exportRuntime()
 	runtime.mu.Lock()
 	defer runtime.mu.Unlock() // Bound memory and LibreOffice concurrency.
@@ -177,7 +255,7 @@ func (s *Service) runExport(job models.ArchiveExport) {
 				}
 			}
 		} else if job.Format == "zip" {
-			err = s.renderArchive(ctx, work, output, job, runtime)
+			err = s.renderArchive(ctx, work, output, job, runtime, selection)
 		} else {
 			var v models.ArchiveDocumentVersion
 			err = s.DB.First(&v, job.DocumentVersionID).Error
@@ -292,7 +370,7 @@ func (s *Service) renderVersion(ctx context.Context, work, output string, v mode
 	}
 	return os.Rename(strings.TrimSuffix(docxPath, ".docx")+".pdf", output)
 }
-func (s *Service) renderArchive(ctx context.Context, work, output string, job models.ArchiveExport, runtime *ExportRuntime) error {
+func (s *Service) renderArchive(ctx context.Context, work, output string, job models.ArchiveExport, runtime *ExportRuntime, selection *downloadSelection) error {
 	var v models.ArchiveVersion
 	if err := s.DB.First(&v, job.ArchiveVersionID).Error; err != nil {
 		return err
@@ -320,22 +398,25 @@ func (s *Service) renderArchive(ctx context.Context, work, output string, job mo
 		_, err = io.Copy(w, f)
 		return err
 	}
-	raw, _ := json.MarshalIndent(snapshot, "", "  ")
-	w, err := z.Create("archive-information.json")
-	if err != nil {
-		return err
+	if selection == nil {
+		p := filepath.Join(work, "archive-information.pdf")
+		if err := s.renderInformation(ctx, work, p, snapshot, runtime); err != nil {
+			return err
+		}
+		if err := add("archive-information.pdf", p); err != nil {
+			return err
+		}
 	}
-	if _, err = w.Write(raw); err != nil {
-		return err
-	}
-	p := filepath.Join(work, "archive-information.pdf")
-	if err := s.renderInformation(ctx, work, p, snapshot, runtime); err != nil {
-		return err
-	}
-	if err := add("archive-information.pdf", p); err != nil {
-		return err
+	selected := map[int64]bool{}
+	if selection != nil {
+		for _, id := range selection.documentIDs {
+			selected[id] = true
+		}
 	}
 	for _, ref := range snapshot.Documents {
+		if selection != nil && !selected[ref.Document.ID] {
+			continue
+		}
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
@@ -344,8 +425,16 @@ func (s *Service) renderArchive(ctx context.Context, work, output string, job mo
 			return err
 		}
 		prefix := fmt.Sprint(ref.Document.ID) + "-" + safeExportName(ref.Document.Title)
+		format := ""
+		if selection != nil {
+			format = selection.formats[ref.Document.ID]
+		}
 		if ref.Document.Kind == "online" {
-			for _, format := range []string{"docx", "pdf"} {
+			formats := []string{"docx", "pdf"}
+			if format == "pdf" || format == "docx" {
+				formats = []string{format}
+			}
+			for _, format := range formats {
 				p := filepath.Join(work, uuid.NewString()+"."+format)
 				if err := s.renderVersion(ctx, work, p, dv, format, runtime); err != nil {
 					return err
@@ -359,10 +448,12 @@ func (s *Service) renderArchive(ctx context.Context, work, output string, job mo
 			if err != nil {
 				return err
 			}
-			if err := add("originals/"+fmt.Sprint(ref.Document.ID)+"-"+safeExportName(blob.Name), p); err != nil {
-				return err
+			if format != "annotated_pdf" {
+				if err := add("originals/"+fmt.Sprint(ref.Document.ID)+"-"+safeExportName(blob.Name), p); err != nil {
+					return err
+				}
 			}
-			if blob.Kind == "pdf" && dv.Body != "" && dv.Body != "null" {
+			if blob.Kind == "pdf" && (format == "annotated_pdf" || (format == "" && dv.Body != "" && dv.Body != "null")) {
 				p = filepath.Join(work, uuid.NewString()+".pdf")
 				if err := s.renderVersion(ctx, work, p, dv, "annotated_pdf", runtime); err != nil {
 					return err
@@ -391,8 +482,6 @@ func safeExportName(s string) string {
 	}
 	return s
 }
-
-var archiveInfoFields = []struct{ key, label string }{{"title", "名称"}, {"department", "培训部门"}, {"location", "培训地点"}, {"training_status", "培训状态"}, {"start_time", "培训开始"}, {"end_time", "培训结束"}, {"duration", "培训时长（小时）"}, {"lecturer", "培训讲师"}, {"participants", "参加人员"}, {"training_content", "培训内容"}, {"training_effect", "培训效果"}, {"inspection_result", "巡检结果"}, {"scope", "巡检设备范围"}, {"handler", "处理人"}, {"summary", "巡检总结"}, {"level", "故障等级"}, {"affected_business", "影响业务"}, {"occurred_at", "故障发生时间"}, {"resolved_at", "故障解决时间"}, {"main_engineer", "主要处理工程师"}, {"auxiliary_engineers", "辅助处理工程师"}, {"custom_type", "文档类型"}}
 
 func (s *Service) inspectPDF(source, key string) (int, error) {
 	runtime := s.exportRuntime()
@@ -463,21 +552,28 @@ func (s *Service) annotationsForVersion(tx *gorm.DB, actor Actor, v models.Archi
 }
 
 func (s *Service) renderInformation(ctx context.Context, work, output string, snapshot Snapshot, runtime *ExportRuntime) error {
-	category := map[string]string{"training": "培训服务", "inspection": "巡检报告", "incident": "故障报告", "other": "其他文档"}[snapshot.Record.Category]
-	state := map[string]string{"draft": "草稿", "archived": "已归档"}[snapshot.Record.State]
-	info := snapshot.Record.Title + "\n" + category + " · " + state + fmt.Sprintf(" · 档案版本 v%d\n", snapshot.Record.Revision)
-	info += "创建人：" + snapshot.Record.CreateName + "\n更新时间：" + time.UnixMilli(snapshot.Record.UpdateAt).Format(time.RFC3339) + "\n"
-	var metadata map[string]interface{}
-	json.Unmarshal([]byte(snapshot.Record.Metadata), &metadata)
-	for _, field := range archiveInfoFields {
-		if value, ok := metadata[field.key]; ok && value != "" && value != nil {
-			display := fmt.Sprint(value)
-			if translated, ok := map[string]string{"normal": "正常", "abnormal": "异常", "I": "Ⅰ级", "II": "Ⅱ级", "III": "Ⅲ级", "IV": "Ⅳ级"}[display]; ok {
-				display = translated
+	ids := make([]int64, 0, len(snapshot.Documents))
+	for _, ref := range snapshot.Documents {
+		ids = append(ids, ref.VersionID)
+	}
+	versions := map[int64]int64{}
+	if len(ids) > 0 {
+		var rows []models.ArchiveDocumentVersion
+		if err := s.DB.Where("id IN ?", ids).Find(&rows).Error; err != nil {
+			return err
+		}
+		for _, row := range rows {
+			versions[row.ID] = row.Sequence
+		}
+		for _, id := range ids {
+			if _, ok := versions[id]; !ok {
+				return missing()
 			}
-			info += field.label + "：" + display + "\n"
 		}
 	}
-	b := encode(map[string]interface{}{"data": map[string]interface{}{"main": []interface{}{map[string]interface{}{"value": info}}}, "options": map[string]interface{}{"defaultFont": "Noto Sans CJK SC", "defaultSize": 14, "width": 794, "height": 1123, "margins": []int{72, 72, 72, 72}}})
-	return s.renderVersion(ctx, work, output, models.ArchiveDocumentVersion{Body: b}, "pdf", runtime)
+	body, err := informationBody(snapshot, versions)
+	if err != nil {
+		return err
+	}
+	return s.renderVersion(ctx, work, output, models.ArchiveDocumentVersion{Body: body}, "pdf", runtime)
 }
