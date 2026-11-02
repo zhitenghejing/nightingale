@@ -72,6 +72,7 @@ func archiveBind(c *gin.Context, value interface{}) bool {
 func (rt *Router) configArchiveRoutes(pages *gin.RouterGroup) {
 	g := pages.Group("/archives", rt.auth(), rt.user())
 	g.POST("/:id/exports", rt.archiveExportCreate)
+	g.POST("/:id/downloads", rt.archiveDownloadCreate)
 	g.GET("/exports/:export_id", rt.archiveExportStatus)
 	g.GET("/exports/:export_id/file", rt.archiveExportFile)
 	g.POST("/:id/print", rt.archivePrintLog)
@@ -406,6 +407,29 @@ func (rt *Router) archiveExportStatus(c *gin.Context) {
 	v, _, err := rt.archiveService().Export(c.Param("export_id"))
 	if v != nil {
 		v.Error = i18nx.Translate(c.GetHeader("X-Language"), v.Error)
+	}
+	archiveResult(c, v, err)
+}
+
+func (rt *Router) archiveDownloadCreate(c *gin.Context) {
+	var in struct {
+		Revision    int64                       `json:"revision"`
+		DocumentIDs []int64                     `json:"document_ids"`
+		Documents   []archives.DocumentDownload `json:"documents"`
+	}
+	if !archiveBind(c, &in) {
+		return
+	}
+	var v *models.ArchiveExport
+	var err error
+	if in.Documents != nil {
+		if in.DocumentIDs != nil {
+			archiveResult(c, nil, &archives.Problem{Status: 422, Code: "invalid_archive", Message: "Specify one document selection format"})
+			return
+		}
+		v, err = rt.archiveService().CreateFormattedDownload(archiveActor(c), archiveInt(c, "id"), in.Revision, in.Documents)
+	} else {
+		v, err = rt.archiveService().CreateDownload(archiveActor(c), archiveInt(c, "id"), in.Revision, in.DocumentIDs)
 	}
 	archiveResult(c, v, err)
 }

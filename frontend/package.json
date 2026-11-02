@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "node scripts/check-toolchain.cjs && node scripts/prepare-archive-assets.mjs && vite --port 8765 --host",
     "prototype:archives": "node scripts/archive-prototype.mjs",
+    "prototype:archive-print": "node scripts/print-prototype.mjs",
     "dev:advanced": "node scripts/check-toolchain.cjs && node scripts/prepare-archive-assets.mjs && vite --port 8765 --host --mode advanced",
     "build": "node scripts/check-toolchain.cjs && node scripts/prepare-archive-assets.mjs && node scripts/build-archive-worker.mjs && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build",
     "build:advanced": "node scripts/check-toolchain.cjs && node scripts/prepare-archive-assets.mjs && node scripts/build-archive-worker.mjs && node comb_feats ${npm_config_custom_options} && cross-env NODE_OPTIONS=--max-old-space-size=8192 tsc && cross-env NODE_OPTIONS=--max-old-space-size=8192 vite build --mode advanced",

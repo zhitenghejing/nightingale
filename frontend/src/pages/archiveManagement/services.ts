@@ -1,5 +1,5 @@
 import request from '@/utils/request';
-import { Archive, ArchiveDocument, BlobInfo, Editing, ExportJob, Lease, Metadata, Version, Log } from './types';
+import { Archive, ArchiveDocument, BlobInfo, DocumentDownload, Editing, ExportJob, Lease, Metadata, Version, Log } from './types';
 const base = '/api/n9e/archives';
 export async function api<T = any>(path = '', method = 'GET', data?: any): Promise<T> {
   const res = await request(base + path, { method, data, silence: true });
@@ -57,6 +57,13 @@ export async function exportDocument(
   forReading = false,
 ): Promise<{ job: ExportJob; blob: Blob }> {
   let job = await api<ExportJob>(`/${archiveID}/exports`, 'POST', { format, document_id: documentID || 0, version_id: versionID || 0, for_reading: forReading });
+  return waitForExport(job, signal, forReading);
+}
+export async function downloadDocuments(archiveID: number, revision: number, documents: DocumentDownload[]) {
+  const job = await api<ExportJob>(`/${archiveID}/downloads`, 'POST', { revision, documents });
+  return waitForExport(job);
+}
+async function waitForExport(job: ExportJob, signal?: AbortSignal, forReading = false): Promise<{ job: ExportJob; blob: Blob }> {
   const until = Date.now() + 240000;
   while (!['done', 'error'].includes(job.state)) {
     if (signal?.aborted) throw new Error('已取消等待，导出任务仍会保留');

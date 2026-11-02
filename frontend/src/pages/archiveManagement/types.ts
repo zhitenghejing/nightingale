@@ -1,5 +1,10 @@
 export type Category = 'training' | 'inspection' | 'incident' | 'other';
 export type DocKind = 'online' | 'docx' | 'pdf' | 'image';
+export type DownloadFormat = 'pdf' | 'docx' | 'pdf_and_docx' | 'original' | 'annotated_pdf';
+export interface DocumentDownload {
+  document_id: number;
+  format: DownloadFormat;
+}
 export interface Metadata {
   title?: string;
   department?: string;
