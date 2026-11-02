@@ -32,6 +32,8 @@
 开发者与编程 Agent：[开发工作流](doc/agent-development-workflow.md) ·
 [环境准备](doc/development-environment.md) · [Worktree 预览](doc/worktree-preview.md)
 
+部署运维：[1.0平台推送部署与密钥操作手册](doc/deployment/platform10-push.md)（直接运行、Docker、升级与密钥轮换）。
+
 ## 夜莺是什么
 
 夜莺 Nightingale 是一款开源云原生监控告警工具，是中国计算机学会接受捐赠并托管的第一个开源项目，在 GitHub 上有超过 12000 颗星，广受关注和使用。夜莺的统一告警引擎，可以对接 Prometheus、Elasticsearch、ClickHouse、Loki、MySQL 等多种数据源，提供全面的告警判定、丰富的事件处理和灵活的告警分发及通知能力。
