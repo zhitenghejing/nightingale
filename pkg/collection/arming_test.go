@@ -209,3 +209,33 @@ func TestNativeWaitingRuleEnableSurvivesLaterMetadataSave(t *testing.T) {
 	require.NoError(t, s.DB.First(&rule, "id = ?", id).Error)
 	require.Equal(t, 1, rule.Disabled)
 }
+
+func TestNativeEnableDuringPauseSurvivesMetadataSave(t *testing.T) {
+	s, scope, c, cred, _ := testStore(t)
+	e := catalogFixture(t, s)
+	f := deviceInput(c, cred, "192.0.2.130")
+	f.TemplateVersionID = e.PublishedVersionID
+	d, err := s.SaveDevice(scope, "", "native-enable-paused-save", f)
+	require.NoError(t, err)
+	require.NoError(t, s.armDevice(d))
+	d, err = s.Device(scope, d.ID)
+	require.NoError(t, err)
+	state, err := deviceProfileState(d)
+	require.NoError(t, err)
+	id := state.Rules[0].ID
+	paused, err := s.SetDeviceState(scope, d.ID, d.RecordVersion, false, false)
+	require.NoError(t, err)
+	require.NoError(t, s.DB.Model(&models.AlertRule{}).Where("id = ?", id).Updates(map[string]interface{}{"disabled": 0, "update_by": "human-while-paused"}).Error)
+	f = inputFromDevice(paused)
+	f.Name = "metadata edit while paused"
+	paused, err = s.SaveDevice(scope, d.ID, "", f)
+	require.NoError(t, err)
+	var rule models.AlertRule
+	require.NoError(t, s.DB.First(&rule, "id = ?", id).Error)
+	require.Equal(t, 1, rule.Disabled, "device remains paused")
+	resumed, err := s.SetDeviceState(scope, d.ID, paused.RecordVersion, true, false)
+	require.NoError(t, err)
+	require.NoError(t, s.DB.First(&rule, "id = ?", id).Error)
+	require.Zero(t, rule.Disabled, "native enable is restored after the renewed system pause")
+	require.Contains(t, rule.RuleConfig, resumed.DesiredRevision)
+}

@@ -613,7 +613,7 @@ func syncDeviceProfile(tx *gorm.DB, d *models.MonitorDevice, old models.MonitorD
 			}
 		}
 		if !d.Enabled || d.Deleted {
-			if _, ok := state.Suspended[ref.ID]; !ok {
+			if _, ok := state.Suspended[ref.ID]; !ok || rule.UpdateBy != "collection" {
 				state.Suspended[ref.ID] = rule.Disabled
 				if desired, waiting := state.Waiting[ref.ID]; waiting && rule.UpdateBy == "collection" {
 					state.Suspended[ref.ID] = desired

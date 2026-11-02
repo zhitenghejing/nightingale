@@ -102,7 +102,7 @@ func TestCollectionSQLDialects(t *testing.T) {
 					require.NoError(t, err)
 					require.Len(t, snapshot.Configs["snmp"], 2)
 					var d models.MonitorDevice
-					require.NoError(t, db.First(&d).Error)
+					require.NoError(t, db.Where("address = ? AND deleted = ?", "198.51.100.10", false).First(&d).Error)
 					f := inputFromDevice(d)
 					f.Name = "One optimistic update"
 					start = make(chan struct{})
