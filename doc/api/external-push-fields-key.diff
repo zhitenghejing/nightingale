@@ -1,0 +1,319 @@
+--- before/pkg/externalpush/protocol.go
++++ after/pkg/externalpush/protocol.go
+@@ -75,7 +75,7 @@
+ 	if e.IsRecovered && e.IncidentSequence < 2 {
+ 		return p, errors.New("recovery has no preceding problem sequence")
+ 	}
+-	for _, k := range []string{"company_id", "device_type", "level_map", "device_name_label", "device_tags", "repeat_policy"} {
++	for _, k := range []string{"level_map", "device_name_label", "repeat_policy"} {
+ 		if strings.TrimSpace(s.Params[k]) == "" {
+ 			return p, fmt.Errorf("required rule parameter %s is missing", k)
+ 		}
+@@ -92,29 +92,27 @@
+ 	if strings.TrimSpace(level) == "" {
+ 		return p, errors.New("severity is not mapped; no production level is assumed")
+ 	}
+-	label := s.Params["device_name_label"]
+-	values := map[string]bool{}
+-	if value := e.TagsMap[label]; value != "" {
+-		values[value] = true
+-	}
+-	for _, tag := range e.TagsJSON {
+-		pair := strings.SplitN(tag, "=", 2)
+-		if len(pair) == 2 && pair[0] == label && pair[1] != "" {
+-			values[pair[1]] = true
+-		}
+-	}
+-	if len(values) != 1 {
++	company, err := ruleValue(s, "company_id")
++	if err != nil {
++		return p, err
++	}
++	deviceType, err := ruleValue(s, "device_type")
++	if err != nil {
++		return p, err
++	}
++	tags, err := ruleValue(s, "device_tags")
++	if err != nil {
++		return p, err
++	}
++	name, ok := eventLabel(e, s.Params["device_name_label"])
++	if !ok {
+ 		return p, errors.New("device_name_label is missing or ambiguous; exactly one device value is required")
+-	}
+-	var name string
+-	for value := range values {
+-		name = value
+ 	}
+ 	if e.FirstTriggerTime <= 0 || e.RuleName == "" {
+ 		return p, errors.New("problem time and trigger name are required")
+ 	}
+ 	loc, _ := time.LoadLocation(s.Config.TimeZone)
+-	p = Payload{AlarmType: s.Config.ProblemType, CompanyID: s.Params["company_id"], DeviceType: s.Params["device_type"], DeviceName: name, ProblemTime: time.Unix(e.FirstTriggerTime, 0).In(loc).Format("2006-01-02 15:04:05"), TriggerName: e.RuleName, Level: level, DeviceTags: s.Params["device_tags"], Sign: s.Config.TestSign}
++	p = Payload{AlarmType: s.Config.ProblemType, CompanyID: company, DeviceType: deviceType, DeviceName: name, ProblemTime: time.Unix(e.FirstTriggerTime, 0).In(loc).Format("2006-01-02 15:04:05"), TriggerName: e.RuleName, Level: level, DeviceTags: tags, Sign: s.Config.TestSign}
+ 	if e.IsRecovered {
+ 		if e.RecoverTime <= 0 || e.RecoverTime < e.FirstTriggerTime {
+ 			return Payload{}, errors.New("valid recovery time is required")
+@@ -123,6 +121,46 @@
+ 		p.RecoveryTime = time.Unix(e.RecoverTime, 0).In(loc).Format("2006-01-02 15:04:05")
+ 	}
+ 	return p, nil
++}
++
++// A rule selects one explicit source; label values are not rendered as templates
++// or parsed as addresses, JSON arrays, customer IDs or signatures.
++func ruleValue(s Snapshot, field string) (string, error) {
++	literal, label := s.Params[field], s.Params[field+"_label"]
++	if strings.TrimSpace(literal) != "" && strings.TrimSpace(label) != "" {
++		return "", fmt.Errorf("%s mapping selects both literal and label; choose exactly one source", field)
++	}
++	if strings.TrimSpace(label) != "" {
++		value, ok := eventLabel(s.Event, label)
++		if !ok {
++			return "", fmt.Errorf("%s label mapping is missing or ambiguous in the original event", field)
++		}
++		return value, nil
++	}
++	if strings.TrimSpace(literal) == "" {
++		return "", fmt.Errorf("required rule parameter %s is missing", field)
++	}
++	return literal, nil
++}
++
++func eventLabel(e models.AlertCurEvent, label string) (string, bool) {
++	values := map[string]bool{}
++	if value := e.TagsMap[label]; strings.TrimSpace(value) != "" {
++		values[value] = true
++	}
++	for _, tag := range e.TagsJSON {
++		pair := strings.SplitN(tag, "=", 2)
++		if len(pair) == 2 && pair[0] == label && strings.TrimSpace(pair[1]) != "" {
++			values[pair[1]] = true
++		}
++	}
++	if len(values) != 1 {
++		return "", false
++	}
++	for value := range values {
++		return value, true
++	}
++	return "", false
+ }
+ 
+ func validID(s string) bool {
+--- before/pkg/externalpush/routes.go
++++ after/pkg/externalpush/routes.go
+@@ -15,6 +15,13 @@
+ 	out := map[string]string{}
+ 	for _, k := range protocolParams {
+ 		out[k], _ = in[k].(string)
++	}
++	// Omit absent optional keys so persisted literal-only snapshots retain their
++	// existing fingerprint and route-consensus representation.
++	for _, k := range []string{"company_id_label", "device_type_label", "device_tags_label"} {
++		if value, ok := in[k].(string); ok && value != "" {
++			out[k] = value
++		}
+ 	}
+ 	return out
+ }
+--- before/pkg/externalpush/store.go
++++ after/pkg/externalpush/store.go
+@@ -228,15 +228,23 @@
+ }
+ 
+ type Detail struct {
+-	Task       models.ExternalPushTask        `json:"task"`
+-	Attempts   []models.ExternalPushAttempt   `json:"attempts"`
+-	Operations []models.ExternalPushOperation `json:"operations"`
++	PayloadPreview *Payload                       `json:"payload_preview,omitempty"`
++	Task           models.ExternalPushTask        `json:"task"`
++	Attempts       []models.ExternalPushAttempt   `json:"attempts"`
++	Operations     []models.ExternalPushOperation `json:"operations"`
+ }
+ 
+ func Get(db *gorm.DB, id int64) (Detail, error) {
+ 	d := Detail{Attempts: []models.ExternalPushAttempt{}, Operations: []models.ExternalPushOperation{}}
+ 	if err := db.First(&d.Task, id).Error; err != nil {
+ 		return d, err
++	}
++	// Admin detail is a read-only view of the stored payload, never a rebuild
++	// from mutable rules. Signing material and the full snapshot stay private.
++	var preview Payload
++	if json.Unmarshal([]byte(d.Task.Payload), &preview) == nil {
++		preview.Sign = "[REDACTED]"
++		d.PayloadPreview = &preview
+ 	}
+ 	if err := db.Where("task_id = ?", id).Order("id").Find(&d.Attempts).Error; err != nil {
+ 		return d, err
+--- before/frontend/src/pages/notificationChannels/ExternalPushFields.tsx
++++ after/frontend/src/pages/notificationChannels/ExternalPushFields.tsx
+@@ -0,0 +1,50 @@
++import React from 'react';
++import { Alert, Table } from 'antd';
++import { useTranslation } from 'react-i18next';
++import { NS } from './constants';
++
++const fields = ['alarmType', 'companyId', 'deviceType', 'deviceName', 'problemTime', 'recoveryTime', 'triggerName', 'level', 'deviceTags', 'sign'];
++
++// This is a source-expression guide, never a request template or send input.
++// The authoritative, validated JSON remains the durable worker payload.
++export default function ExternalPushFields({ params = {}, showRuleLink = false }: { params?: Record<string, string>; showRuleLink?: boolean }) {
++  const { t } = useTranslation(NS);
++  const mapped = (key: string) => (params[key + '_label'] ? `tags[${JSON.stringify(params[key + '_label'])}]` : params[key] || t('external.choose_rule_source'));
++  const structure = {
++    alarmType: 'IsRecovered ? "ok" : "problem"',
++    companyId: mapped('company_id'),
++    deviceType: mapped('device_type'),
++    deviceName: `tags[${JSON.stringify(params.device_name_label || t('external.choose_label'))}]`,
++    problemTime: 'FirstTriggerTime → YYYY-MM-DD HH:mm:ss',
++    recoveryTime: 'IsRecovered ? RecoverTime → YYYY-MM-DD HH:mm:ss : ""',
++    triggerName: 'RuleName',
++    level: `level_map[Severity]${params.level_map ? ' · ' + params.level_map : ''}`,
++    deviceTags: mapped('device_tags'),
++    sign: t('external.sign_pending'),
++  };
++  return (
++    <section className='my-4'>
++      <h3>{t('external.mapping_title')}</h3>
++      <Alert className='mb-3' type='info' message={t('external.mapping_location')} description={t('external.mapping_notice')} />
++      {showRuleLink && (
++        <p>
++          <a href='/notification-rules'>{t('external.open_rules')}</a>
++        </p>
++      )}
++      <Table
++        rowKey='field'
++        size='small'
++        pagination={false}
++        dataSource={fields.map((field) => ({ field }))}
++        columns={[
++          { title: t('external.json_field'), dataIndex: 'field', width: 130, render: (value) => <code>{value}</code> },
++          { title: t('external.field_source'), dataIndex: 'field', render: (value) => t(`external.sources.${value}`) },
++        ]}
++      />
++      <h4 className='mt-3'>{t('external.structure_preview')}</h4>
++      <pre aria-label={t('external.structure_preview')} style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
++        {JSON.stringify(structure, null, 2)}
++      </pre>
++    </section>
++  );
++}
+--- before/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.tsx
++++ after/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.tsx
+@@ -2,6 +2,7 @@
+ import { Alert, Form, Input, InputNumber, Select } from 'antd';
+ import { useTranslation } from 'react-i18next';
+ import { NS } from '../../constants';
++import ExternalPushFields from '../../ExternalPushFields';
+ 
+ const names = ['request_config', 'external_push_config'];
+ export default function ExternalPush() {
+@@ -23,6 +24,7 @@
+         <InputNumber min={1} max={10000} />
+       </Form.Item>
+       <Alert className='mb-4' type='info' message={t('external.protocol_notice')} />
++      <ExternalPushFields showRuleLink />
+     </>
+   );
+ }
+--- before/frontend/src/pages/notificationRules/pages/Form/ChannelParams/ExternalPush.tsx
++++ after/frontend/src/pages/notificationRules/pages/Form/ChannelParams/ExternalPush.tsx
+@@ -1,15 +1,59 @@
+-import React from 'react';
+-import { Alert, Form, Input, Select } from 'antd';
++import React, { useState } from 'react';
++import { Alert, Form, Input, Radio, Select } from 'antd';
+ import { FormListFieldData } from 'antd/lib/form/FormList';
+ import { useTranslation } from 'react-i18next';
+ import { NS } from '@/pages/notificationChannels/constants';
++import ExternalPushFields from '@/pages/notificationChannels/ExternalPushFields';
++
++function RuleSource({ field, name, target }: { field: FormListFieldData; name: string; target: string }) {
++  const { t } = useTranslation(NS);
++  const form = Form.useFormInstance();
++  const path = ['notify_configs', field.name, 'params'];
++  const params = Form.useWatch(path) || {};
++  const [source, setSource] = useState(() => (form.getFieldValue([...path, name + '_label']) ? 'label' : 'literal'));
++  const key = source === 'label' ? name + '_label' : name;
++  return (
++    <fieldset aria-label={target} className='mb-3'>
++      <legend style={{ fontSize: 14 }}>
++        <code>{target}</code>
++      </legend>
++      {params[name]?.trim() && params[name + '_label']?.trim() && <Alert className='mb-2' type='error' message={t('external.source_conflict')} />}
++      <Radio.Group
++        className='mb-2'
++        value={source}
++        onChange={(event) => {
++          const next = event.target.value;
++          // An explicit source change discards only the inactive mapping. Loading
++          // an existing contradictory configuration never silently chooses one.
++          form.setFields([{ name: [...path, next === 'label' ? name : name + '_label'], value: undefined }]);
++          setSource(next);
++        }}
++      >
++        <Radio value='literal'>{t('external.source_literal')}</Radio>
++        <Radio value='label'>{t('external.source_label')}</Radio>
++      </Radio.Group>
++      <Form.Item name={[field.name, 'params', key]} label={t(`external.params.${key}`)} rules={[{ required: true, whitespace: true }]}>
++        <Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} />
++      </Form.Item>
++    </fieldset>
++  );
++}
+ 
+ export default function ExternalPush({ field }: { field: FormListFieldData }) {
+   const { t } = useTranslation(NS);
++  const params = Form.useWatch(['notify_configs', field.name, 'params']);
+   return (
+     <>
+       <Alert className='mb-4' type='warning' showIcon message={t('external.recovery_notice')} description={t('external.rule_notice')} />
+-      {['company_id', 'device_type', 'device_name_label', 'device_tags', 'level_map'].map((key) => (
++      <h3>{t('external.edit_mapping')}</h3>
++      {[
++        ['company_id', 'companyId'],
++        ['device_type', 'deviceType'],
++        ['device_tags', 'deviceTags'],
++      ].map(([name, target]) => (
++        <RuleSource key={name} field={field} name={name} target={target} />
++      ))}
++      {['device_name_label', 'level_map'].map((key) => (
+         <Form.Item key={key} name={[field.name, 'params', key]} label={t(`external.params.${key}`)} rules={[{ required: true, whitespace: true }]}>
+           <Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} />
+         </Form.Item>
+@@ -17,6 +61,7 @@
+       <Form.Item name={[field.name, 'params', 'repeat_policy']} label={t('external.params.repeat_policy')} rules={[{ required: true }]}>
+         <Select options={['all_dispatches', 'review_repeats'].map((value) => ({ value, label: t(`external.${value}`) }))} />
+       </Form.Item>
++      <ExternalPushFields params={params} />
+     </>
+   );
+ }
+--- before/frontend/src/pages/notificationChannels/pages/ExternalTasks.tsx
++++ after/frontend/src/pages/notificationChannels/pages/ExternalTasks.tsx
+@@ -20,6 +20,7 @@
+   channel_id: number;
+ }
+ interface Detail {
++  payload_preview?: Record<string, string>;
+   task: Task;
+   attempts: { id: number; number: number; state: string; summary: string; started_at: number; finished_at: number }[];
+   operations: { id: number; actor: string; action: string; reason: string; before_state: string; after_state: string; created_at: number }[];
+@@ -107,6 +108,16 @@
+               <p>
+                 {t('external.incident')}: {detail.task.incident_id} / {detail.task.sequence}
+               </p>
++              <Alert className='mb-3' type='info' message={t('external.pairing_notice')} />
++              <h3>{t('external.payload_title')}</h3>
++              <p>{t('external.payload_notice')}</p>
++              {detail.payload_preview ? (
++                <pre aria-label={t('external.payload_title')} style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
++                  {JSON.stringify(detail.payload_preview, null, 2)}
++                </pre>
++              ) : (
++                <p>{t('external.payload_unavailable')}</p>
++              )}
+               <Space className='mb-4'>
+                 {['unknown', 'manual'].includes(detail.task.state) && (
+                   <>

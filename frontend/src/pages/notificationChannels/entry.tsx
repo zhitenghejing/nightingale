@@ -4,11 +4,13 @@ import './locale';
 import { NS } from './constants';
 
 const ListNG = React.lazy(() => import('./pages/ListNG'));
+const ExternalTasks = React.lazy(() => import('./pages/ExternalTasks'));
 const Add = React.lazy(() => import('./pages/Add'));
 const Edit = React.lazy(() => import('./pages/Edit'));
 
 export default {
   routes: [
+    { path: `/${NS}/external-tasks`, component: ExternalTasks, exact: true },
     {
       path: `/${NS}`,
       component: ListNG,

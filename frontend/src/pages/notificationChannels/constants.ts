@@ -61,6 +61,39 @@ export function getChannelTypeMeta(ident?: string): { logo?: string; label: stri
 export const getNotificationChannelTypes = () => {
   const dt = (key: string) => i18next.t(`${NS}:default_values.${key}`);
   const types = {
+    external_push: {
+      logo: '/image/notification/http.png',
+      type: 'external_push',
+      default_values: {
+        name: dt('platform10_name'),
+        enable: false,
+        request_type: 'external_push',
+        param_config: {
+          user_info: undefined,
+          custom: {
+            params: ['company_id', 'device_type', 'device_name_label', 'device_tags', 'level_map', 'device_source', 'cmdb_match_field', 'cmdb_match_label', 'device_tags_source'].map((key) => ({
+              key,
+              cname: i18next.t(`${NS}:external.params.${key}`),
+              type: 'string',
+            })),
+          },
+        },
+        request_config: {
+          external_push_config: {
+            signing_mode: 'key_file',
+            signing_key_ref: 'platform10-v1',
+            mode: 'platform10',
+            endpoint: 'https://admin.ztservice.cn/messageWarn!acceptWarn.act',
+            destination: 'platform10',
+            timeout_ms: 10000,
+            problem_type: 'problem',
+            recovery_type: 'ok',
+            test_sign: '',
+            time_zone: 'Asia/Shanghai',
+          },
+        },
+      },
+    },
     flashduty: {
       logo: '/image/logos/flashduty.png',
       type: 'flashduty',

@@ -1,0 +1,1666 @@
+--- a/doc/api/external-push-signing.md
++++ b/doc/api/external-push-signing.md
+@@ -1,6 +1,6 @@
+ # 外部推送签名与独立密钥文件
+ 
+-本轮按业务提供的Java转换规则实现文件签名，但发送仍只允许数字回环HTTP模拟端。没有生产密码、生产接口调用或下游人员通知。新增签名功能不等于生产协议/部署验收已经完成。
++更新：业务已确认UTF-8、POST表单及真实接收地址。新增的1.0平台模式只允许该精确HTTPS地址，预置媒介仍关闭；本轮用户要求只配置、不执行真实推送。见[当前预置与字段来源](platform10-preset.md)。下文签名阶段的本地验证记录保留。
+ 
+ ## 规则与明确边界
+ 
+@@ -8,7 +8,7 @@
+ sign = UPPER_HEX(MD5(UTF8(RemoveASCIISpaces(problemTime) + privateKey)))
+ ```
+ 
+-仅移除最终报文problemTime中的普通半角空格，保留日期连字符、冒号等其他字符；密码原值不做TrimSpace、大小写转换或自动删除换行。输出32位大写十六进制。业务方确认了时间处理、拼接、MD5及大写转换；当前UTF-8是本地实现的显式编码选择，仍需与原Java `MD5.md5` 的真实编码及一组非真实密码测试向量核对，不能据此直接开放生产。
++仅移除最终报文problemTime中的普通半角空格，保留日期连字符、冒号等其他字符；密码原值不做TrimSpace、大小写转换或自动删除换行。输出32位大写十六进制。业务方确认了时间处理、拼接、MD5及大写转换；UTF-8已由业务方补充确认；真实凭据和实际接收结果仍待后续明确指令验证。
+ 
+ 恢复先按原有机制继承实际受理故障的problemTime等字段，再签名。同一problemTime及密钥得到相同sign，不同设备甚至不同客户也可能相同，sign绝不作为轮次、派发唯一键或去重键，1.0具体配对算法仍未确认。
+ 
+@@ -59,7 +59,7 @@
+ 
+ ## 页面与异常处置
+ 
+-通知媒介→外部告警推送（模拟）→签名方式选择“center密钥文件”，填写包含版本的引用。点击“检查密钥状态（只读）”查看当前center上文件是否可用；不会发送告警、改变任务、回显密码或上传文件。
++通知媒介→1.0平台推送→签名方式选择“center密钥文件”，填写包含版本的引用。点击“检查密钥状态（只读）”查看当前center上文件是否可用；不会发送告警、改变任务、回显密码或上传文件。
+ 
+ `GET /api/n9e/external-push-signing-key?reference=platform10-v1`沿用管理员权限，返回reference/ready/reason。普通用户不能查询。修改引用后丢弃旧查询的迟到响应，不显示其他引用的就绪状态。结果只反映当前center检查时刻，不证明其他center节点已正确配置；worker领取时仍重新检查。
+ 
+@@ -110,7 +110,7 @@
+ - 本地及LAN入口正常：`http://192.168.0.152:30305`。公网`https://n9e-dev5.zhiteng.win`探测为TLS EOF失败，仅交付局域网预览，不能称公网验收通过。补充本报告后刷新构建并核验源码/前端未漂移；最终build ID见交付消息及预览status。
+ - 原附件中28个客户/设备/标签/sign/IP取值在本轮变更文本和statik文本成员中扫描无命中；真实客户信息、原报文和密码不加入仓库。
+ 
+-人工验收：打开通知媒介→新建“外部告警推送（模拟）”，确认默认关闭，选择center密钥文件，仅输入版本引用；检查状态应显示未配置（临时文件已删）。查看任务29/30可核对一次故障和一次恢复的受理、尝试和脱敏报文，查询不会重发。需要再次模拟时按本文在实例私有路径创建显式TEST文件并使用本地模拟端，切勿填生产地址或真实凭据。
++人工验收：打开通知媒介→打开预置的“1.0平台推送”，确认默认关闭，选择center密钥文件，仅输入版本引用；检查状态应显示未配置（临时文件已删）。查看任务29/30可核对一次故障和一次恢复的受理、尝试和脱敏报文，查询不会重发。需要再次模拟时按本文在实例私有路径创建显式TEST文件并使用本地模拟端，切勿填生产地址或真实凭据。
+ 
+ 下一阶段最小待确认清单：
+ 
+--- a/doc/api/external-push.md
++++ b/doc/api/external-push.md
+@@ -1,4 +1,6 @@
+ # 外部告警推送：第一阶段设计与运行约定
++
++更新：媒介显示名称已统一为“1.0平台推送”，现有初始化流程会预置一条默认关闭、可被通知规则选择的保存记录。真实地址、编码和字段来源已补充确认，CMDB关联键及真实密钥仍待配置，本轮不执行真实推送，详见[预置媒介说明](platform10-preset.md)。以下第一阶段说明保留为历史记录。
+ 
+ 更新：已按业务提供的转换规则新增center独立文件签名，默认路径可覆盖；仍仅本地模拟，Java编码需对照向量。见[密钥部署与签名约定](external-push-signing.md)。此前“sign未知”的记录为当时状态，未自动改写旧任务。
+ 
+--- /dev/null
++++ b/doc/api/platform10-preset-evidence.json
+@@ -0,0 +1,42 @@
++{
++  "buildId": "20261029T071631Z-f604f710",
++  "channelId": 25,
++  "draftRuleId": 13,
++  "local": {
++    "ok": true,
++    "buildId": "20261029T071631Z-f604f710"
++  },
++  "lan": {
++    "ok": true,
++    "buildId": "20261029T071631Z-f604f710"
++  },
++  "public": {
++    "ok": false,
++    "error": "<urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)>"
++  },
++  "checks": [
++    "anonymous rejected",
++    "wrong password rejected",
++    "login",
++    "one saved default channel pinned on first page across date sort directions",
++    "default disabled with confirmed event types and file-key reference",
++    "actual UI save of the disabled preset; confirmed endpoint, timezone, file key reference",
++    "disabled business mapping draft saved; customer supplied in instance only; unknown CMDB association stays empty",
++    "selectable in existing notification rule; no local recipient expansion",
++    "reload retains one saved channel",
++    "zero task writes, no new tasks, no real send and no browser errors"
++  ],
++  "writes": [
++    "PUT /api/n9e/notify-channel-config/25"
++  ],
++  "pageErrors": [],
++  "scope": "Disabled configuration only; no production request, new task, or downstream notification test",
++  "automated": {
++    "infra": 63,
++    "goPassedIncludingSubtests": 2783,
++    "goSkippedExternalService": 48,
++    "frontendSuitesPassed": 214,
++    "frontendTestsPassed": 1859,
++    "embeddedAssetsMatch": true
++  }
++}
+--- /dev/null
++++ b/doc/api/platform10-preset.md
+@@ -0,0 +1,70 @@
++# 1.0平台推送预置媒介与配置
++
++本轮按用户要求统一显示名称，并复用现有通知媒介初始化流程，在列表默认保存一条“1.0平台推送”。内部ident/request_type仍为external_push。用户随后明确本轮只准备配置、等待后续指令，不向真实1.0推送；未来可用合成故障/恢复输入验证任务链路。本轮所有请求测试均为隔离数据库＋本地模拟接收器。
++
++## 已确认配置与保存位置
++
++| 配置 | 当前约定 |
++| --- | --- |
++| 媒介名称 | 1.0平台推送，系统预置且默认关闭，可被原通知规则选择 |
++| 真实接收地址 | https://admin.ztservice.cn/messageWarn!acceptWarn.act |
++| 协议 | POST，application/x-www-form-urlencoded; charset=UTF-8，表单json承载一个JSON对象 |
++| 运行模式 | platform10仅允许上述精确HTTPS地址；simulation仍只允许数字回环HTTP |
++| 超时/重试 | 默认10秒，结果不明不自动重投，不自动跟随重定向 |
++| 事件类型 | 故障problem、恢复ok |
++| 时区 | Asia/Shanghai |
++| 签名 | 已确认UTF-8；problemTime去普通空格＋文件原密码→MD5大写；真实模式不接受测试签名 |
++| 密钥引用 | platform10-v1，独立文件路径可覆盖；真实密码尚未配置，不写入Git |
++| 客户归属 | 当前实例配置草稿使用用户给定测试归属，软件预置不硬编码任何客户名 |
++| 设备类型/名称 | CMDB.type及CMDB.hostname；关联字段与告警标签键仍待下一步确认，不自动挑选资产 |
++| deviceTags | 告警规则基础配置的附加标签append_tags保存原文，空格分隔key=value，作为一个JSON字符串，不转数组、不混入指标标签 |
++| 等级映射 | 本次显式配置1→灾难、2→严重、3→警告；真实模式只接受灾难/严重/警告/一般四种目标文本 |
++
++业务参数仍在原通知规则中配置，不新增客户主数据系统。媒介只负责接口、模式、时间和签名引用。原固定类型/原始标签映射可继续选择；切换来源明确清除不再使用的旧配置，导入的混合矛盾配置由发送端阻止。
++
++## 实现与兼容
++
++- `models/notify_channel.go`的NotiChMap新增关闭的预置记录，Weight=0；前端将系统预置项固定在首行，更新时间切换不影响置顶，其他媒介沿用原排序。InitNotifyChannel→Upsert沿用已有初始化：顺序重复启动只有一条同名默认记录，管理员保存的配置不被重启覆盖。删除后下次启动按原机制补回；未新增“禁止删除”规则或多center并发唯一约束。
++- `models/external_push.go`新增platform10模式的精确地址与文件签名约束；已有simulation配置/任务保留旧模式。模拟故障不能作为真实接口恢复的前序。未开放任意URL代理、GET告警或测试签名直连真实接口。
++- `pkg/cmdb/alert_device.go`只读查询未删除资产，仅返回ID/版本、类型与主机名。明确匹配字段仅hostname/businessIp/managementIp；精确匹配，不剥离端口或猜测标签。不匹配、多匹配、字段缺失会阻止发送。
++- `pkg/externalpush/sources.go`在首次任务登记时冻结CMDB及附加标签，重复登记复用已有来源快照；恢复优先使用已受理故障来源。任务仍按既有派发UUID与目的端唯一约束保存，不按本地人数复制。worker使用已保存值，不在出网时读取可变CMDB/规则。
++- `frontend/.../notificationChannels`统一名称，创建预填已确认地址、时区、类型、目的端及文件引用；`notificationRules/.../ChannelParams/ExternalPush.tsx`新增明确的CMDB/规则附加标签来源选项及关联必填项。已有用户自建媒介名称不批量重命名。
++- 无新增数据库表/列或SQL迁移，仅在已有JSON快照中增加可选sources字段，旧快照及旧通知渠道保留兼容。
++
++## 可靠性边界
++
++CMDB没有已索引的主机名/IP列，当前只扫描活跃资产文档的必要存储字段，无全量机柜/磁盘读取；大规模资产性能未验证，不宣称已完成生产容量验证。此查询是center内部告警适配读取，不新增面向用户的CMDB API或修改资产/Target的绑定。
++
++来源冻结时刻是首次任务登记，尚不是告警产生时的历史资产/规则版本；登记前规则或CMDB变化仍可能影响首次取值。读取失败会保留具体校验原因；修正关联配置后使用新派发验证，不把旧失败快照伪装为已发送。既有首次登记前崩溃窗口、快照大小上限、多center/edge部署未验证等边界仍存在。未新增下游人员匹配、短信电话或状态查询。
++
++## 检查与待执行事项
++
++已先复现并修复：默认列表缺媒介；真实模式被旧模拟限制拒绝；模拟故障错误充当真实恢复前序；真实等级接受模拟文本；CMDB及规则来源未支持。修复前日志分别位于本机/tmp/platform10-preset-{seed,live-policy,cross-mode,level,cmdb}-red.log。
++
++聚焦检查覆盖默认关闭、初始化幂等、管理员修改保留、真实模式地址/测试签名限制、模式切换、缺失/多资产匹配、来源冻结、重复登记、恢复沿用原值、旧渠道兼容；前端Form覆盖新来源保存与清理旧映射。完整门禁及页面结果见下。
++
++下一步仅在用户明确指令后安排：配置真实密钥、确定CMDB关联键和合成样本，先核对脱敏JSON，再按一对故障/恢复执行真实接口测试。用户已说明成功接收会触发真实通知，接口保存与后续通知仍分项核验。本轮不执行此步骤。
++
++## 本轮实际验证
++
++- `make verify`通过：基础设施63项；Go 2783项通过、48项外部服务环境用例跳过；前端214个测试套件、1859项通过。跳过项未验证，未执行make verify-all。日志：本机`/tmp/platform10-preset-verify-pinned.log`。
++- `sh fe.sh`成功生成当前内嵌资源；`N9E_TEST_FRONTEND_DIR="$PWD/frontend/pub" go test ./front/statik -count=1`逐文件一致。Node 24.22.0 / pnpm 10.32.1。
++- 定向本地接收器与隔离数据库测试通过：CMDB类型/主机名和规则附加标签冻结；源数据变更后重复登记仍为同一任务；恢复沿用原故障来源；无匹配/多匹配阻止发送。并发首次登记通过唯一冲突后复用获胜来源快照，避免可变CMDB内容引起虚假路由冲突；补有确定性交错回归和race检查。
++- Agent浏览器在隔离PostgreSQL预览验证：匿名及错误密码拒绝、正常登录；预置媒介ID 25唯一、首屏置顶（含日期排序三次切换）；真实页面保存后仍关闭；已有通知规则可搜索选择媒介；配置草稿ID 13关闭，CMDB关联两项为空，未绑定告警规则。未增加任务、未操作任务人工按钮、无浏览器错误。
++- 停用草稿名称为“1.0平台推送·配置草稿（未启用）”，保存用户指定的测试归属、CMDB来源、规则附加标签及等级映射。草稿通过现有通知规则API保存，随后页面读取核对；不是创建完整可启用告警规则。
++- 浏览器功能验证构建`20261029T071631Z-f604f710`，源码和前端无漂移，local/LAN探测通过。预览LAN为`http://192.168.0.152:30305`；公网dev5探测仍因TLS EOF失败，本轮结果仅代表本地/LAN验收，不代表公网通过。文档补录后再刷新构建并只读复核，最终build ID见交付消息及本机`/tmp/platform10-preset-final-evidence.json`。
++- 原始附件28个受保护取值及内网标识检查未发现落入本轮变更文本或内嵌文本资源。真实密钥未读取、未安装、未提交；没有对1.0接口执行网络测试，没有启用媒介/规则，没有发送短信电话。本轮功能测试只使用合成数据与本地接收器。
++
++## Standards
++
++只读规范审查发现1项：首次并发登记可能在可变来源读取后，与已经获胜的来源快照产生虚假冲突。已修复唯一冲突路径并补回归，复审关闭；新增列表置顶比较器亦已复审，无未解决发现。审查未代替运行测试。
++
++## Spec
++
++只读需求审查发现1项同类并发来源问题，已修复并复审关闭。默认关闭、独立实例客户配置、CMDB来源及缺失关联阻止发送、模拟/真实隔离均保留；没有新增人员匹配或下游通知功能。两轴各1项原始发现，现均关闭。
++
++## 当前验收入口
++
++1. “告警通知→通知媒介”首行查看“1.0平台推送”，开关应关闭；进入查看已确认地址、POST表单说明、时区和密钥版本引用。
++2. “通知规则”打开“1.0平台推送·配置草稿（未启用）”，核对客户、CMDB来源、附加标签及等级；关联字段与标签键保留空，开关应关闭。
++3. 本轮只验收配置。真实密钥、告警与CMDB的关联及后续模拟输入等待用户下一步指令，不点击启用或实际发送。
+--- a/frontend/public/n9e-docs/notification-channel/external_push-request/en_US.md
++++ b/frontend/public/n9e-docs/notification-channel/external_push-request/en_US.md
+@@ -1,36 +1,15 @@
+-# External alarm push: local simulation only
++# Platform 1.0 push
+ 
+-This channel registers one persistent event delivery task per matching dispatch and logical destination. Only center workers POST the form. Tasks do not send SMS or phone calls to individual recipients; platform 1.0 continues to own personnel matching and downstream notifications.
++A saved “1.0平台推送” preset appears in the media list, disabled by default and selectable from existing notification rules. Its persisted identifier stays external_push. User edits survive restart.
+ 
+-- New channels are disabled by default. Only `simulation` mode and numeric loopback HTTP endpoints with explicit ports are allowed. There is no production endpoint or signature default.
+-- Keep one stable destination key for the same logical receiver. Different events may use different rule parameters. Conflicting applicable routes for one dispatch are blocked. Changing destination keys must not bypass conflict detection or deduplication.
+-- Event types are confirmed: `problem` for faults and `ok` for recovery. New configurations show these read-only values. A signature must still be supplied explicitly for testing; it is not a production signing algorithm.
+-- Existing notification rule parameters supply customer identity, device type, device-name label, severity mapping, tag string, and an explicit repeat policy. Local recipient counts do not multiply requests.
++Real mode accepts only https://admin.ztservice.cn/messageWarn!acceptWarn.act. Requests are POST forms with Content-Type application/x-www-form-urlencoded; charset=UTF-8. Form field json contains one serialized JSON object. Timeout defaults to 10 seconds; redirects and automatic retries are disabled. A successful call may trigger real account/SMS/phone notifications in platform 1.0. This round prepares disabled configuration only.
+ 
+-The original protocol fields used to distinguish headquarters and branches are unconfirmed. No branchId is added and companyId is not assumed to identify branches. A local customer ID does not automatically equal the external customer identifier.
++Business mappings belong to notification rules. Device type/name can use CMDB.type/hostname with an explicitly configured exact event-label match to hostname, businessIp or managementIp. Missing, ambiguous, deleted or incomplete assets block delivery. There is no implicit Target association or port stripping. Legacy literal/event-label mappings remain available.
+ 
+-The business samples are display text, not standard JSON. Their original wire format and deviceTags type are unconfirmed. Local tests normalize deviceTags to a JSON string and submit one JSON object through the json form field; these representation assumptions still require confirmation.
++deviceTags may use the saved alert-rule append_tags field verbatim, as one JSON string of space-separated key=value entries, not an array or all metric labels. Values are frozen at first task registration; recovery retains the accepted original problem. This is registration-time data, not a historical rule revision. Explicit level_map is required; the confirmed test mapping is 1→灾难, 2→严重, 3→警告. Real mode accepts only the four confirmed receiver levels.
+ 
+-Legacy TEST-type configurations and tasks are not silently converted or replayed. Review them and create a new disabled simulation configuration, preserving the existing audit history.
++Event types are problem/ok. Recovery preserves original problemTime and adds recoveryTime. The configured timezone is Asia/Shanghai. The center computes uppercase MD5 of UTF-8(timestamp without ASCII spaces + the file key). sign is never an incident or deduplication identifier.
+ 
+-## Results and manual operations
++The default key reference platform10-v1 resolves to /etc/n9e/secrets/platform10.key, overridable on center. Provision separately outside Git; previews use an instance-private path. Only a reference and a read-only readiness check appear in the UI. Real mode rejects literal test signatures. Loopback simulation remains separate, and simulated problems cannot anchor real recoveries.
+ 
+-Open the administrator external-task page from notification channels to inspect tasks, attempts, and audit records.
+-
+-“1.0 interface reports successful reception” means HTTP success and a complete JSON object with exactly one numeric status equal to 200. It does not prove personnel, SMS, or phone notification. Timeouts, malformed or truncated responses, other ambiguous results, and expired sending leases remain unknown without automatic retry.
+-
+-Administrators can explicitly cancel a never-attempted task with a reason. Its state means “not delivered”, not receipt. An attempted unknown request cannot be cancelled to bypass reconciliation. Confirmation and resend authorization require explicit audited actions; check receiver records and old in-flight workers first.
+-
+-Existing mute, filtering, and recovery switches remain effective. Legitimately undelivered source snapshots do not create phantom predecessors. Recovery requires a received problem; attempted unknown problems still block it. If local rules filter recovery, the external platform may retain an unresolved alarm. Mandatory recovery synchronization remains undecided.
+-
+-## Where to configure JSON fields
+-
+-The channel displays all ten field sources and a source-expression guide. Select this channel in a notification rule to configure company, device type, device-name label, severity mapping and tag text. companyId/deviceType/deviceTags explicitly select either literal text or an original event label. Types, timestamps and trigger text are automatic. Missing/ambiguous labels or selecting both sources block delivery.
+-
+-Task details show the saved JSON read-only, with sign always redacted. Local recovery association uses destination + persistent incident UUID and preserves accepted problem fields and problemTime. Sign is never an identity. The receiver pairing algorithm, customer attribution and Java signing encoding and vectors need verification.
+-
+-## Center file signing
+-
+-New channels remain disabled and default to key_file, with versioned reference platform10-v1. Provision /etc/n9e/secrets/platform10.key separately, or override Center.ExternalPushKeyFiles. Store exact UTF-8 bytes without a newline; use 0400/0600 or a controlled read-only group. Mount read-only in Docker and retain the host file during upgrades. Never commit the key.
+-
+-Worker removes ASCII spaces from the final problemTime, appends the file key and computes uppercase MD5. Recovery keeps original problemTime. UTF-8 still requires a Java vector; production sending remains blocked. Legacy explicit test values are simulation-only, never real passwords. Administrators can inspect readiness with a read-only check; no key/path is returned and no alarm is sent. Missing keys block only their tasks. Explicit resend retains the original bytes/signature and rejects a changed key version. Previews use their own private file.
++Tasks push events, not person-level messages. Only center workers send. Unknown results, timeouts and expired sending leases are never blindly retried. Explicit reconciliation/resend actions are audited. Existing mute/filter/recovery switches remain effective. Interface acceptance does not prove downstream notifications.
+--- a/frontend/public/n9e-docs/notification-channel/external_push-request/zh_CN.md
++++ b/frontend/public/n9e-docs/notification-channel/external_push-request/zh_CN.md
+@@ -1,38 +1,25 @@
+-# 外部告警推送：仅本地模拟
++# 1.0平台推送
+ 
+-本渠道将每个命中通知规则的事件登记为持久推送任务，由 center worker 向模拟接收端发送一条表单请求。任务不是向具体人员发送短信或电话；后续人员匹配和通知由1.0负责。
++系统默认在通知媒介列表保存一条“1.0平台推送”，初始关闭，可被既有通知规则选择。内部external_push标识不变，已存在的用户自建媒介名称和通知规则不被批量改写；管理员保存的配置在重启时保留。
+ 
+-- 新渠道默认关闭。仅允许 `simulation` 模式和带端口的数字回环 HTTP 地址；没有生产地址或生产签名默认值。
+-- 同一逻辑目标的渠道使用稳定且一致的目的端键。不同事件可使用不同规则参数；同次派发的实际路由矛盾会阻止发送。不能改键绕过冲突或去重。
+-- 事件类型已确认：故障为 `problem`、恢复为 `ok`，新建配置显示只读确认值。测试签名仍必须显式填写，仅为本地测试值，不代表真实签名编码及测试向量。
+-- 在现有通知规则中填写客户标识、设备类型、名称来源标签键、等级映射、标签字符串和显式重复策略。不按本地接收人数复制请求。
++真实接口模式固定使用 `https://admin.ztservice.cn/messageWarn!acceptWarn.act`，POST，Content-Type为 `application/x-www-form-urlencoded; charset=UTF-8`。表单字段json承载一个完整JSON对象，结构化序列化后由HTTP客户端编码，不是直接发送application/json，也不把告警放入URL。默认10秒超时，不自动重试或跟随重定向。
+ 
+-总部和分部通过哪些原协议字段区分尚待确认：不新增 branchId，也不假定一定用 companyId。本地客户ID不自动等于1.0要求的客户标识。
++成功接收后1.0可能真实触发账号、短信及电话通知。仅启用媒介且命中已启用的通知规则时才登记发送；本轮只准备配置，保持关闭，等待下一步指令。接口报告接收成功与后续人员通知分别验收。
+ 
+-附件中的展示文本不是标准JSON，不能据此确定真实传输格式或deviceTags类型。本地模拟把deviceTags规范化为JSON字符串，并以表单json字段提交单个JSON对象；这些类型/格式假设仍需正式核对。
++## 业务字段
+ 
+-旧TEST类型配置和任务不会自动转换或重投；请核对后新建关闭的模拟配置，保留原任务审计。
++- companyId在通知规则填写固定值或显式告警标签。本次客户值只存实例测试规则，不作为软件默认值。
++- deviceType/deviceName可选择CMDB.type及CMDB.hostname。必须明确告警标签与CMDB主机名/业务IP/带外IP的精确对应；不会自动删除端口、猜测关联或选择第一条。未匹配、多个匹配、设备字段缺失时阻止发送。原固定类型/告警标签来源保留兼容。
++- deviceTags选择“告警规则：基础配置→附加标签”，读取该字段保存的原文（空格分隔key=value），作为一个JSON字符串。不会变成数组，不混入指标标签。兼容旧固定字符串或指定标签方式。
++- level通过显式level_map映射。本次约定1→灾难、2→严重、3→警告；真实接口模式仅允许灾难/严重/警告/一般四种目标文本。不会替缺失映射选默认值。
++- alarmType自动为problem/ok，时间按Asia/Shanghai；恢复沿用已受理故障的problemTime、设备与归属，再填写recoveryTime。triggerName来自规则名称。sign不参与本地事件配对或去重。
+ 
+-## 查询和人工操作
++CMDB和附加标签在首次任务登记时冻结，查询/发送时不重新读取当前资产或规则；恢复沿用已受理故障。规则字段冻结的是登记时保存内容，尚不是事件产生时的历史规则版本。没有新增告警与CMDB的隐式绑定关系、人员匹配或下游通知逻辑。
+ 
+-在“通知媒介 → 外部推送任务（管理员）”查看任务、尝试和审计。
++## 密钥、模式及任务
+ 
+-“1.0接口报告接收成功”只表示 HTTP/完整JSON/唯一数字status精确等于200，不表示业务消息、人员通知、短信或电话已完成。超时、非JSON、截断、异常响应或发送中租约到期均保留结果不明，不自动重发。
++真实模式必须引用center独立密钥文件，默认platform10-v1对应 `/etc/n9e/secrets/platform10.key`，路径可覆盖；预览使用实例私有路径。页面不保存密码，不回传文件内容，只提供管理员只读状态检查。UTF-8下按problemTime去普通空格、拼接原密码、MD5并转大写生成sign。签名算法和编码已确认，真实密码由部署端单独配置，不上传Git。
+ 
+-零次尝试的任务可由管理员填写理由后明确取消，保存为“明确未投递”，不是“对方已收到”。已尝试但结果不明的请求不能通过取消绕过核对；人工确认或授权重发必须明确操作并留痕，重发前核对接收记录和旧worker在途请求。
++本地模拟模式只允许数字回环HTTP地址，可显式使用测试签名。切换模式会清除不适用的地址/测试值；模拟故障不能作为真实恢复的前序。已有模拟配置和任务保留其原模式。
+ 
+-沿用原静默、过滤和恢复开关。合法未投递快照不形成不存在的前序；恢复需要实际已收到故障，已发送未知结果仍阻塞。若恢复被本地规则过滤，对方可能保留未恢复故障；是否必须同步恢复仍待确认。
+-
+-## JSON字段在哪里配置
+-
+-渠道页现在显示全部十字段的来源表和JSON结构示意；客户、设备类型、名称标签、等级和标签在**通知规则选择此媒介之后**配置。companyId/deviceType/deviceTags可明确选固定文本或原始告警标签；deviceName填写标签键。类型、时间和报警内容自动取夜莺原始告警，不需手工配对或填写时间。标签缺失/歧义或同时配置两种来源会阻止发送。
+-
+-任务详情提供实际保存JSON只读视图，sign始终隐藏。恢复按本地目的端+持久故障轮次UUID关联，沿用已受理故障业务字段和problemTime；sign从不作身份。1.0实际配对算法及sign转换规则已提供，Java编码及测试向量仍待核对；companyId也不能直接用本地业务组ID代替。
+-
+-## 独立密钥文件签名
+-
+-新建渠道默认关闭，签名方式默认“center密钥文件”，只填写包含版本的引用platform10-v1，不输入真实密码。默认文件/etc/n9e/secrets/platform10.key，可由center配置Center.ExternalPushKeyFiles覆盖。部署时单独创建文件、保留原值且不带换行，推荐0400/0600权限。Docker只读挂载；升级保留宿主机文件，密钥不提交GitHub。
+-
+-worker用最终problemTime去掉普通空格，拼接文件密码，以UTF-8计算MD5并输出大写；恢复保留原problemTime，sign仍不作唯一键。UTF-8须用Java测试向量核对，生产发送仍关闭。旧显式测试签名模式保留，不能把真实密码填进测试签名框。
+-
+-管理员可点“检查密钥状态（只读）”；不上传或回显密钥，不发送告警。缺失/不可读/格式错误的新任务校验失败，其他渠道继续工作。密钥版本不要覆盖，未知结果不自动重投；人工重发保留首次JSON与签名，版本不匹配会被阻止。预览使用实例私有文件，不读取主机真实密钥。
++任务是向外部接口推送事件，不按本地人数复制请求。仅center worker发送。结果不明、发送中重启或超时不会自动重投，人工确认和授权重发留痕；恢复受前序故障实际投递结果约束。屏蔽、过滤和恢复开关沿用本地规则，恢复被过滤可能让1.0保留未恢复故障。
+--- a/frontend/src/pages/notificationChannels/ExternalPushFields.tsx
++++ b/frontend/src/pages/notificationChannels/ExternalPushFields.tsx
+@@ -13,13 +13,13 @@
+   const structure = {
+     alarmType: 'IsRecovered ? "ok" : "problem"',
+     companyId: mapped('company_id'),
+-    deviceType: mapped('device_type'),
+-    deviceName: `tags[${JSON.stringify(params.device_name_label || t('external.choose_label'))}]`,
++    deviceType: params.device_source === 'cmdb' ? 'CMDB.type (snapshot)' : mapped('device_type'),
++    deviceName: params.device_source === 'cmdb' ? 'CMDB.hostname (snapshot)' : `tags[${JSON.stringify(params.device_name_label || t('external.choose_label'))}]`,
+     problemTime: 'FirstTriggerTime → YYYY-MM-DD HH:mm:ss',
+     recoveryTime: 'IsRecovered ? RecoverTime → YYYY-MM-DD HH:mm:ss : ""',
+     triggerName: 'RuleName',
+     level: `level_map[Severity]${params.level_map ? ' · ' + params.level_map : ''}`,
+-    deviceTags: mapped('device_tags'),
++    deviceTags: params.device_tags_source === 'rule_append_tags' ? 'AlertRule.append_tags (saved field string, snapshot)' : mapped('device_tags'),
+     sign: t('external.sign_pending'),
+   };
+   return (
+--- a/frontend/src/pages/notificationChannels/constants.ts
++++ b/frontend/src/pages/notificationChannels/constants.ts
+@@ -65,12 +65,13 @@
+       logo: '/image/notification/http.png',
+       type: 'external_push',
+       default_values: {
++        name: dt('platform10_name'),
+         enable: false,
+         request_type: 'external_push',
+         param_config: {
+           user_info: undefined,
+           custom: {
+-            params: ['company_id', 'device_type', 'device_name_label', 'device_tags', 'level_map', 'repeat_policy'].map((key) => ({
++            params: ['company_id', 'device_type', 'device_name_label', 'device_tags', 'level_map', 'repeat_policy', 'device_source', 'cmdb_match_field', 'cmdb_match_label', 'device_tags_source'].map((key) => ({
+               key,
+               cname: i18next.t(`${NS}:external.params.${key}`),
+               type: 'string',
+@@ -81,14 +82,14 @@
+           external_push_config: {
+             signing_mode: 'key_file',
+             signing_key_ref: 'platform10-v1',
+-            mode: 'simulation',
+-            endpoint: '',
+-            destination: '',
+-            timeout_ms: 1000,
++            mode: 'platform10',
++            endpoint: 'https://admin.ztservice.cn/messageWarn!acceptWarn.act',
++            destination: 'platform10',
++            timeout_ms: 10000,
+             problem_type: 'problem',
+             recovery_type: 'ok',
+             test_sign: '',
+-            time_zone: '',
++            time_zone: 'Asia/Shanghai',
+           },
+         },
+       },
+--- a/frontend/src/pages/notificationChannels/locale/en_US.ts
++++ b/frontend/src/pages/notificationChannels/locale/en_US.ts
+@@ -1,6 +1,16 @@
+ const en_US = {
+   external: {
+-    signing_mode: 'Signing mode (production sending remains disabled)',
++    device_source: 'Device type and name source',
++    device_sources: { event: 'Literal type / event labels (legacy compatible)', cmdb: 'CMDB device type + hostname' },
++    cmdb_notice: 'Configure an exact event-label to active CMDB asset match. Missing, ambiguous or incomplete assets block sending. Freeze values at first registration; recovery preserves the accepted problem.',
++    cmdb_match_field: 'CMDB match field (leave empty until confirmed)',
++    cmdb_match_label: 'Event label key (e.g. ident; never inferred)',
++    cmdb_fields: { hostname: 'Hostname', businessIp: 'Business IP', managementIp: 'Management IP' },
++    device_tags_source: 'deviceTags source',
++    tags_sources: { mapping: 'Literal / event label (legacy compatible)', rule_append_tags: 'Alert rule: appended labels' },
++    append_tags_notice: 'The saved append_tags field verbatim, with space-separated key=value entries, becomes one JSON string. No array or metric labels. Frozen at task registration, not a historical rule revision.',
++
++    signing_mode: 'Signing mode',
+     signing_modes: { key_file: 'Center key file: timestamp without spaces + key → uppercase MD5', test_value: 'Simulation-only explicit test signature (legacy compatible)' },
+     signing_key_ref: 'Versioned key reference (e.g. platform10-v1)',
+     key_file_notice:
+@@ -14,42 +24,45 @@
+     mapping_title: 'JSON fields and Nightingale sources',
+     mapping_location: 'Transport is configured on the channel; business mappings on notification rules; saved redacted JSON in task details.',
+     mapping_notice:
+-      'Source expressions only: this is neither a send action nor an editable request template. One validated JSON object is encoded in form field json. deviceTags is a string for local simulation; the real wire type is unconfirmed.',
++      'Source expressions only: this is neither a send action nor an editable request template. One validated JSON object is encoded in form field json. deviceTags is sent as a confirmed JSON string.',
+     open_rules: 'Open notification rules to configure business mappings',
+-    json_field: 'JSON field (strings in local simulation)',
++    json_field: 'JSON field (string values)',
+     field_source: 'Nightingale source / mapping rule',
+     structure_preview: 'JSON structure and source expressions (never sent)',
+     choose_rule_source: 'Choose a literal or event label in the notification rule',
+     choose_label: 'Specify the event label key in the notification rule',
+-    sign_pending: 'Uppercase MD5(timestamp without ASCII spaces + center file key); local simulation',
++    sign_pending: 'Uppercase MD5(timestamp without ASCII spaces + center file key); UTF-8',
+     source_literal: 'Literal text',
+     source_label: 'Original event label',
+     edit_mapping: 'Configure JSON business field sources',
+     payload_title: 'Saved JSON (sign redacted)',
+     payload_notice:
+-      'Read-only task payload snapshot. Zero attempts does not mean delivered; waiting recovery fields are anchored to an accepted problem when claimed. The supplied signing conversion is implemented; UTF-8 still needs a Java vector.',
++      'Read-only task payload snapshot. Zero attempts does not mean delivered; waiting recovery fields are anchored to an accepted problem when claimed. The supplied signing conversion is implemented; UTF-8 is confirmed.',
+     payload_unavailable: 'No parseable payload snapshot; inspect the validation reason.',
+     pairing_notice:
+       'Local association uses logical destination + persistent incident UUID. Recovery preserves accepted problem attribution, device and problemTime. Dispatch UUID deduplicates; sign is never an identity. The 1.0 pairing algorithm remains unknown.',
+     sources: {
+       alarmType: 'Automatic: IsRecovered=false → problem, true → ok (confirmed).',
+       companyId: 'Rule literal or original event label; never inferred from a local group ID. Receiver customer display text may differ.',
+-      deviceType: 'Rule literal or original event label; datasource type is not a default device type.',
+-      deviceName: 'Complete value from the configured original event label; retain IP, port, underscore, parentheses and slashes.',
++      deviceType: 'CMDB.type, or legacy literal/event-label mapping; never inferred from datasource type.',
++      deviceName: 'CMDB.hostname, or the complete original event label; retain IP, port, underscore, parentheses and slashes.',
+       problemTime: 'FirstTriggerTime formatted in the channel timezone; recovery preserves the accepted original value.',
+       recoveryTime: 'Empty string for problems; RecoverTime (history recover_time) for recovery.',
+       triggerName: 'RuleName / history rule_name; recovery preserves original problem text.',
+       level: 'Severity / history severity mapped through explicit level_map; no default production dictionary.',
+-      deviceTags: 'Literal string or complete event-label string; never implicitly converts all event tags to an array.',
+-      sign: 'Worker computes uppercase MD5 from the final problemTime without ASCII spaces plus the center file key. Never an incident or dedupe key; production is blocked.',
++      deviceTags: 'Saved alert-rule append_tags text, or legacy literal/event-label string. No implicit metric labels.',
++      sign: 'Worker computes uppercase MD5 from the final problemTime without ASCII spaces plus the center file key. Never an incident or dedupe key; real receiver mode requires a file key.',
+     },
+ 
+-    simulation_notice: 'Local simulation only. Production destinations and unconfirmed production protocol are blocked.',
++    platform10: 'Platform 1.0 (real receiver)',
++    platform10_notice: 'Real receiver: successful reception may immediately trigger account, SMS or phone notifications in platform 1.0. Only enabled channels matched by saved rules send. Missing keys or mappings block delivery.',
++    transport_notice: 'Fixed POST form: Content-Type application/x-www-form-urlencoded; charset=UTF-8, field json contains one complete JSON object. No automatic retries or redirects.',
++    simulation_notice: 'Local simulation permits only numeric loopback HTTP endpoints and cannot reach the real receiver.',
+     recovery_notice:
+       'Local mute, filters and recovery switches still apply. A filtered recovery can leave the receiver with an unresolved problem; mandatory recovery sync is undecided.',
+     mode: 'Mode',
+     simulation: 'Local simulation (not production protocol)',
+-    endpoint: 'Mock endpoint (numeric loopback IP and port)',
++    endpoint: 'Receiver endpoint (fixed for real mode; loopback for simulation)',
+     destination: 'Logical destination key (shared by rules for the same target)',
+     problem_type: 'Confirmed problem type: problem',
+     recovery_type: 'Confirmed recovery type: ok',
+@@ -57,12 +70,12 @@
+     test_sign: 'Simulation-only signature test value',
+     timeout: 'Timeout (ms; no automatic retries)',
+     protocol_notice:
+-      'Event types problem/ok are confirmed. The four receiver levels and signing conversion are supplied. Attribution/device dictionaries, original wire format, deviceTags type and Java signing encoding/vectors still need verification. Missing parameters produce a validation failure task.',
++      'Event types problem/ok, POST form, UTF-8 signing and the four receiver levels are confirmed. Attribution, CMDB association and rule mappings must be explicit. Missing parameters produce a validation failure task.',
+     rule_notice:
+-      'Register per dispatch and logical destination, regardless of recipient count. Independent events may share an endpoint with different mappings; contradictory applicable routes for the same dispatch are blocked. Headquarters/branch attribution fields are unconfirmed: no branchId is added and companyId is not assumed to identify a branch. Values are simulation assumptions.',
+-    all_dispatches: 'Simulation assumption: send each dispatch, including reminders',
++      'Register per dispatch and logical destination, regardless of recipient count. Independent events may share an endpoint with different mappings; contradictory applicable routes for the same dispatch are blocked. Headquarters/branch attribution fields are unconfirmed: no branchId is added and companyId is not assumed to identify a branch. Configure explicit business field sources before enabling.',
++    all_dispatches: 'Follow existing rules: send each dispatch, including reminders',
+     review_repeats: 'Send first actual problem; review reminders (unattempted reminders do not block recovery)',
+-    tasks: 'External push tasks (administrators)',
++    tasks: 'Platform 1.0 push tasks (administrators)',
+     state: 'State',
+     refresh: 'Refresh (read only)',
+     latest: 'Latest',
+@@ -90,6 +103,11 @@
+     manual_notice:
+       'Every decision is audited. Before resending, reconcile receiver records, exclude late arrivals and confirm the old worker and request have stopped. Resending may duplicate notifications. Refresh never sends.',
+     params: {
++      device_source: 'Device source',
++      cmdb_match_field: 'CMDB match field',
++      cmdb_match_label: 'CMDB event label key',
++      device_tags_source: 'Device tags source',
++
+       company_id_label: 'companyId source label key',
+       device_type_label: 'deviceType source label key',
+       device_tags_label: 'deviceTags source label key (string value)',
+@@ -116,6 +134,7 @@
+   title: 'Media types',
+   basic_configuration: 'Basic configuration',
+   default_values: {
++    platform10_name: '1.0平台推送',
+     access_key_id: 'Replace with the actual access_key_id',
+     access_key_secret: 'Replace with the actual access_key_secret',
+     show_number: 'Replace with the actual show_number; if empty the caller number is hidden',
+@@ -151,7 +170,7 @@
+     },
+   },
+   request_configuration: {
+-    external_push: 'External push configuration (simulation)',
++    external_push: 'Platform 1.0 push configuration',
+     jsm_alert: 'JSM Alert configuration',
+     discord: 'Discord configuration',
+     slackwebhook: 'Slack Webhook configuration',
+@@ -337,7 +356,7 @@
+   },
+   types_select_placeholder: 'Type',
+   types: {
+-    external_push: 'External alarm push (simulation)',
++    external_push: 'Platform 1.0 push',
+     flashduty: 'FlashDuty',
+     callback: 'Callback',
+     email: 'Email',
+--- a/frontend/src/pages/notificationChannels/locale/zh_CN.ts
++++ b/frontend/src/pages/notificationChannels/locale/zh_CN.ts
+@@ -1,6 +1,16 @@
+ const zh_CN = {
+   external: {
+-    signing_mode: '签名方式（生产发送仍关闭）',
++    device_source: '设备类型与设备名称来源',
++    device_sources: { event: '固定类型 / 告警标签（兼容已有配置）', cmdb: 'CMDB：设备类型 + 主机名' },
++    cmdb_notice: '明确配置告警标签与CMDB字段的精确匹配关系；只匹配未删除资产。找不到、匹配多台或缺少类型/主机名时阻止发送，不取第一条。首次任务登记时冻结资产值，恢复沿用已受理故障。',
++    cmdb_match_field: 'CMDB匹配字段（待确认时留空）',
++    cmdb_match_label: '告警中的匹配标签键（如ident；不自动猜测）',
++    cmdb_fields: { hostname: '主机名 hostname', businessIp: '业务IP businessIp', managementIp: '带外管理IP managementIp' },
++    device_tags_source: 'deviceTags来源',
++    tags_sources: { mapping: '固定字符串 / 告警标签（兼容已有配置）', rule_append_tags: '告警规则：基础配置 → 附加标签' },
++    append_tags_notice: '读取规则保存的附加标签字段原文（key=value按空格分隔），作为一个JSON字符串，不转数组、不混入指标标签。首次任务登记时冻结；不是历史事件生成时的规则版本。',
++
++    signing_mode: '签名方式',
+     signing_modes: { key_file: 'center密钥文件：时间去空格＋密码串→MD5大写', test_value: '仅模拟：显式测试签名值（兼容已有配置）' },
+     signing_key_ref: '密钥引用（包含版本，例如 platform10-v1）',
+     key_file_notice:
+@@ -14,40 +24,43 @@
+     mapping_title: 'JSON 字段与夜莺来源',
+     mapping_location: '渠道页配置传输；通知规则页配置业务字段映射；任务详情查看实际保存的脱敏 JSON。',
+     mapping_notice:
+-      '下面是字段来源表达式，不会发送，也不是可编辑的请求模板。实际从原始持久告警构造一个 JSON 对象，再放入表单 json 字段；deviceTags 暂按字符串模拟，真实传输类型仍待确认。',
++      '下面是字段来源表达式，不会发送，也不是可编辑的请求模板。实际从原始持久告警构造一个 JSON 对象，再放入表单 json 字段；deviceTags按已确认的字符串发送。',
+     open_rules: '前往通知规则配置业务字段',
+-    json_field: 'JSON 字段（当前模拟均为字符串）',
++    json_field: 'JSON 字段（传输值均为字符串）',
+     field_source: '夜莺来源 / 填写规则',
+     structure_preview: 'JSON 结构与来源示意（不发送）',
+     choose_rule_source: '在通知规则中选择固定文本或告警标签',
+     choose_label: '在通知规则中指定标签键',
+-    sign_pending: '大写MD5（problemTime去普通空格＋center文件密钥）；仅模拟验证',
++    sign_pending: '大写MD5（problemTime去普通空格＋center文件密钥）；UTF-8',
+     source_literal: '固定文本',
+     source_label: '原始告警标签',
+     edit_mapping: '配置 JSON 业务字段来源',
+     payload_title: '实际保存的 JSON（sign 已隐藏）',
+     payload_notice:
+-      '这是任务保存的报文快照，读取不会发送。零次尝试不表示已投递；等待中的恢复报文在领取时才引用已受理故障字段。文件签名按已确认转换规则生成，UTF-8编码仍需Java向量核对。',
++      '这是任务保存的报文快照，读取不会发送。零次尝试不表示已投递；等待中的恢复报文在领取时才引用已受理故障字段。文件签名按已确认转换规则生成，UTF-8编码已确认。',
+     payload_unavailable: '没有可解析的报文快照；请查看校验原因。',
+     pairing_notice: '夜莺按同一逻辑目的端 + 持久故障轮次 UUID 关联；恢复沿用已受理故障的归属、设备、problemTime 等字段。派发 UUID 用于去重，sign 不参与。1.0具体配对字段仍未知。',
+     sources: {
+       alarmType: '自动：IsRecovered=false → problem；true → ok（已确认）。',
+       companyId: '规则：固定外部归属文本，或指定原始告警标签值；不自动使用业务组ID，1.0可解析为不同的客户显示名称。',
+-      deviceType: '规则：固定设备类型文本，或指定原始告警标签值；不把数据源类型默认当作设备类型。',
+-      deviceName: '规则指定标签键，从原始持久告警 tags 取完整值；不裁剪IP、端口、下划线、括号或斜杠。',
++      deviceType: '规则：CMDB.type，或兼容固定类型/告警标签；不从数据源类型推断。',
++      deviceName: '规则：CMDB.hostname，或指定原始告警标签完整值；不裁剪IP、端口、下划线、括号或斜杠。',
+       problemTime: '自动：FirstTriggerTime，按渠道时区格式化；恢复沿用实际已受理故障的原值。',
+       recoveryTime: '自动：故障为空字符串；恢复取 RecoverTime（历史记录 recover_time）。',
+       triggerName: '自动：RuleName / 历史 rule_name；恢复沿用原故障内容。',
+       level: '规则：Severity / 历史 severity 经显式 level_map 映射；没有已确认的默认等级词典。',
+-      deviceTags: '规则：固定字符串或指定告警标签的完整字符串；不擅自将全部夜莺标签转成数组。',
+-      sign: 'worker按最终problemTime去普通空格后拼接文件密钥，计算大写MD5；密钥只在center。不是故障身份或去重键，生产发送仍被阻止。',
+-    },
+-
+-    simulation_notice: '仅限本地模拟：本阶段不能连接生产平台，测试值不代表生产协议。',
++      deviceTags: '规则：告警规则附加标签字段原文；兼容固定字符串/指定标签，不混入全部指标标签。',
++      sign: 'worker按最终problemTime去普通空格后拼接文件密钥，计算大写MD5；密钥只在center。不是故障身份或去重键，真实模式仅允许文件密钥签名。',
++    },
++
++    platform10: '1.0平台（真实接口）',
++    platform10_notice: '真实接口：成功接收后1.0可能立即通知人员、发送短信或电话。启用媒介并命中通知规则后才发送；密钥和映射缺失会阻止发送。',
++    transport_notice: '固定使用POST表单，Content-Type为application/x-www-form-urlencoded; charset=UTF-8，字段json承载完整JSON；不自动重试或跟随重定向。',
++    simulation_notice: '本地模拟：只允许数字回环HTTP地址，不能连接真实平台。',
+     recovery_notice: '沿用本地屏蔽、过滤和恢复开关。恢复若被过滤，对方可能保留未恢复故障；是否必须同步恢复尚未决定。',
+     mode: '运行模式',
+     simulation: '本地模拟（非生产协议）',
+-    endpoint: '模拟接收地址（数字回环 IP，必须带端口）',
++    endpoint: '接收地址（真实模式固定，本地模拟填写回环地址）',
+     destination: '逻辑目的端键（同一目标的多规则必须一致）',
+     problem_type: '故障类型（已确认：problem）',
+     recovery_type: '恢复类型（已确认：ok）',
+@@ -55,12 +68,12 @@
+     test_sign: '仅模拟：显式测试签名值（不能用于生产）',
+     timeout: '超时（毫秒，不自动重试）',
+     protocol_notice:
+-      'problem/ok事件类型已确认。四种目标等级和签名转换规则已提供；归属映射、设备词典、原始传输格式、deviceTags类型和Java签名编码/向量仍待核对。缺少必要参数会保存校验失败任务。',
++      'problem/ok、POST表单、UTF-8签名和四种目标等级已确认。业务归属、CMDB关联与规则字段须明确配置；缺少必要参数会保存校验失败任务。',
+     rule_notice:
+-      '按派发及逻辑目的端登记，不按本地人数复制请求。不同事件可共用接收地址并携带各自参数；同次派发实际命中的矛盾配置会阻止发送。总部/分部通过原协议哪些字段区分仍待确认，以下只用明确模拟值，不新增 branchId，也不假定用 companyId。',
+-    all_dispatches: '模拟假设：每次派发（包括重复提醒）各推一次',
++      '按派发及逻辑目的端登记，不按本地人数复制请求。不同事件可共用接收地址并携带各自参数；同次派发实际命中的矛盾配置会阻止发送。总部/分部通过原协议哪些字段区分仍待确认，应明确配置实际字段来源，不新增 branchId，也不假定用 companyId。',
++    all_dispatches: '按现有规则：每次派发（包括重复提醒）各推一次',
+     review_repeats: '首个实际故障发送，后续提醒人工处置（未发送提醒不阻塞恢复）',
+-    tasks: '外部推送任务（管理员）',
++    tasks: '1.0平台推送任务（管理员）',
+     state: '任务状态',
+     refresh: '刷新（只读）',
+     latest: '最新任务',
+@@ -85,15 +98,20 @@
+     accepted_notice: '“1.0接口报告接收成功”仅表示接口响应符合条件，不表示业务消息、人员通知、短信或电话完成。恢复等待实际已尝试故障的结果；合法未投递快照不需要补造。',
+     manual_notice: '操作会留痕。重发前必须核对接收记录、排除迟到请求，并确认旧 worker 已退出及请求结束；重发可能造成重复通知。普通刷新不会发送。',
+     params: {
++      device_source: '设备字段来源',
++      cmdb_match_field: 'CMDB匹配字段',
++      cmdb_match_label: 'CMDB匹配告警标签键',
++      device_tags_source: '标签字段来源',
++
+       company_id_label: 'companyId 来源标签键',
+       device_type_label: 'deviceType 来源标签键',
+       device_tags_label: 'deviceTags 来源标签键（值保持字符串）',
+ 
+       company_id: '外部客户标识（显式映射文本）',
+-      device_type: '外部设备类型（显式测试映射）',
++      device_type: '设备类型（固定值）',
+       device_name_label: '设备名称来源标签键（如 ident）',
+-      device_tags: '标签字符串（本地假设；原始类型待确认）',
+-      level_map: '等级映射 JSON（如 {"1":"测试级别"}）',
++      device_tags: '标签字符串（完整原文）',
++      level_map: '等级映射 JSON（本次约定：1灾难、2严重、3警告）',
+       repeat_policy: '重复提醒策略（必须显式选择）',
+     },
+     states: {
+@@ -111,6 +129,7 @@
+   title: '通知媒介',
+   basic_configuration: '基础配置',
+   default_values: {
++    platform10_name: '1.0平台推送',
+     access_key_id: '需要改为实际的access_key_id',
+     access_key_secret: '需要改为实际的access_key_secret',
+     show_number: '需要改为实际的show_number, 如果为空则不显示',
+@@ -144,7 +163,7 @@
+     },
+   },
+   request_configuration: {
+-    external_push: '外部告警推送配置（仅模拟）',
++    external_push: '1.0平台推送配置',
+     jsm_alert: 'JSM 告警配置',
+     discord: 'Discord 配置',
+     slackwebhook: 'Slack Webhook 配置',
+@@ -325,7 +344,7 @@
+   },
+   types_select_placeholder: '类型',
+   types: {
+-    external_push: '外部告警推送（模拟）',
++    external_push: '1.0平台推送',
+     flashduty: 'FlashDuty',
+     callback: '回调',
+     email: '邮件',
+--- a/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.test.tsx
++++ b/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.test.tsx
+@@ -1,24 +1,29 @@
+ /** @jest-environment jsdom */
+ import React from 'react';
++import i18next from 'i18next';
+ import { Form, Input } from 'antd';
+ import { act, fireEvent, render, screen } from '@testing-library/react';
+ import ExternalPush from './ExternalPush';
+-import { getNotificationChannelTypes } from '../../constants';
++import { getNotificationChannelTypes, NS } from '../../constants';
++import zhCN from '../../locale/zh_CN';
+ 
+ const mockRequest = jest.fn();
+ jest.mock('@/utils/request', () => ({ __esModule: true, default: (...args: unknown[]) => mockRequest(...args) }));
+ jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }));
+-beforeAll(() => {
++beforeAll(async () => {
++  await i18next.init({ lng: 'zh_CN', resources: { zh_CN: { [NS]: zhCN } } });
+   window.matchMedia = jest.fn().mockImplementation(() => ({ matches: false, addListener: jest.fn(), removeListener: jest.fn() }));
+ });
+ beforeEach(() => mockRequest.mockReset());
+-it('defaults to a disabled simulation draft with confirmed problem/ok values without a destination or signature', async () => {
++it('defaults to the confirmed platform 1.0 endpoint, disabled and without a signature', async () => {
+   const preset = getNotificationChannelTypes().external_push.default_values;
+   expect(preset.enable).toBe(false);
++  expect(preset.name).toBe('1.0平台推送');
+   expect(preset.param_config.user_info).toBeUndefined();
+   expect(preset.request_config.external_push_config).toMatchObject({
+-    mode: 'simulation',
+-    endpoint: '',
++    mode: 'platform10',
++    endpoint: 'https://admin.ztservice.cn/messageWarn!acceptWarn.act',
++    destination: 'platform10',
+     test_sign: '',
+     signing_mode: 'key_file',
+     signing_key_ref: 'platform10-v1',
+@@ -36,6 +41,8 @@
+   expect(await screen.findByText('external.recovery_notice')).toBeTruthy();
+   expect(screen.queryByLabelText('external.test_sign')).toBeNull();
+   expect(screen.getByLabelText('external.signing_key_ref')).toHaveProperty('value', 'platform10-v1');
++  expect(screen.getByLabelText('external.endpoint')).toHaveProperty('readOnly', true);
++  expect(screen.getByText('external.platform10_notice')).toBeTruthy();
+ });
+ 
+ it('shows confirmed event types as read-only values while keeping signing explicitly test-only', async () => {
+@@ -79,7 +86,7 @@
+   const preset = getNotificationChannelTypes().external_push.default_values;
+   const initial = {
+     ...preset,
+-    request_config: { external_push_config: { ...preset.request_config.external_push_config, signing_mode: undefined, signing_key_ref: undefined, test_sign: 'TEST_LEGACY_ONLY' } },
++    request_config: { external_push_config: { ...preset.request_config.external_push_config, mode: 'simulation', endpoint: 'http://127.0.0.1:19999/mock', signing_mode: undefined, signing_key_ref: undefined, test_sign: 'TEST_LEGACY_ONLY' } },
+   };
+   render(
+     <Form initialValues={initial}>
+@@ -110,3 +117,26 @@
+   expect(screen.queryByText('OLD_REFERENCE_READY')).toBeNull();
+   expect(screen.queryByText('external.key_ready')).toBeNull();
+ });
++
++it('clears the real endpoint for simulation and restores file-only signing on returning to real mode', async () => {
++  const preset = getNotificationChannelTypes().external_push.default_values;
++  render(
++    <Form initialValues={preset}>
++      <Form.Item name='request_type' hidden><Input /></Form.Item>
++      <ExternalPush />
++    </Form>,
++  );
++  fireEvent.mouseDown(await screen.findByLabelText('external.mode'));
++  fireEvent.click(await screen.findByText('external.simulation', { selector: '.ant-select-item-option-content' }));
++  expect(screen.getByLabelText('external.endpoint')).toHaveProperty('value', '');
++  expect(screen.getByLabelText('external.endpoint')).toHaveProperty('readOnly', false);
++  fireEvent.mouseDown(screen.getByLabelText('external.signing_mode'));
++  fireEvent.click(await screen.findByText('external.signing_modes.test_value', { selector: '.ant-select-item-option-content' }));
++  fireEvent.change(await screen.findByLabelText('external.test_sign'), { target: { value: 'TEST_ONLY_SIMULATION' } });
++  fireEvent.mouseDown(screen.getByLabelText('external.mode'));
++  fireEvent.click(await screen.findByText('external.platform10', { selector: '.ant-select-item-option-content' }));
++  expect(screen.getByLabelText('external.endpoint')).toHaveProperty('value', 'https://admin.ztservice.cn/messageWarn!acceptWarn.act');
++  expect(screen.getByLabelText('external.endpoint')).toHaveProperty('readOnly', true);
++  expect(screen.queryByLabelText('external.test_sign')).toBeNull();
++  expect(screen.getByLabelText('external.signing_key_ref')).toHaveProperty('value', 'platform10-v1');
++});
+--- a/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.tsx
++++ b/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.tsx
+@@ -55,21 +55,33 @@
+   const form = Form.useFormInstance();
+   const requestType = Form.useWatch('request_type');
+   const signingMode = Form.useWatch([...names, 'signing_mode']) || 'test_value';
++  const mode = Form.useWatch([...names, 'mode']) || 'simulation';
+   if (requestType !== 'external_push') return null;
+   return (
+     <>
+-      <Alert className='mb-4' type='warning' showIcon message={t('external.simulation_notice')} description={t('external.recovery_notice')} />
++      <Alert className='mb-4' type='warning' showIcon message={t(mode === 'platform10' ? 'external.platform10_notice' : 'external.simulation_notice')} description={t('external.recovery_notice')} />
++      <Alert className='mb-3' type='info' message={t('external.transport_notice')} />
+       <Form.Item name={[...names, 'mode']} label={t('external.mode')} rules={[{ required: true }]}>
+-        <Select options={[{ value: 'simulation', label: t('external.simulation') }]} />
++        <Select
++          options={['platform10', 'simulation'].map((value) => ({ value, label: t('external.' + value) }))}
++          onChange={(value) => {
++            form.setFields([{ name: [...names, 'endpoint'], value: value === 'platform10' ? 'https://admin.ztservice.cn/messageWarn!acceptWarn.act' : '' }]);
++            if (value === 'platform10') form.setFields([
++              { name: [...names, 'signing_mode'], value: 'key_file' },
++              { name: [...names, 'signing_key_ref'], value: form.getFieldValue([...names, 'signing_key_ref']) || 'platform10-v1' },
++              { name: [...names, 'test_sign'], value: '' },
++            ]);
++          }}
++        />
+       </Form.Item>
+       {['endpoint', 'destination', 'problem_type', 'recovery_type', 'time_zone'].map((key) => (
+         <Form.Item key={key} name={[...names, key]} label={t(`external.${key}`)} rules={[{ required: true, whitespace: true }]}>
+-          <Input autoComplete='off' readOnly={key === 'problem_type' || key === 'recovery_type'} />
++          <Input autoComplete='off' readOnly={key === 'problem_type' || key === 'recovery_type' || (key === 'endpoint' && mode === 'platform10')} />
+         </Form.Item>
+       ))}
+       <Form.Item name={[...names, 'signing_mode']} label={t('external.signing_mode')} getValueProps={(value) => ({ value: value || 'test_value' })}>
+         <Select
+-          options={['key_file', 'test_value'].map((value) => ({ value, label: t('external.signing_modes.' + value) }))}
++          options={(mode === 'platform10' ? ['key_file'] : ['key_file', 'test_value']).map((value) => ({ value, label: t('external.signing_modes.' + value) }))}
+           onChange={(value) => {
+             if (value === 'key_file')
+               form.setFields([
+--- a/frontend/src/pages/notificationChannels/pages/ListNG/index.tsx
++++ b/frontend/src/pages/notificationChannels/pages/ListNG/index.tsx
+@@ -23,6 +23,8 @@
+   enable?: boolean;
+   idents?: string[];
+ }
++
++const isPlatform10Preset = (item: ChannelItem) => item.create_by === 'system' && item.request_type === 'external_push';
+ 
+ export default function index() {
+   const { t } = useTranslation(NS);
+@@ -75,7 +77,7 @@
+         return false;
+       }
+       return true;
+-    });
++    }).sort((a, b) => Number(isPlatform10Preset(b)) - Number(isPlatform10Preset(a)));
+   }, [data, filters]);
+ 
+   return (
+@@ -271,7 +273,14 @@
+                     );
+                   },
+                 },
+-                dateColumn({ title: t('common:table.update_at'), dataIndex: 'update_at', unix: true, sortable: true, defaultSortOrder: 'descend' }) as any,
++                {
++                  ...dateColumn({ title: t('common:table.update_at'), dataIndex: 'update_at', unix: true, sortable: true, defaultSortOrder: 'descend' }),
++                  sorter: (a: ChannelItem, b: ChannelItem, order?: 'ascend' | 'descend' | null) => {
++                    const presetOrder = Number(isPlatform10Preset(a)) - Number(isPlatform10Preset(b));
++                    if (presetOrder) return order === 'descend' ? presetOrder : -presetOrder;
++                    return Number(a.update_at || 0) - Number(b.update_at || 0);
++                  },
++                } as any,
+                 updateByColumn({ title: t('common:table.update_by'), dataIndex: 'update_by', nickname: 'update_by_nickname' }) as any,
+                 {
+                   ...getEnabledStatusColumn({
+--- a/frontend/src/pages/notificationChannels/types.ts
++++ b/frontend/src/pages/notificationChannels/types.ts
+@@ -130,6 +130,8 @@
+ 
+ export interface ChannelItem {
+   id: number;
++  create_by?: string;
++  update_at?: number;
+   name: string;
+   ident: string;
+   description: string;
+--- a/frontend/src/pages/notificationRules/pages/Form/ChannelParams/ExternalPush.test.tsx
++++ b/frontend/src/pages/notificationRules/pages/Form/ChannelParams/ExternalPush.test.tsx
+@@ -87,3 +87,29 @@
+   expect(screen.queryByLabelText('external.params.company_id')).toBeNull();
+   expect(within(screen.getByRole('group', { name: 'companyId' })).getByRole('radio', { name: 'external.source_label' })).toHaveProperty('checked', true);
+ });
++
++it('saves an explicit CMDB match and rule append-tags source while clearing inactive manual mappings', async () => {
++  const saved = jest.fn();
++  render(
++    <Form initialValues={{ notify_configs: [{ params: { company_id: 'TEST_COMPANY', device_type: 'TEST_TYPE', device_name_label: 'old_label', device_tags: 'TEST_TAGS', level_map: '{"1":"灾难","2":"严重","3":"警告"}', repeat_policy: 'all_dispatches' } }] }} onFinish={saved}>
++      <Form.List name='notify_configs'>{(fields) => <>{fields.map((field) => <ExternalPush key={field.key} field={field} />)}</>}</Form.List>
++      <Button htmlType='submit'>save CMDB mapping</Button>
++    </Form>,
++  );
++  fireEvent.mouseDown(await screen.findByLabelText('external.device_source'));
++  fireEvent.click(await screen.findByText('external.device_sources.cmdb', { selector: '.ant-select-item-option-content' }));
++  fireEvent.change(await screen.findByLabelText('external.cmdb_match_label'), { target: { value: 'ident' } });
++  fireEvent.mouseDown(screen.getByLabelText('external.cmdb_match_field'));
++  fireEvent.click(await screen.findByText('external.cmdb_fields.hostname', { selector: '.ant-select-item-option-content' }));
++  fireEvent.mouseDown(screen.getByLabelText('external.device_tags_source'));
++  fireEvent.click(await screen.findByText('external.tags_sources.rule_append_tags', { selector: '.ant-select-item-option-content' }));
++  expect(screen.queryByLabelText('external.params.device_tags')).toBeNull();
++  expect(screen.queryByLabelText('external.params.device_name_label')).toBeNull();
++  fireEvent.click(screen.getByRole('button', { name: 'save CMDB mapping' }));
++  await waitFor(() => expect(saved).toHaveBeenCalled());
++  expect(saved.mock.calls[0][0].notify_configs[0].params).toMatchObject({ device_source: 'cmdb', cmdb_match_label: 'ident', cmdb_match_field: 'hostname', device_tags_source: 'rule_append_tags', device_type: undefined, device_name_label: undefined, device_tags: undefined });
++  const guide = JSON.parse(screen.getByLabelText('external.structure_preview').textContent || '{}');
++  expect(guide.deviceType).toBe('CMDB.type (snapshot)');
++  expect(guide.deviceName).toBe('CMDB.hostname (snapshot)');
++  expect(guide.deviceTags).toContain('AlertRule.append_tags');
++});
+--- a/frontend/src/pages/notificationRules/pages/Form/ChannelParams/ExternalPush.tsx
++++ b/frontend/src/pages/notificationRules/pages/Form/ChannelParams/ExternalPush.tsx
+@@ -41,19 +41,39 @@
+ 
+ export default function ExternalPush({ field }: { field: FormListFieldData }) {
+   const { t } = useTranslation(NS);
++  const form = Form.useFormInstance();
+   const params = Form.useWatch(['notify_configs', field.name, 'params']);
++  const path = ['notify_configs', field.name, 'params'];
++  const deviceSource = params?.device_source || 'event';
++  const tagsSource = params?.device_tags_source || 'mapping';
+   return (
+     <>
+       <Alert className='mb-4' type='warning' showIcon message={t('external.recovery_notice')} description={t('external.rule_notice')} />
+       <h3>{t('external.edit_mapping')}</h3>
+-      {[
+-        ['company_id', 'companyId'],
+-        ['device_type', 'deviceType'],
+-        ['device_tags', 'deviceTags'],
+-      ].map(([name, target]) => (
+-        <RuleSource key={name} field={field} name={name} target={target} />
+-      ))}
+-      {['device_name_label', 'level_map'].map((key) => (
++      <RuleSource field={field} name='company_id' target='companyId' />
++      <Form.Item name={[field.name, 'params', 'device_source']} label={t('external.device_source')} getValueProps={(value) => ({ value: value || 'event' })}>
++        <Select options={['event', 'cmdb'].map((value) => ({ value, label: t('external.device_sources.' + value) }))} onChange={(value) => {
++          const inactive = value === 'cmdb' ? ['device_type', 'device_type_label', 'device_name_label'] : ['cmdb_match_field', 'cmdb_match_label'];
++          form.setFields(inactive.map((key) => ({ name: [...path, key], value: undefined })));
++        }} />
++      </Form.Item>
++      {deviceSource === 'cmdb' ? <>
++        <Alert className='mb-3' type='info' message={t('external.cmdb_notice')} />
++        <Form.Item name={[field.name, 'params', 'cmdb_match_field']} label={t('external.cmdb_match_field')} rules={[{ required: true }]}>
++          <Select options={['hostname', 'businessIp', 'managementIp'].map((value) => ({ value, label: t('external.cmdb_fields.' + value) }))} />
++        </Form.Item>
++        <Form.Item name={[field.name, 'params', 'cmdb_match_label']} label={t('external.cmdb_match_label')} rules={[{ required: true, whitespace: true }]}><Input autoComplete='off' /></Form.Item>
++      </> : <>
++        <RuleSource field={field} name='device_type' target='deviceType' />
++        <Form.Item name={[field.name, 'params', 'device_name_label']} label={t('external.params.device_name_label')} rules={[{ required: true, whitespace: true }]}><Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} /></Form.Item>
++      </>}
++      <Form.Item name={[field.name, 'params', 'device_tags_source']} label={t('external.device_tags_source')} getValueProps={(value) => ({ value: value || 'mapping' })}>
++        <Select options={['mapping', 'rule_append_tags'].map((value) => ({ value, label: t('external.tags_sources.' + value) }))} onChange={(value) => {
++          if (value === 'rule_append_tags') form.setFields(['device_tags', 'device_tags_label'].map((key) => ({ name: [...path, key], value: undefined })));
++        }} />
++      </Form.Item>
++      {tagsSource === 'rule_append_tags' ? <Alert className='mb-3' type='info' message={t('external.append_tags_notice')} /> : <RuleSource field={field} name='device_tags' target='deviceTags' />}
++      {['level_map'].map((key) => (
+         <Form.Item key={key} name={[field.name, 'params', key]} label={t(`external.params.${key}`)} rules={[{ required: true, whitespace: true }]}>
+           <Input.TextArea autoSize={{ minRows: 1, maxRows: 4 }} />
+         </Form.Item>
+--- a/models/external_push.go
++++ b/models/external_push.go
+@@ -10,13 +10,12 @@
+ 	"time"
+ )
+ 
+-// ExternalPushConfig is deliberately simulation-only. No production signature
+-// or mapping is inferred from the receiver's incomplete sample protocol.
++// ExternalPushType retains its persisted identifier as the display name evolves.
+ const ExternalPushType = "external_push"
++const ExternalPushPlatform10Endpoint = "https://admin.ztservice.cn/messageWarn!acceptWarn.act"
+ 
+-// Event type values confirmed by platform 1.0's business owner. Other protocol
+-// details, including signature encoding and transport representation, still
+-// require production verification.
++// Event types, UTF-8 signing, and POST form transport are owner-confirmed.
++// These constants do not establish the receiver's downstream notification result.
+ const ExternalPushProblemType = "problem"
+ const ExternalPushRecoveryType = "ok"
+ const ExternalPushDefaultKeyRef = "platform10-v1"
+@@ -101,17 +100,26 @@
+ 	if c == nil {
+ 		return errors.New("external push simulation configuration is required")
+ 	}
+-	if c.Mode != "simulation" {
+-		return errors.New("production protocol is unconfirmed; only explicit simulation mode is supported")
+-	}
+-	u, err := url.Parse(c.Endpoint)
+-	if err != nil || u.Scheme != "http" || u.User != nil || u.Fragment != "" || u.RawQuery != "" || u.Port() == "" {
+-		return errors.New("simulation endpoint must be http://numeric-loopback:port/path without query, credentials or fragment")
+-	}
+-	ip := net.ParseIP(u.Hostname())
+-	port, err := strconv.Atoi(u.Port())
+-	if ip == nil || !ip.IsLoopback() || err != nil || port < 1 || port > 65535 {
+-		return errors.New("simulation endpoint must use a numeric loopback IP and a valid port; production destinations are blocked")
++	switch c.Mode {
++	case "simulation":
++		u, err := url.Parse(c.Endpoint)
++		if err != nil || u.Scheme != "http" || u.User != nil || u.Fragment != "" || u.RawQuery != "" || u.Port() == "" {
++			return errors.New("simulation endpoint must be http://numeric-loopback:port/path without query, credentials or fragment")
++		}
++		ip := net.ParseIP(u.Hostname())
++		port, err := strconv.Atoi(u.Port())
++		if ip == nil || !ip.IsLoopback() || err != nil || port < 1 || port > 65535 {
++			return errors.New("simulation endpoint must use a numeric loopback IP and a valid port; production destinations are blocked")
++		}
++	case "platform10":
++		if c.Endpoint != ExternalPushPlatform10Endpoint {
++			return errors.New("platform 1.0 mode requires the confirmed HTTPS endpoint without query parameters")
++		}
++		if c.EffectiveSigningMode() != "key_file" {
++			return errors.New("platform 1.0 mode requires a center key file; test signatures cannot be sent")
++		}
++	default:
++		return errors.New("external push mode must be platform10 or simulation")
+ 	}
+ 	if strings.TrimSpace(c.Destination) == "" || len(c.Destination) > 128 {
+ 		return errors.New("logical destination key is required (at most 128 bytes)")
+--- a/models/external_push_test.go
++++ b/models/external_push_test.go
+@@ -77,3 +77,27 @@
+ 		t.Fatal("test mode retained a key reference")
+ 	}
+ }
++
++func TestPlatform10AllowsOnlyConfirmedEndpointAndFileSigning(t *testing.T) {
++	c := ExternalPushConfig{Mode: "platform10", Endpoint: "https://admin.ztservice.cn/messageWarn!acceptWarn.act", Destination: "platform10", TimeoutMS: 1000,
++		ProblemType: "problem", RecoveryType: "ok", SigningMode: "key_file", SigningKeyRef: "platform10-v1", TimeZone: "Asia/Shanghai"}
++	// Configuration validation must not load keys, resolve DNS, or send requests.
++	if err := c.Verify(); err != nil {
++		t.Fatalf("confirmed endpoint with file signing rejected: %v", err)
++	}
++	for _, endpoint := range []string{"http://admin.ztservice.cn/messageWarn!acceptWarn.act", "https://zt.ztservice.cn/messageWarn!acceptWarn.act", "https://admin.ztservice.cn/messageWarn!acceptWarn.act?json=x", "https://admin.ztservice.cn/other", "http://127.0.0.1:19999/mock"} {
++		c.Endpoint = endpoint
++		if c.Verify() == nil {
++			t.Fatalf("unconfirmed real-mode endpoint allowed: %s", endpoint)
++		}
++	}
++	c.Endpoint = "https://admin.ztservice.cn/messageWarn!acceptWarn.act"
++	c.SigningMode, c.SigningKeyRef, c.TestSign = "test_value", "", "TEST_ONLY"
++	if c.Verify() == nil {
++		t.Fatal("explicit fake test signature allowed at real endpoint")
++	}
++	c.Mode = "simulation"
++	if c.Verify() == nil {
++		t.Fatal("simulation can reach the real receiver")
++	}
++}
+--- a/models/notify_channel.go
++++ b/models/notify_channel.go
+@@ -872,6 +872,28 @@
+ // Weight 用于页面元素排序，weight 越大 排序越靠后
+ var NotiChMap = []*NotifyChannelConfig{
+ 	{
++		Name: "1.0平台推送", Ident: ExternalPushType, RequestType: ExternalPushType, Weight: 0, Enable: false,
++		Description: "将故障和恢复事件推送到1.0平台，由1.0处理后续通知。",
++		RequestConfig: &RequestConfig{ExternalPushConfig: &ExternalPushConfig{
++			Mode: "platform10", Endpoint: ExternalPushPlatform10Endpoint, Destination: "platform10", TimeoutMS: 10000,
++			TimeZone:    "Asia/Shanghai",
++			ProblemType: ExternalPushProblemType, RecoveryType: ExternalPushRecoveryType,
++			SigningMode: "key_file", SigningKeyRef: ExternalPushDefaultKeyRef,
++		}},
++		ParamConfig: &NotifyParamConfig{Custom: Params{Params: []ParamItem{
++			{Key: "company_id", CName: "Company attribution", Type: "string"},
++			{Key: "device_type", CName: "Device type", Type: "string"},
++			{Key: "device_name_label", CName: "Device name label", Type: "string"},
++			{Key: "device_tags", CName: "Device tags", Type: "string"},
++			{Key: "level_map", CName: "Severity mapping", Type: "string"},
++			{Key: "repeat_policy", CName: "Repeat policy", Type: "string"},
++			{Key: "device_source", CName: "Device source", Type: "string"},
++			{Key: "cmdb_match_field", CName: "CMDB match field", Type: "string"},
++			{Key: "cmdb_match_label", CName: "CMDB event label", Type: "string"},
++			{Key: "device_tags_source", CName: "Device tags source", Type: "string"},
++		}}},
++	},
++	{
+ 		Name: "Microsoft Teams", Ident: Teams, RequestType: RequestTypeTeams, Weight: 10, Enable: true,
+ 		RequestConfig: &RequestConfig{TeamsRequestConfig: &TeamsRequestConfig{
+ 			NativeNetworkConfig: NativeNetworkConfig{Timeout: 10000, RetryTimes: 3, RetrySleep: 1000},
+--- a/models/notify_channel_seed_test.go
++++ b/models/notify_channel_seed_test.go
+@@ -202,3 +202,35 @@
+ 		t.Fatalf("user settings overwritten: %+v, %v", row, err)
+ 	}
+ }
++
++func TestPlatform10SeedIsSavedOnceAndPreservesConfiguredDraft(t *testing.T) {
++	c := seedTestDB(t)
++	models.InitNotifyChannel(c)
++	models.InitNotifyChannel(c)
++	rows, err := models.NotifyChannelsGet(c, "name = ?", "1.0平台推送")
++	if err != nil || len(rows) != 1 {
++		t.Fatalf("expected one saved platform 1.0 channel: count=%d err=%v", len(rows), err)
++	}
++	row := rows[0]
++	if row.Enable || row.Ident != models.ExternalPushType || row.RequestType != models.ExternalPushType || row.ParamConfig == nil || row.ParamConfig.UserInfo != nil || row.RequestConfig == nil || row.RequestConfig.ExternalPushConfig == nil {
++		t.Fatalf("preset must be a disabled dedicated event channel without recipient expansion: %+v", row)
++	}
++	config := row.RequestConfig.ExternalPushConfig
++	if config.Mode != "platform10" || config.Endpoint != "https://admin.ztservice.cn/messageWarn!acceptWarn.act" || config.ProblemType != "problem" || config.RecoveryType != "ok" || config.SigningMode != "key_file" || config.TestSign != "" {
++		t.Fatal("confirmed types and file key reference must be retained without a signature placeholder")
++	}
++	edited := *row
++	edited.UpdateBy = "root"
++	edited.RequestConfig = &models.RequestConfig{ExternalPushConfig: &models.ExternalPushConfig{
++		Mode: "simulation", Endpoint: "http://127.0.0.1:19999/owned-mock", Destination: "owned-destination", TimeoutMS: 2000,
++		ProblemType: "problem", RecoveryType: "ok", SigningMode: "key_file", SigningKeyRef: "customer-version", TimeZone: "Asia/Shanghai",
++	}}
++	if err := row.Update(c, edited); err != nil {
++		t.Fatal(err)
++	}
++	models.InitNotifyChannel(c)
++	rows, err = models.NotifyChannelsGet(c, "name = ?", "1.0平台推送")
++	if err != nil || len(rows) != 1 || rows[0].ID != row.ID || rows[0].Enable || rows[0].RequestConfig.ExternalPushConfig.Endpoint != "http://127.0.0.1:19999/owned-mock" || rows[0].RequestConfig.ExternalPushConfig.SigningKeyRef != "customer-version" {
++		t.Fatal("restart overwrote administrator configuration or created a duplicate")
++	}
++}
+--- /dev/null
++++ b/pkg/cmdb/alert_device.go
+@@ -0,0 +1,50 @@
++package cmdb
++
++import (
++	"encoding/json"
++	"errors"
++	"strings"
++)
++
++// AlertDevice exposes only the inventory fields needed by the center's event
++// push adapter. It does not associate or modify Nightingale Target records.
++type AlertDevice struct {
++	ID       string
++	Version  int
++	Type     string
++	Hostname string
++}
++
++func (s *Store) LookupAlertDevice(field, value string) (AlertDevice, error) {
++	var out AlertDevice
++	if (field != "hostname" && field != "businessIp" && field != "managementIp") || strings.TrimSpace(value) == "" {
++		return out, errors.New("CMDB match field and an exact nonempty event label are required")
++	}
++	// Asset documents have no indexed hostname/IP columns. Scan only active
++	// documents without loading rack/disk data or relying on dialect-specific JSON.
++	var rows []Asset
++	if err := s.DB.Select("id", "version", "payload").Where("deleted = ?", false).Find(&rows).Error; err != nil {
++		return out, errors.New("CMDB inventory could not be read")
++	}
++	count := 0
++	for _, row := range rows {
++		var data map[string]interface{}
++		if json.Unmarshal([]byte(row.Payload), &data) != nil {
++			return AlertDevice{}, errors.New("CMDB inventory contains an invalid document")
++		}
++		if match, _ := data[field].(string); match != value {
++			continue
++		}
++		count++
++		out.ID, out.Version = row.ID, row.Version
++		out.Type, _ = data["type"].(string)
++		out.Hostname, _ = data["hostname"].(string)
++	}
++	if count != 1 {
++		return AlertDevice{}, errors.New("CMDB lookup must match exactly one active asset; missing or ambiguous device blocks delivery")
++	}
++	if strings.TrimSpace(out.Type) == "" || strings.TrimSpace(out.Hostname) == "" {
++		return AlertDevice{}, errors.New("matched CMDB asset is missing device type or hostname")
++	}
++	return out, nil
++}
+--- /dev/null
++++ b/pkg/externalpush/cmdb_sources_test.go
+@@ -0,0 +1,129 @@
++package externalpush
++
++import (
++	"context"
++	"encoding/json"
++	"fmt"
++	"net/http"
++	"net/http/httptest"
++	"strings"
++	"testing"
++
++	"github.com/ccfos/nightingale/v6/models"
++	"github.com/ccfos/nightingale/v6/pkg/cmdb"
++	nctx "github.com/ccfos/nightingale/v6/pkg/ctx"
++	"github.com/google/uuid"
++	"gorm.io/gorm"
++)
++
++func TestCMDBAndRuleAppendTagsFreezeAtRegistrationAndPairRecovery(t *testing.T) {
++	var got []Payload
++	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		r.ParseForm()
++		var p Payload
++		if err := json.Unmarshal([]byte(r.PostForm.Get("json")), &p); err != nil {
++			t.Error(err)
++		}
++		got = append(got, p)
++		fmt.Fprint(w, `{"status":200}`)
++	}))
++	defer srv.Close()
++	db := testDB(t)
++	store := &cmdb.Store{DB: db}
++	if err := store.Migrate(); err != nil {
++		t.Fatal(err)
++	}
++	if err := db.AutoMigrate(&models.AlertRule{}); err != nil {
++		t.Fatal(err)
++	}
++	const name = "TEST_NODE_192.0.2.8:1443(TESTPORT2/3-)"
++	var asset cmdb.Document
++	if err := store.Write(func(tx *gorm.DB) error {
++		var err error
++		asset, err = store.Save(tx, cmdb.Document{"customer": "TEST_COMPANY", "serial": "TEST_SERIAL", "hostname": name, "type": "TEST_存储", "businessIp": "192.0.2.8"}, 1, true)
++		return err
++	}); err != nil {
++		t.Fatal(err)
++	}
++	alertRule := models.AlertRule{AppendTags: "service=TEST_app team=TEST_运维"}
++	if err := db.Create(&alertRule).Error; err != nil {
++		t.Fatal(err)
++	}
++	s := simulation(srv.URL)
++	s.Event.RuleId = alertRule.Id
++	s.Event.TagsJSON = []string{"ident=" + name, "metric_label=DO_NOT_EXPORT"}
++	channel := models.NotifyChannelConfig{Name: "TEST_CMDB", Ident: models.ExternalPushType, RequestType: models.ExternalPushType, Enable: true, RequestConfig: &models.RequestConfig{ExternalPushConfig: &s.Config}}
++	if err := db.Create(&channel).Error; err != nil {
++		t.Fatal(err)
++	}
++	params := map[string]interface{}{"company_id": "TEST_COMPANY", "device_source": "cmdb", "cmdb_match_field": "hostname", "cmdb_match_label": "ident", "device_tags_source": "rule_append_tags", "level_map": `{"1":"严重"}`, "repeat_policy": "all_dispatches"}
++	rule := models.NotifyRule{Name: "TEST_CMDB_ROUTE", Enable: true, NotifyConfigs: []models.NotifyConfig{{ChannelID: channel.ID, Params: params}}}
++	if err := db.Create(&rule).Error; err != nil {
++		t.Fatal(err)
++	}
++	ctx := nctx.NewContext(context.Background(), db, true)
++	register := func(e *models.AlertCurEvent) int64 {
++		if e.Id == 0 {
++			e.LastEvalTime = e.FirstTriggerTime
++			if e.IsRecovered {
++				e.LastEvalTime = e.RecoverTime
++			}
++			e.Tags = strings.Join(e.TagsJSON, ",,")
++			h := e.ToHis(nil)
++			if err := db.Create(h).Error; err != nil {
++				t.Fatal(err)
++			}
++			e.Id = h.Id
++		}
++		ids, err := RegisterDispatch(ctx, DispatchSubmission{Routes: []Submission{{ChannelID: channel.ID, NotifyRuleID: rule.ID, Params: params, Event: e}}})
++		if err != nil || len(ids) != 1 {
++			t.Fatalf("register: %v %v", ids, err)
++		}
++		return ids[0]
++	}
++	id := register(&s.Event)
++	asset["hostname"], asset["type"] = "TEST_RENAMED", "TEST_CHANGED"
++	if err := store.Write(func(tx *gorm.DB) error { _, err := store.Save(tx, asset, 1, false); return err }); err != nil {
++		t.Fatal(err)
++	}
++	if err := db.Model(&alertRule).Update("append_tags", "changed=TEST_LATER").Error; err != nil {
++		t.Fatal(err)
++	}
++	if again := register(&s.Event); again != id {
++		t.Fatal("duplicate registration created another task")
++	}
++	step(t, db)
++	if len(got) != 1 || state(t, db, id).Task.State != Accepted || got[0].DeviceType != "TEST_存储" || got[0].DeviceName != name || got[0].DeviceTags != "service=TEST_app team=TEST_运维" {
++		t.Fatalf("wrong frozen fields: %+v; task=%+v", got, state(t, db, id).Task)
++	}
++	s.Event.Id = 0
++	s.Event.DispatchID = uuid.NewString()
++	s.Event.IncidentSequence = 2
++	s.Event.IsRecovered = true
++	s.Event.RecoverTime = s.Event.FirstTriggerTime + 60
++	rid := register(&s.Event)
++	step(t, db)
++	if len(got) != 2 || state(t, db, rid).Task.State != Accepted || got[1].DeviceType != got[0].DeviceType || got[1].DeviceName != got[0].DeviceName || got[1].DeviceTags != got[0].DeviceTags || got[1].ProblemTime != got[0].ProblemTime {
++		t.Fatalf("recovery lost original CMDB/rule fields: %+v; task=%+v", got, state(t, db, rid).Task)
++	}
++	for _, serial := range []string{"TEST_DUP1", "TEST_DUP2"} {
++		if err := store.Write(func(tx *gorm.DB) error {
++			_, err := store.Save(tx, cmdb.Document{"customer": "TEST_COMPANY", "serial": serial, "hostname": "TEST_DUPLICATE", "type": "TEST_主机"}, 1, true)
++			return err
++		}); err != nil {
++			t.Fatal(err)
++		}
++	}
++	for _, label := range []string{"TEST_MISSING", "TEST_DUPLICATE"} {
++		e := s.Event
++		e.Id, e.IsRecovered, e.IncidentSequence = 0, false, 1
++		e.DispatchID, e.IncidentID = uuid.NewString(), uuid.NewString()
++		e.TagsJSON = []string{"ident=" + label}
++		bad := register(&e)
++		step(t, db)
++		d := state(t, db, bad)
++		if d.Task.State != Invalid || d.Task.Attempts != 0 || !strings.Contains(d.Task.Reason, "exactly one active asset") || len(got) != 2 {
++			t.Fatalf("missing/ambiguous CMDB lookup sent: %+v", d.Task)
++		}
++	}
++}
+--- a/pkg/externalpush/external_push_test.go
++++ b/pkg/externalpush/external_push_test.go
+@@ -39,6 +39,26 @@
+ }
+ func simulation(endpoint string) Snapshot {
+ 	return Snapshot{Config: models.ExternalPushConfig{Mode: "simulation", Endpoint: endpoint, Destination: "explicit-test-destination", TimeoutMS: 1000, ProblemType: "problem", RecoveryType: "ok", TestSign: "TEST_ONLY_+ &=%签名", TimeZone: "Asia/Shanghai"}, Params: map[string]string{"company_id": "测试客户+ &=%", "device_type": "TEST_virtualization", "level_map": "{\"1\":\"TEST_灾难\"}", "device_name_label": "ident", "device_tags": "['标签+ &=%', '单引号\\反斜线']", "repeat_policy": "all_dispatches"}, Event: models.AlertCurEvent{DispatchID: uuid.NewString(), IncidentID: uuid.NewString(), IncidentSequence: 1, FirstTriggerTime: 1786400002, TriggerTime: 1786400002, RuleName: "CPU>95% 中文+ &=%\"\n换行", Severity: 1, TagsJSON: []string{"ident=127.0.0.9"}}}
++}
++
++func TestPlatform10RequiresExplicitKnownLevelMapping(t *testing.T) {
++	s := simulation("unused")
++	s.Config.Mode, s.Config.Endpoint = "platform10", models.ExternalPushPlatform10Endpoint
++	s.Config.SigningMode, s.Config.TestSign = "key_file", ""
++	if _, err := Build(s); err == nil {
++		t.Fatal("real mode accepted a simulation-only level")
++	}
++	for _, level := range []string{"灾难", "严重", "警告", "一般"} {
++		s.Params["level_map"] = fmt.Sprintf(`{"1":%q}`, level)
++		p, err := Build(s)
++		if err != nil || p.Level != level {
++			t.Fatal("explicit confirmed level rejected", err)
++		}
++	}
++	s.Params["level_map"] = `{"2":"严重"}`
++	if _, err := Build(s); err == nil {
++		t.Fatal("missing severity mapping was inferred")
++	}
+ }
+ func enqueue(t *testing.T, db *gorm.DB, s Snapshot) int64 {
+ 	t.Helper()
+--- a/pkg/externalpush/protocol.go
++++ b/pkg/externalpush/protocol.go
+@@ -1,5 +1,5 @@
+ // Package externalpush owns durable external notification delivery. The first
+-// version intentionally permits only explicitly configured loopback simulation.
++// modes separate loopback simulation from the explicitly confirmed 1.0 receiver.
+ package externalpush
+ 
+ import (
+@@ -51,6 +51,7 @@
+ 	Config     models.ExternalPushConfig `json:"config"`
+ 	Params     map[string]string         `json:"params"`
+ 	Event      models.AlertCurEvent      `json:"event"`
++	Sources    *ResolvedSources          `json:"sources,omitempty"`
+ }
+ 
+ // ValidateConfig is also used at save time; disabled incomplete drafts may be
+@@ -62,6 +63,9 @@
+ 	if s.InputError != "" {
+ 		return p, errors.New(s.InputError)
+ 	}
++	if s.Sources != nil && s.Sources.Error != "" {
++		return p, errors.New(s.Sources.Error)
++	}
+ 	if err := ValidateConfig(&s.Config); err != nil {
+ 		return p, err
+ 	}
+@@ -75,7 +79,7 @@
+ 	if e.IsRecovered && e.IncidentSequence < 2 {
+ 		return p, errors.New("recovery has no preceding problem sequence")
+ 	}
+-	for _, k := range []string{"level_map", "device_name_label", "repeat_policy"} {
++	for _, k := range []string{"level_map", "repeat_policy"} {
+ 		if strings.TrimSpace(s.Params[k]) == "" {
+ 			return p, fmt.Errorf("required rule parameter %s is missing", k)
+ 		}
+@@ -92,21 +96,54 @@
+ 	if strings.TrimSpace(level) == "" {
+ 		return p, errors.New("severity is not mapped; no production level is assumed")
+ 	}
++	if s.Config.Mode == "platform10" && level != "灾难" && level != "严重" && level != "警告" && level != "一般" {
++		return p, errors.New("platform 1.0 level must explicitly map to one of the four confirmed receiver levels")
++	}
+ 	company, err := ruleValue(s, "company_id")
+ 	if err != nil {
+ 		return p, err
+ 	}
+-	deviceType, err := ruleValue(s, "device_type")
+-	if err != nil {
+-		return p, err
+-	}
+-	tags, err := ruleValue(s, "device_tags")
+-	if err != nil {
+-		return p, err
+-	}
+-	name, ok := eventLabel(e, s.Params["device_name_label"])
+-	if !ok {
+-		return p, errors.New("device_name_label is missing or ambiguous; exactly one device value is required")
++	var deviceType, name string
++	if s.Params["device_source"] == "cmdb" {
++		if s.Params["device_type"] != "" || s.Params["device_type_label"] != "" || s.Params["device_name_label"] != "" {
++			return p, errors.New("CMDB source cannot also configure literal or label device mappings")
++		}
++		var ok bool
++		deviceType, name, ok = cmdbValues(s)
++		if !ok {
++			return p, errors.New("CMDB device values have not been snapshotted; configure an unambiguous asset match")
++		}
++	} else {
++		if s.Params["device_source"] != "" && s.Params["device_source"] != "event" {
++			return p, errors.New("device source must be event or cmdb")
++		}
++		deviceType, err = ruleValue(s, "device_type")
++		if err != nil {
++			return p, err
++		}
++		var ok bool
++		name, ok = eventLabel(e, s.Params["device_name_label"])
++		if !ok {
++			return p, errors.New("device_name_label is missing or ambiguous; exactly one device value is required")
++		}
++	}
++	var tags string
++	if s.Params["device_tags_source"] == "rule_append_tags" {
++		if s.Params["device_tags"] != "" || s.Params["device_tags_label"] != "" {
++			return p, errors.New("rule append tags source cannot also configure literal or label tags")
++		}
++		if s.Sources == nil {
++			return p, errors.New("alert rule append tags have not been snapshotted")
++		}
++		tags = s.Sources.AppendTags
++	} else {
++		if s.Params["device_tags_source"] != "" && s.Params["device_tags_source"] != "mapping" {
++			return p, errors.New("device tags source must be mapping or rule_append_tags")
++		}
++		tags, err = ruleValue(s, "device_tags")
++		if err != nil {
++			return p, err
++		}
+ 	}
+ 	if e.FirstTriggerTime <= 0 || e.RuleName == "" {
+ 		return p, errors.New("problem time and trigger name are required")
+--- a/pkg/externalpush/routes.go
++++ b/pkg/externalpush/routes.go
+@@ -18,7 +18,7 @@
+ 	}
+ 	// Omit absent optional keys so persisted literal-only snapshots retain their
+ 	// existing fingerprint and route-consensus representation.
+-	for _, k := range []string{"company_id_label", "device_type_label", "device_tags_label"} {
++	for _, k := range []string{"company_id_label", "device_type_label", "device_tags_label", "device_source", "cmdb_match_field", "cmdb_match_label", "device_tags_source"} {
+ 		if value, ok := in[k].(string); ok && value != "" {
+ 			out[k] = value
+ 		}
+@@ -71,7 +71,7 @@
+ 	clean := original.ToCur()
+ 	// ToCur fills label arrays; do not parse unrelated legacy rule JSON here.
+ 	clean.TagsMap = nil
+-	return models.AlertCurEvent{Id: clean.Id, DispatchID: clean.DispatchID, IncidentID: clean.IncidentID, IncidentSequence: clean.IncidentSequence, IsRecovered: clean.IsRecovered, FirstTriggerTime: clean.FirstTriggerTime, RecoverTime: clean.RecoverTime, RuleName: clean.RuleName, Severity: clean.Severity, TagsJSON: clean.TagsJSON}, nil
++	return models.AlertCurEvent{Id: clean.Id, RuleId: clean.RuleId, DispatchID: clean.DispatchID, IncidentID: clean.IncidentID, IncidentSequence: clean.IncidentSequence, IsRecovered: clean.IsRecovered, FirstTriggerTime: clean.FirstTriggerTime, RecoverTime: clean.RecoverTime, RuleName: clean.RuleName, Severity: clean.Severity, TagsJSON: clean.TagsJSON}, nil
+ }
+ 
+ // Keep the immutable payload byte representation independent of extra event
+--- a/pkg/externalpush/signing.go
++++ b/pkg/externalpush/signing.go
+@@ -95,7 +95,7 @@
+ 		return "", err
+ 	}
+ 	// Delete ordinary ASCII spaces in the timestamp only. Never trim the key.
+-	// UTF-8 is explicit; verify against the Java receiver before production use.
++	// UTF-8 is explicit and confirmed by the integration owner.
+ 	sum := md5.Sum(append([]byte(strings.ReplaceAll(problemTime, " ", "")), key...))
+ 	return strings.ToUpper(hex.EncodeToString(sum[:])), nil
+ }
+--- a/pkg/externalpush/signing_test.go
++++ b/pkg/externalpush/signing_test.go
+@@ -13,6 +13,7 @@
+ 	"testing"
+ 	"time"
+ 
++	"github.com/ccfos/nightingale/v6/models"
+ 	"github.com/google/uuid"
+ )
+ 
+@@ -88,6 +89,39 @@
+ 	d := state(t, db, id)
+ 	if d.Task.State != Invalid || d.Task.Attempts != 0 || !strings.Contains(d.Task.Reason, "missing on center") || calls != 1 {
+ 		t.Fatalf("missing key must block only file-key channel: state=%s attempts=%d calls=%d reason=%s", d.Task.State, d.Task.Attempts, calls, d.Task.Reason)
++	}
++}
++
++func TestSimulationProblemCannotAnchorRealReceiverRecovery(t *testing.T) {
++	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, `{"status":200}`) }))
++	defer srv.Close()
++	path := filepath.Join(t.TempDir(), "key")
++	if err := os.WriteFile(path, []byte("TEST_ONLY_KEY"), 0600); err != nil {
++		t.Fatal(err)
++	}
++	db := testDB(t)
++	s := simulation(srv.URL)
++	s.Config.SigningMode, s.Config.TestSign = "key_file", ""
++	s.Params["level_map"] = `{"1":"严重"}`
++	id := enqueue(t, db, s)
++	worker := Worker{DB: db, Keys: NewFileKeys(map[string]string{"platform10-v1": path})}
++	if err := worker.Step(context.Background()); err != nil || state(t, db, id).Task.State != Accepted {
++		t.Fatal("local problem not accepted", err)
++	}
++	s.Event.DispatchID = uuid.NewString()
++	s.Event.IncidentSequence, s.Event.IsRecovered = 2, true
++	s.Event.RecoverTime = s.Event.FirstTriggerTime + 60
++	s.Config.Mode, s.Config.Endpoint = "platform10", models.ExternalPushPlatform10Endpoint
++	rid := enqueue(t, db, s)
++	// Exercise the claim/attempt boundary only: this test must never call send,
++	// perform DNS, or connect to the real receiver even when the guard is broken.
++	claimed, _, err := worker.claim(rid)
++	if err != nil {
++		t.Fatal(err)
++	}
++	d := state(t, db, rid)
++	if claimed != nil || d.Task.State != Invalid || d.Task.Attempts != 0 || !strings.Contains(d.Task.Reason, "receiver mode") {
++		t.Fatalf("simulation problem used for real recovery: claimed=%t state=%s attempts=%d reason=%s", claimed != nil, d.Task.State, d.Task.Attempts, d.Task.Reason)
+ 	}
+ }
+ 
+--- /dev/null
++++ b/pkg/externalpush/source_race_test.go
+@@ -0,0 +1,75 @@
++package externalpush
++
++import (
++	"testing"
++
++	"github.com/ccfos/nightingale/v6/models"
++	"github.com/ccfos/nightingale/v6/pkg/cmdb"
++	"gorm.io/gorm"
++)
++
++func TestConcurrentFirstRegistrationReusesWinningSourceSnapshot(t *testing.T) {
++	db := testDB(t)
++	store := &cmdb.Store{DB: db}
++	if err := store.Migrate(); err != nil {
++		t.Fatal(err)
++	}
++	if err := db.AutoMigrate(&models.AlertRule{}); err != nil {
++		t.Fatal(err)
++	}
++	var asset cmdb.Document
++	if err := store.Write(func(tx *gorm.DB) error {
++		var err error
++		asset, err = store.Save(tx, cmdb.Document{"customer": "TEST", "serial": "TEST", "hostname": "TEST_NODE", "type": "TEST_OLD"}, 1, true)
++		return err
++	}); err != nil {
++		t.Fatal(err)
++	}
++	rule := models.AlertRule{AppendTags: "phase=TEST_OLD"}
++	if err := db.Create(&rule).Error; err != nil {
++		t.Fatal(err)
++	}
++	s := simulation("http://127.0.0.1:19999/unused")
++	s.Event.RuleId, s.Event.TagsJSON = rule.Id, []string{"ident=TEST_NODE"}
++	s.Params = map[string]string{"company_id": "TEST", "device_source": "cmdb", "cmdb_match_field": "hostname", "cmdb_match_label": "ident", "device_tags_source": "rule_append_tags", "level_map": `{"1":"严重"}`, "repeat_policy": "all_dispatches"}
++	var winner int64
++	injected := false
++	// At the database read boundary, interleave a second registration after the
++	// first has read old asset rows, but before its task INSERT. No send occurs.
++	name := "test:interleave_first_source_registration"
++	if err := db.Callback().Query().After("gorm:query").Register(name, func(query *gorm.DB) {
++		if injected || query.Statement.Schema == nil || query.Statement.Schema.Table != "cmdb_device" {
++			return
++		}
++		injected = true
++		asset["type"] = "TEST_NEW"
++		if err := store.Write(func(tx *gorm.DB) error { _, err := store.Save(tx, asset, 1, false); return err }); err != nil {
++			t.Error(err)
++			return
++		}
++		if err := db.Model(&rule).Update("append_tags", "phase=TEST_NEW").Error; err != nil {
++			t.Error(err)
++			return
++		}
++		var err error
++		winner, err = Enqueue(db, s, 0, 1)
++		if err != nil {
++			t.Error(err)
++		}
++	}); err != nil {
++		t.Fatal(err)
++	}
++	defer db.Callback().Query().Remove(name)
++	id, err := Enqueue(db, s, 0, 1)
++	if err != nil || !injected || winner == 0 || id != winner {
++		t.Fatalf("source-only race became a configuration conflict: id=%d winner=%d error=%v", id, winner, err)
++	}
++	d := state(t, db, id)
++	if d.Task.State != Pending || d.Task.Attempts != 0 || d.PayloadPreview == nil || d.PayloadPreview.DeviceType != "TEST_NEW" || d.PayloadPreview.DeviceTags != "phase=TEST_NEW" {
++		t.Fatalf("winning snapshot was lost: %+v", d)
++	}
++	var count int64
++	if err := db.Model(&models.ExternalPushTask{}).Count(&count).Error; err != nil || count != 1 {
++		t.Fatal("duplicate task created", count, err)
++	}
++}
+--- /dev/null
++++ b/pkg/externalpush/sources.go
+@@ -0,0 +1,107 @@
++package externalpush
++
++import (
++	"encoding/json"
++	"errors"
++	"reflect"
++	"strings"
++
++	"github.com/ccfos/nightingale/v6/models"
++	"github.com/ccfos/nightingale/v6/pkg/cmdb"
++	"gorm.io/gorm"
++)
++
++// ResolvedSources is frozen when a task is first registered, never at send time.
++// It contains no credentials or unrelated inventory fields.
++type ResolvedSources struct {
++	Error      string `json:"error,omitempty"`
++	AssetID    string `json:"asset_id,omitempty"`
++	Version    int    `json:"asset_version,omitempty"`
++	DeviceType string `json:"device_type,omitempty"`
++	DeviceName string `json:"device_name,omitempty"`
++	AppendTags string `json:"append_tags"`
++}
++
++func reuseSources(s *Snapshot, old Snapshot) bool {
++	if old.Sources == nil || !reflect.DeepEqual(old.Config, s.Config) || !reflect.DeepEqual(old.Params, s.Params) || old.Event.RuleId != s.Event.RuleId {
++		return false
++	}
++	label := s.Params["cmdb_match_label"]
++	nowValue, nowOK := eventLabel(s.Event, label)
++	oldValue, oldOK := eventLabel(old.Event, label)
++	if nowValue != oldValue || nowOK != oldOK {
++		return false
++	}
++	s.Sources = old.Sources
++	return true
++}
++
++func resolveSources(db *gorm.DB, s *Snapshot) {
++	if s.InputError != "" || (s.Params["device_source"] != "cmdb" && s.Params["device_tags_source"] != "rule_append_tags") {
++		return
++	}
++	if s.Config.Verify() != nil || !validID(s.Event.DispatchID) || !validID(s.Event.IncidentID) {
++		return
++	}
++	s.Sources = &ResolvedSources{}
++	// Retries of the same dispatch must reuse the first inventory/rule snapshot,
++	// including validation failure. Configuration changes still conflict normally.
++	var same models.ExternalPushTask
++	err := db.Where("dedupe_key = ?", digest(s.Config.Destination+"\x00"+s.Event.DispatchID)).First(&same).Error
++	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
++		s.Sources.Error = "existing source snapshot could not be read"
++		return
++	}
++	if err == nil {
++		var old Snapshot
++		if json.Unmarshal([]byte(same.Snapshot), &old) == nil && reuseSources(s, old) {
++			return
++		}
++	}
++	if s.Event.IsRecovered {
++		var problem models.ExternalPushTask
++		err := db.Where("stream_key = ? AND kind = ? AND sequence < ? AND attempts > 0 AND state IN ?", digest(s.Config.Destination+"\x00"+s.Event.IncidentID), "problem", s.Event.IncidentSequence, []string{Accepted, Confirmed}).Order("sequence").First(&problem).Error
++		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
++			s.Sources.Error = "predecessor source snapshot could not be read"
++			return
++		}
++		if err == nil {
++			var original Snapshot
++			if json.Unmarshal([]byte(problem.Snapshot), &original) == nil && original.Sources != nil && original.Config.Mode == s.Config.Mode {
++				s.Sources = original.Sources
++				return
++			}
++		}
++	}
++	if s.Params["device_source"] == "cmdb" {
++		value, ok := eventLabel(s.Event, s.Params["cmdb_match_label"])
++		if !ok {
++			s.Sources.Error = "CMDB match label is missing or ambiguous; no asset inferred"
++			return
++		}
++		asset, err := (&cmdb.Store{DB: db}).LookupAlertDevice(s.Params["cmdb_match_field"], value)
++		if err != nil {
++			s.Sources.Error = err.Error()
++			return
++		}
++		s.Sources.AssetID, s.Sources.Version = asset.ID, asset.Version
++		s.Sources.DeviceType, s.Sources.DeviceName = asset.Type, asset.Hostname
++	}
++	if s.Params["device_tags_source"] == "rule_append_tags" {
++		var rule models.AlertRule
++		if s.Event.RuleId <= 0 || db.Select("id", "append_tags").First(&rule, s.Event.RuleId).Error != nil {
++			s.Sources.Error = "source alert rule is missing; append tags cannot be snapshotted"
++			return
++		}
++		// Preserve the saved field verbatim as one JSON string, not an array and
++		// not the union of metric labels and appended labels.
++		s.Sources.AppendTags = rule.AppendTags
++	}
++}
++
++func cmdbValues(s Snapshot) (string, string, bool) {
++	if s.Sources == nil || strings.TrimSpace(s.Sources.AssetID) == "" || strings.TrimSpace(s.Sources.DeviceType) == "" || strings.TrimSpace(s.Sources.DeviceName) == "" {
++		return "", "", false
++	}
++	return s.Sources.DeviceType, s.Sources.DeviceName, true
++}
+--- a/pkg/externalpush/store.go
++++ b/pkg/externalpush/store.go
+@@ -162,6 +162,7 @@
+ // Enqueue commits an immutable snapshot under a database unique constraint.
+ // Rule/subscription IDs are provenance, not part of semantic deduplication.
+ func Enqueue(db *gorm.DB, s Snapshot, channelID, ruleID int64) (int64, error) {
++	resolveSources(db, &s)
+ 	raw, err := json.Marshal(s)
+ 	if err != nil {
+ 		return 0, err
+@@ -200,6 +201,14 @@
+ 				return err
+ 			}
+ 			t.ID = existing.ID
++			// Two first registrations can resolve mutable inventory before either
++			// INSERT commits. Rebase on the winner's frozen sources before deciding
++			// whether the immutable route/event inputs actually conflict.
++			var winner Snapshot
++			if json.Unmarshal([]byte(existing.Snapshot), &winner) == nil && reuseSources(&s, winner) {
++				candidate, _ := Build(s)
++				t.Fingerprint = protocolFingerprint(s, candidate)
++			}
+ 			if existing.Fingerprint != t.Fingerprint {
+ 				conflict = true
+ 				after := existing.State
+--- a/pkg/externalpush/worker.go
++++ b/pkg/externalpush/worker.go
+@@ -263,6 +263,9 @@
+ 			if json.Unmarshal([]byte(anchor.Snapshot), &previous) != nil {
+ 				return setState(Invalid, "invalid predecessor payload")
+ 			}
++			if previous.Config.Mode != s.Config.Mode {
++				return setState(Invalid, "receiver mode differs from accepted problem; simulation and real incidents cannot be paired")
++			}
+ 			if previous.Config.EffectiveSigningMode() != s.Config.EffectiveSigningMode() {
+ 				return setState(Invalid, "signing inputs differ from accepted problem; restore the original key version")
+ 			}
+@@ -343,7 +346,7 @@
+ 	form := url.Values{"json": {string(raw)}}.Encode()
+ 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.Config.Endpoint, strings.NewReader(form))
+ 	if err != nil {
+-		return Invalid, "cannot construct simulation request"
++		return Invalid, "cannot construct external push request"
+ 	}
+ 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+ 	transport := &http.Transport{Proxy: nil, DisableKeepAlives: true}
+--- a/pkg/i18nx/var.go
++++ b/pkg/i18nx/var.go
+@@ -2,6 +2,27 @@
+ 
+ var I18N = `{
+   "zh_CN": {
++    "CMDB match field and an exact nonempty event label are required": "必须明确CMDB匹配字段和非空告警标签，不能自动关联设备",
++    "CMDB inventory could not be read": "无法读取CMDB资产",
++    "CMDB inventory contains an invalid document": "CMDB包含无效资产文档，未发送",
++    "CMDB lookup must match exactly one active asset; missing or ambiguous device blocks delivery": "CMDB必须精确匹配一台未删除资产；未找到或匹配多台时阻止发送",
++    "matched CMDB asset is missing device type or hostname": "匹配的CMDB资产缺少设备类型或主机名",
++    "CMDB match label is missing or ambiguous; no asset inferred": "CMDB匹配标签缺失或有歧义，未推断设备",
++    "source alert rule is missing; append tags cannot be snapshotted": "来源告警规则不存在，无法保存附加标签快照",
++    "existing source snapshot could not be read": "无法读取本次派发已有的字段来源快照",
++    "predecessor source snapshot could not be read": "无法读取前序故障的字段来源快照",
++    "CMDB source cannot also configure literal or label device mappings": "CMDB来源不能同时配置固定或告警标签设备映射",
++    "CMDB device values have not been snapshotted; configure an unambiguous asset match": "尚无CMDB设备快照，请明确唯一的设备关联配置",
++    "device source must be event or cmdb": "设备来源必须为告警标签或CMDB",
++    "rule append tags source cannot also configure literal or label tags": "附加标签来源不能同时配置固定字符串或告警标签",
++    "alert rule append tags have not been snapshotted": "尚未保存告警规则附加标签快照",
++    "device tags source must be mapping or rule_append_tags": "deviceTags来源必须为显式映射或规则附加标签",
++    "platform 1.0 level must explicitly map to one of the four confirmed receiver levels": "1.0平台等级必须显式映射为灾难、严重、警告或一般，不能使用模拟值",
++    "platform 1.0 mode requires the confirmed HTTPS endpoint without query parameters": "1.0平台模式只允许已确认的HTTPS接收地址，不能携带查询参数",
++    "platform 1.0 mode requires a center key file; test signatures cannot be sent": "1.0平台模式必须使用center密钥文件，禁止发送测试签名",
++    "external push mode must be platform10 or simulation": "推送模式必须是1.0平台或本地模拟",
++    "receiver mode differs from accepted problem; simulation and real incidents cannot be paired": "接收模式与已受理故障不同，模拟与真实接口的事件不能配对",
++    "cannot construct external push request": "无法构造1.0平台推送请求",
+     "invalid signing key reference": "密钥引用无效",
+     "signing key reference is not configured on center": "center未配置此版本的密钥引用",
+     "signing key file path must be absolute on center": "center密钥文件路径必须是绝对路径",

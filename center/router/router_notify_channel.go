@@ -629,6 +629,9 @@ func (rt *Router) notifyChannelConfigTest(c *gin.Context) {
 	// 内联 script 配置 = 从请求体直取任意代码执行：SendScript 会把 script 写盘、chmod 0777
 	// 再 exec，且 path 非空时直接执行服务端任意路径。未保存的配置没有任何审计留痕，
 	// 因此这条路径一律拒绝，引导用户先保存（保存动作有 create_by，且同样受权限约束）。
+	if nc.RequestType == models.ExternalPushType {
+		ginx.Bomb(http.StatusBadRequest, "external push requires a saved rule and persistent task; direct test-send is disabled")
+	}
 	if nc.RequestType == "script" {
 		ginx.Bomb(http.StatusBadRequest, "script media type must be saved before testing")
 	}

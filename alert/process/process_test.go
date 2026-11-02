@@ -199,3 +199,84 @@ func TestPushEventToQueueRecoveredNotTracked(t *testing.T) {
 		t.Fatal("队列里不能放活对象")
 	}
 }
+
+func TestDispatchAndIncidentIdentitySurviveSnapshots(t *testing.T) {
+	queue.EventQueue.RemoveAll()
+	defer queue.EventQueue.RemoveAll()
+	p := &Processor{fires: NewAlertCurEventMap(nil)}
+	first := &models.AlertCurEvent{Hash: "same-hash", FirstTriggerTime: 100, LastEvalTime: 100}
+	p.pushEventToQueue(first)
+	repeat := &models.AlertCurEvent{Hash: "same-hash", FirstTriggerTime: 100, LastEvalTime: 100}
+	p.pushEventToQueue(repeat)
+	recovered := repeat.DeepCopy()
+	recovered.IsRecovered = true
+	p.fires.Delete(repeat.Hash)
+	p.pushEventToQueue(recovered)
+	next := &models.AlertCurEvent{Hash: "same-hash", FirstTriggerTime: 100, LastEvalTime: 100}
+	p.pushEventToQueue(next)
+	events := queue.EventQueue.PopBackBy(10)
+	if len(events) != 4 {
+		t.Fatal(len(events))
+	}
+	seen := map[string]bool{}
+	for i, item := range events {
+		e := item.(*models.AlertCurEvent)
+		if e.DispatchID == "" || seen[e.DispatchID] {
+			t.Fatal("dispatch identity reused")
+		}
+		seen[e.DispatchID] = true
+		if i < 3 && (e.IncidentID != first.IncidentID || e.IncidentSequence != int64(i+1)) {
+			t.Fatalf("episode identity changed: %+v", e)
+		}
+		// Both persistent history conversion and reverse conversion preserve IDs.
+		roundtrip := e.ToHis(nil).ToCur()
+		if roundtrip.DispatchID != e.DispatchID || roundtrip.IncidentID != e.IncidentID || roundtrip.IncidentSequence != e.IncidentSequence {
+			t.Fatal("persistence conversion lost identity")
+		}
+	}
+	if next.IncidentID == first.IncidentID || next.IncidentSequence != 1 {
+		t.Fatal("new incident merged by same timestamp/hash")
+	}
+}
+
+// Fault counts belong to the engine. Recovery is independent of that quota,
+// and a subsequently observed fault starts a new incident with count one.
+func TestAlertRuleMaxCountIncludesInitialAndExcludesRecovery(t *testing.T) {
+	for _, max := range []int{0, 1, 3} {
+		t.Run(string(rune('0'+max)), func(t *testing.T) {
+			queue.EventQueue.RemoveAll()
+			defer queue.EventQueue.RemoveAll()
+			p := &Processor{rule: &models.AlertRule{Id: 1, NotifyMaxNumber: max, NotifyRepeatStep: 1, NotifyRecovered: 1}, fires: NewAlertCurEventMap(nil), pendings: NewAlertCurEventMap(nil), pendingsUseByRecover: NewAlertCurEventMap(nil), alertMuteCache: &memsto.AlertMuteCacheType{}, HandleFireEventHook: func(*models.AlertCurEvent) {}, HandleRecoverEventHook: func(*models.AlertCurEvent) {}}
+			for i := int64(0); i < 4; i++ {
+				p.fireEvent(&models.AlertCurEvent{Hash: "TEST-rule-count", RuleId: 1, TriggerTime: 1000 + i*60, LastEvalTime: 1000 + i*60})
+			}
+			faults := queue.EventQueue.PopBackBy(10)
+			want := max
+			if max == 0 {
+				want = 4
+			}
+			if len(faults) != want {
+				t.Fatalf("max=%d: got %d fault dispatches, want %d", max, len(faults), want)
+			}
+			incident := faults[0].(*models.AlertCurEvent).IncidentID
+			ids := map[string]bool{}
+			for i, item := range faults {
+				event := item.(*models.AlertCurEvent)
+				if event.NotifyCurNumber != i+1 || event.IncidentID != incident || ids[event.DispatchID] {
+					t.Fatal("bad fault count or dispatch identity")
+				}
+				ids[event.DispatchID] = true
+			}
+			p.RecoverSingle(false, "TEST-rule-count", 1300, nil)
+			recovered := queue.EventQueue.PopBackBy(10)
+			if len(recovered) != 1 || !recovered[0].(*models.AlertCurEvent).IsRecovered || recovered[0].(*models.AlertCurEvent).IncidentID != incident {
+				t.Fatal("fault quota blocked recovery or broke association")
+			}
+			p.fireEvent(&models.AlertCurEvent{Hash: "TEST-rule-count", RuleId: 1, TriggerTime: 1400, LastEvalTime: 1400})
+			next := queue.EventQueue.PopBackBy(10)
+			if len(next) != 1 || next[0].(*models.AlertCurEvent).IncidentID == incident || next[0].(*models.AlertCurEvent).NotifyCurNumber != 1 {
+				t.Fatal("new incident did not reset its fault quota")
+			}
+		})
+	}
+}

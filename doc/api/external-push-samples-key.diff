@@ -1,0 +1,240 @@
+--- a/models/external_push.go
++++ b/models/external_push.go
+@@ -12,6 +12,11 @@
+ // ExternalPushConfig is deliberately simulation-only. No production signature
+ // or mapping is inferred from the receiver's incomplete sample protocol.
+ const ExternalPushType = "external_push"
++
++// Event type values confirmed by platform 1.0's business owner. Other protocol
++// details, including signing and transport representation, remain unconfirmed.
++const ExternalPushProblemType = "problem"
++const ExternalPushRecoveryType = "ok"
+ 
+ type ExternalPushConfig struct {
+ 	Mode         string `json:"mode"`
+@@ -107,11 +112,11 @@
+ 	if c.TimeoutMS < 1 || c.TimeoutMS > 10000 {
+ 		return errors.New("simulation timeout_ms must be between 1 and 10000")
+ 	}
+-	if c.ProblemType == "" || c.RecoveryType == "" || c.TestSign == "" {
+-		return errors.New("explicit simulation problem_type, recovery_type and test_sign are required; these are test assumptions")
++	if c.ProblemType != ExternalPushProblemType || c.RecoveryType != ExternalPushRecoveryType {
++		return errors.New("confirmed event types must be problem and ok; legacy simulation types require explicit configuration review")
+ 	}
+-	if c.ProblemType == c.RecoveryType {
+-		return errors.New("simulation problem and recovery types must differ")
++	if strings.TrimSpace(c.TestSign) == "" {
++		return errors.New("an explicit test-only signature is required; production signing is unconfirmed")
+ 	}
+ 	if _, err := time.LoadLocation(c.TimeZone); err != nil || c.TimeZone == "" {
+ 		return errors.New("explicit valid time_zone is required")
+--- a/models/external_push_test.go
++++ b/models/external_push_test.go
+@@ -15,8 +15,31 @@
+ 	if err := c.Verify(); err == nil {
+ 		t.Fatal("production channel enabled while alert-engine hook is absent")
+ 	}
+-	c.RequestConfig.ExternalPushConfig = &ExternalPushConfig{Mode: "simulation", Endpoint: "http://127.0.0.1:19091/mock", Destination: "TEST", TimeoutMS: 100, ProblemType: "TEST_problem", RecoveryType: "TEST_recovery", TestSign: "TEST_ONLY", TimeZone: "UTC"}
++	c.RequestConfig.ExternalPushConfig = &ExternalPushConfig{Mode: "simulation", Endpoint: "http://127.0.0.1:19091/mock", Destination: "TEST", TimeoutMS: 100, ProblemType: "problem", RecoveryType: "ok", TestSign: "TEST_ONLY", TimeZone: "UTC"}
+ 	if err := c.Verify(); err != nil {
+ 		t.Fatal(err)
+ 	}
+ }
++
++func TestExternalPushUsesConfirmedProblemAndOKTypes(t *testing.T) {
++	config := ExternalPushConfig{Mode: "simulation", Endpoint: "http://127.0.0.1:19091/mock", Destination: "TEST_ONLY", TimeoutMS: 100, ProblemType: "problem", RecoveryType: "ok", TestSign: "TEST_ONLY_NOT_A_CUSTOMER_SIGNATURE", TimeZone: "UTC"}
++	if err := config.Verify(); err != nil {
++		t.Fatalf("confirmed event types rejected: %v", err)
++	}
++	for _, types := range [][2]string{{"problem", "TEST_recovery"}, {"TEST_problem", "TEST_recovery"}, {"ok", "problem"}} {
++		config.ProblemType, config.RecoveryType = types[0], types[1]
++		if err := config.Verify(); err == nil {
++			t.Fatalf("unconfirmed/legacy event types accepted: %v", types)
++		}
++	}
++}
++
++func TestConfirmedEventTypesDoNotProvideASignatureDefault(t *testing.T) {
++	config := ExternalPushConfig{Mode: "simulation", Endpoint: "http://127.0.0.1:19091/mock", Destination: "TEST_ONLY", TimeoutMS: 100, ProblemType: "problem", RecoveryType: "ok", TimeZone: "UTC"}
++	for _, value := range []string{"", " \t "} {
++		config.TestSign = value
++		if err := config.Verify(); err == nil {
++			t.Fatal("test signer value was inferred or empty")
++		}
++	}
++}
+--- a/frontend/src/pages/notificationChannels/constants.ts
++++ b/frontend/src/pages/notificationChannels/constants.ts
+@@ -78,7 +78,7 @@
+           },
+         },
+         request_config: {
+-          external_push_config: { mode: 'simulation', endpoint: '', destination: '', timeout_ms: 1000, problem_type: '', recovery_type: '', test_sign: '', time_zone: '' },
++          external_push_config: { mode: 'simulation', endpoint: '', destination: '', timeout_ms: 1000, problem_type: 'problem', recovery_type: 'ok', test_sign: '', time_zone: '' },
+         },
+       },
+     },
+--- a/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.tsx
++++ b/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.tsx
+@@ -16,7 +16,7 @@
+       </Form.Item>
+       {['endpoint', 'destination', 'problem_type', 'recovery_type', 'time_zone', 'test_sign'].map((key) => (
+         <Form.Item key={key} name={[...names, key]} label={t(`external.${key}`)} rules={[{ required: true, whitespace: true }]}>
+-          <Input autoComplete='off' />
++          <Input autoComplete='off' readOnly={key === 'problem_type' || key === 'recovery_type'} />
+         </Form.Item>
+       ))}
+       <Form.Item name={[...names, 'timeout_ms']} label={t('external.timeout')} rules={[{ required: true }]}>
+--- a/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.test.tsx
++++ b/frontend/src/pages/notificationChannels/pages/Form/ExternalPush.test.tsx
+@@ -9,11 +9,11 @@
+ beforeAll(() => {
+   window.matchMedia = jest.fn().mockImplementation(() => ({ matches: false, addListener: jest.fn(), removeListener: jest.fn() }));
+ });
+-it('defaults to a disabled simulation draft with no destination, signature or assumed recovery protocol', async () => {
++it('defaults to a disabled simulation draft with confirmed problem/ok values without a destination or signature', async () => {
+   const preset = getNotificationChannelTypes().external_push.default_values;
+   expect(preset.enable).toBe(false);
+   expect(preset.param_config.user_info).toBeUndefined();
+-  expect(preset.request_config.external_push_config).toMatchObject({ mode: 'simulation', endpoint: '', test_sign: '', recovery_type: '' });
++  expect(preset.request_config.external_push_config).toMatchObject({ mode: 'simulation', endpoint: '', test_sign: '', problem_type: 'problem', recovery_type: 'ok' });
+   render(
+     <Form initialValues={preset}>
+       <Form.Item name='request_type' hidden>
+@@ -25,3 +25,15 @@
+   expect(await screen.findByText('external.recovery_notice')).toBeTruthy();
+   expect(screen.getByLabelText('external.test_sign')).toHaveProperty('value', '');
+ });
++
++it('shows confirmed event types as read-only values while keeping signing explicitly test-only', async () => {
++  const preset = getNotificationChannelTypes().external_push.default_values;
++  render(<Form initialValues={preset}><Form.Item name='request_type' hidden><Input /></Form.Item><ExternalPush /></Form>);
++  const problem = await screen.findByLabelText('external.problem_type');
++  const recovery = screen.getByLabelText('external.recovery_type');
++  expect(problem).toHaveProperty('value', 'problem');
++  expect(recovery).toHaveProperty('value', 'ok');
++  expect(problem).toHaveProperty('readOnly', true);
++  expect(recovery).toHaveProperty('readOnly', true);
++  expect(screen.getByLabelText('external.test_sign')).toHaveProperty('value', '');
++});
+--- a/frontend/src/pages/notificationChannels/locale/zh_CN.ts
++++ b/frontend/src/pages/notificationChannels/locale/zh_CN.ts
+@@ -6,12 +6,12 @@
+     simulation: '本地模拟（非生产协议）',
+     endpoint: '模拟接收地址（数字回环 IP，必须带端口）',
+     destination: '逻辑目的端键（同一目标的多规则必须一致）',
+-    problem_type: '模拟故障类型（显式测试假设）',
+-    recovery_type: '模拟恢复类型（待确认生产值）',
++    problem_type: '故障类型（已确认：problem）',
++    recovery_type: '恢复类型（已确认：ok）',
+     time_zone: '时间显示时区（如 Asia/Shanghai）',
+     test_sign: '仅模拟：显式测试签名值（不能用于生产）',
+     timeout: '超时（毫秒，不自动重试）',
+-    protocol_notice: '客户映射、设备和等级词典、标签字符串及生产签名仍待对方确认。缺少必要参数会保存校验失败任务。',
++    protocol_notice: 'problem/ok事件类型已确认。归属映射、设备和等级词典、原始传输格式、deviceTags类型及生产签名仍待对方确认。缺少必要参数会保存校验失败任务。',
+     rule_notice:
+       '按派发及逻辑目的端登记，不按本地人数复制请求。不同事件可共用接收地址并携带各自参数；同次派发实际命中的矛盾配置会阻止发送。总部/分部通过原协议哪些字段区分仍待确认，以下只用明确模拟值，不新增 branchId，也不假定用 companyId。',
+     all_dispatches: '模拟假设：每次派发（包括重复提醒）各推一次',
+@@ -44,7 +44,7 @@
+       company_id: '外部客户标识（显式映射文本）',
+       device_type: '外部设备类型（显式测试映射）',
+       device_name_label: '设备名称来源标签键（如 ident）',
+-      device_tags: '外部标签字符串（不是 JSON 数组）',
++      device_tags: '标签字符串（本地假设；原始类型待确认）',
+       level_map: '等级映射 JSON（如 {"1":"测试级别"}）',
+       repeat_policy: '重复提醒策略（必须显式选择）',
+     },
+--- a/frontend/src/pages/notificationChannels/locale/en_US.ts
++++ b/frontend/src/pages/notificationChannels/locale/en_US.ts
+@@ -7,12 +7,12 @@
+     simulation: 'Local simulation (not production protocol)',
+     endpoint: 'Mock endpoint (numeric loopback IP and port)',
+     destination: 'Logical destination key (shared by rules for the same target)',
+-    problem_type: 'Explicit simulation problem type',
+-    recovery_type: 'Explicit simulation recovery type',
++    problem_type: 'Confirmed problem type: problem',
++    recovery_type: 'Confirmed recovery type: ok',
+     time_zone: 'Explicit timezone (e.g. Asia/Shanghai)',
+     test_sign: 'Simulation-only signature test value',
+     timeout: 'Timeout (ms; no automatic retries)',
+-    protocol_notice: 'Production customer/device/level mappings, tag syntax and signing remain unconfirmed. Missing parameters produce a validation failure task.',
++    protocol_notice: 'Event types problem/ok are confirmed. Attribution/device/level mappings, original wire format, deviceTags type and signing remain unconfirmed. Missing parameters produce a validation failure task.',
+     rule_notice:
+       'Register per dispatch and logical destination, regardless of recipient count. Independent events may share an endpoint with different mappings; contradictory applicable routes for the same dispatch are blocked. Headquarters/branch attribution fields are unconfirmed: no branchId is added and companyId is not assumed to identify a branch. Values are simulation assumptions.',
+     all_dispatches: 'Simulation assumption: send each dispatch, including reminders',
+@@ -48,7 +48,7 @@
+       company_id: 'Explicit external company identifier',
+       device_type: 'Explicit external device type',
+       device_name_label: 'Device label key (e.g. ident)',
+-      device_tags: 'External tag string (not a JSON array)',
++      device_tags: 'Tag string (local assumption; original type unconfirmed)',
+       level_map: 'Explicit severity mapping JSON',
+       repeat_policy: 'Explicit reminder policy',
+     },
+--- a/pkg/externalpush/protocol.go
++++ b/pkg/externalpush/protocol.go
+@@ -36,7 +36,7 @@
+ 	RecoveryTime string `json:"recoveryTime"`
+ 	TriggerName  string `json:"triggerName"`
+ 	Level        string `json:"level"`
+-	DeviceTags   string `json:"deviceTags"`
++	DeviceTags   string `json:"deviceTags"` // Local simulation assumption; the real wire type is unconfirmed.
+ 	Sign         string `json:"sign"`
+ }
+ 
+--- a/pkg/i18nx/var.go
++++ b/pkg/i18nx/var.go
+@@ -2,6 +2,8 @@
+ 
+ var I18N = `{
+   "zh_CN": {
++    "confirmed event types must be problem and ok; legacy simulation types require explicit configuration review": "已确认故障类型为problem、恢复类型为ok；旧模拟类型须核对后新建配置，旧任务不会自动转换或重投",
++    "an explicit test-only signature is required; production signing is unconfirmed": "必须显式填写仅供本地模拟的测试签名；生产签名算法及凭据仍待确认",
+     "manual: cancel_unsent": "人工明确决定不投递（已取消未发送任务）",
+     "external push requires a complete applicable dispatch route plan; direct send is disabled": "外部推送需要完整的实际匹配路由计划；直接发送已禁用",
+     "all routes must belong to one dispatch": "完整路由批次必须属于同一次派发",
+@@ -28,7 +30,7 @@
+     "simulation endpoint must use a numeric loopback IP and a valid port; production destinations are blocked": "模拟地址必须使用数字回环 IP 和有效端口；生产地址已被阻止",
+     "logical destination key is required (at most 128 bytes)": "请填写逻辑目的端键，最多 128 字节",
+     "simulation timeout_ms must be between 1 and 10000": "模拟超时必须为 1 至 10000 毫秒",
+-    "explicit simulation problem_type, recovery_type and test_sign are required; these are test assumptions": "请显式填写模拟故障类型、恢复类型和测试签名；这些值只是测试假设",
++    "explicit simulation problem_type, recovery_type and test_sign are required; these are test assumptions": "旧模拟配置缺少类型或测试签名；当前故障/恢复类型已确认为problem/ok",
+     "simulation problem and recovery types must differ": "模拟故障类型与恢复类型不能相同",
+     "explicit valid time_zone is required": "请显式填写有效的时区",
+     "missing or invalid dispatch UUID; no identity inferred from event ID or hash": "派发 UUID 缺失或无效；不会用事件 ID 或 hash 推断身份",
+@@ -85,8 +87,8 @@
+     "only explicit simulation mode is supported": "生产协议尚未确认；仅支持显式本地模拟模式",
+     "simulation endpoint must use a numeric loopback IP and a valid port": "模拟地址必须使用数字回环 IP 和有效端口；生产地址已被阻止",
+     "production destinations are blocked": "模拟地址必须使用数字回环 IP 和有效端口；生产地址已被阻止",
+-    "explicit simulation problem_type, recovery_type and test_sign are required": "请显式填写模拟故障类型、恢复类型和测试签名；这些值只是测试假设",
+-    "these are test assumptions": "请显式填写模拟故障类型、恢复类型和测试签名；这些值只是测试假设",
++    "explicit simulation problem_type, recovery_type and test_sign are required": "旧模拟配置缺少类型或测试签名；当前故障/恢复类型已确认为problem/ok",
++    "these are test assumptions": "旧模拟配置缺少类型或测试签名；当前故障/恢复类型已确认为problem/ok",
+     "missing or invalid dispatch UUID": "派发 UUID 缺失或无效；不会用事件 ID 或 hash 推断身份",
+     "no identity inferred from event ID or hash": "派发 UUID 缺失或无效；不会用事件 ID 或 hash 推断身份",
+     "missing incident UUID/sequence": "缺少故障轮次 UUID 或序列；存量和外来事件需提供明确的生命周期身份",
+--- a/scripts/external-push-preview-smoke.py
++++ b/scripts/external-push-preview-smoke.py
+@@ -79,7 +79,7 @@
+         'param_config': {'custom': {'params': []}},
+         'request_config': {'external_push_config': {
+             'mode': 'simulation', 'endpoint': 'http://127.0.0.1:' + str(server.server_port) + '/mock',
+-            'destination': name, 'timeout_ms': 1000, 'problem_type': 'TEST_problem', 'recovery_type': 'TEST_recovery',
++            'destination': name, 'timeout_ms': 1000, 'problem_type': 'problem', 'recovery_type': 'ok',
+             'test_sign': 'TEST_ONLY_NOT_PRODUCTION', 'time_zone': 'Asia/Shanghai',
+         }},
+     }
+@@ -129,11 +129,11 @@
+             raise RuntimeError('timed out observing synthetic rule; inspect private preview logs')
+ 
+         first = wait_for(1)
+-        assert len(received) == 1 and received[0]['alarmType'] == 'TEST_problem'
++        assert len(received) == 1 and received[0]['alarmType'] == 'problem'
+         alert['rule_config']['queries'][0]['prom_ql'] = 'vector(0) > 0'
+         api('PUT', f'/busi-group/{group}/alert-rule/{alert["id"]}', alert)
+         second = wait_for(2)
+-        assert received[1]['alarmType'] == 'TEST_recovery'
++        assert received[1]['alarmType'] == 'ok'
+         assert first[0]['incident_id'] == second[1]['incident_id']
+         assert received[0]['problemTime'] == received[1]['problemTime']
+         alert['rule_config']['queries'][0]['prom_ql'] = 'vector(1) > 0'

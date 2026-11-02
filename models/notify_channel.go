@@ -55,6 +55,7 @@ func (ncc *NotifyChannelConfig) TableName() string {
 }
 
 type RequestConfig struct {
+	ExternalPushConfig             *ExternalPushConfig             `json:"external_push_config,omitempty" gorm:"serializer:json"`
 	HTTPRequestConfig              *HTTPRequestConfig              `json:"http_request_config,omitempty" gorm:"serializer:json"`
 	SMTPRequestConfig              *SMTPRequestConfig              `json:"smtp_request_config,omitempty" gorm:"serializer:json"`
 	ScriptRequestConfig            *ScriptRequestConfig            `json:"script_request_config,omitempty" gorm:"serializer:json"`
@@ -599,10 +600,24 @@ func (ncc *NotifyChannelConfig) Verify() error {
 		// ncc.RequestType != "dingtalkapp" &&
 		ncc.RequestType != "feishuapp" &&
 		ncc.RequestType != "wecomapp" &&
+		ncc.RequestType != ExternalPushType &&
 		!IsNativeRequestType(ncc.RequestType) {
 		return errors.New("invalid request type, must be one of 'http', 'smtp', 'script', 'flashduty', 'pagerduty', 'feishuapp', 'wecomapp', 'jira', 'discord', 'jsm_alert', 'slackwebhook', 'mattermostwebhook', 'teams', 'twilio'")
 	}
 
+	if ncc.RequestType == ExternalPushType {
+		if ncc.Ident != ExternalPushType {
+			return errors.New("external push requires its dedicated channel identifier")
+		}
+		if ncc.Enable {
+			if ncc.RequestConfig == nil {
+				return errors.New("external push simulation configuration is required")
+			}
+			if err := ncc.RequestConfig.ExternalPushConfig.Verify(); err != nil {
+				return err
+			}
+		}
+	}
 	if ncc.ParamConfig != nil {
 		for _, param := range ncc.ParamConfig.Custom.Params {
 			if param.Key != "" && param.CName == "" {
@@ -856,6 +871,27 @@ func (ncc *NotifyChannelConfig) Upsert(ctx *ctx.Context) error {
 
 // Weight 用于页面元素排序，weight 越大 排序越靠后
 var NotiChMap = []*NotifyChannelConfig{
+	{
+		Name: "1.0平台推送", Ident: ExternalPushType, RequestType: ExternalPushType, Weight: 0, Enable: false,
+		Description: "将故障和恢复事件推送到1.0平台，由1.0处理后续通知。",
+		RequestConfig: &RequestConfig{ExternalPushConfig: &ExternalPushConfig{
+			Mode: "platform10", Endpoint: ExternalPushPlatform10Endpoint, Destination: "platform10", TimeoutMS: 10000,
+			TimeZone:    "Asia/Shanghai",
+			ProblemType: ExternalPushProblemType, RecoveryType: ExternalPushRecoveryType,
+			SigningMode: "key_file", SigningKeyRef: ExternalPushDefaultKeyRef,
+		}},
+		ParamConfig: &NotifyParamConfig{Custom: Params{Params: []ParamItem{
+			{Key: "company_id", CName: "Company attribution", Type: "string"},
+			{Key: "device_type", CName: "Device type", Type: "string"},
+			{Key: "device_name_label", CName: "Device name label", Type: "string"},
+			{Key: "device_tags", CName: "Device tags", Type: "string"},
+			{Key: "level_map", CName: "Severity mapping", Type: "string"},
+			{Key: "device_source", CName: "Device source", Type: "string"},
+			{Key: "cmdb_match_field", CName: "CMDB match field", Type: "string"},
+			{Key: "cmdb_match_label", CName: "CMDB event label", Type: "string"},
+			{Key: "device_tags_source", CName: "Device tags source", Type: "string"},
+		}}},
+	},
 	{
 		Name: "Microsoft Teams", Ident: Teams, RequestType: RequestTypeTeams, Weight: 10, Enable: true,
 		RequestConfig: &RequestConfig{TeamsRequestConfig: &TeamsRequestConfig{

@@ -92,3 +92,7 @@ evallog/
 
 __pycache__/
 *.pyc
+
+# Center signing keys are provisioned outside the checkout; guard misplaced files.
+/secrets/
+**/platform10*.key

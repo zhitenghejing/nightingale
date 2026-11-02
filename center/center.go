@@ -31,6 +31,7 @@ import (
 	"github.com/ccfos/nightingale/v6/pkg/cmdb"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
 	"github.com/ccfos/nightingale/v6/pkg/evallog"
+	"github.com/ccfos/nightingale/v6/pkg/externalpush"
 	"github.com/ccfos/nightingale/v6/pkg/flashduty"
 	"github.com/ccfos/nightingale/v6/pkg/httpx"
 	"github.com/ccfos/nightingale/v6/pkg/i18nx"
@@ -75,7 +76,17 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 		return nil, err
 	}
 	ctx := ctx.NewContext(context.Background(), db, true)
-	migrate.Migrate(db)
+	if err := migrate.MigrateChecked(db); err != nil {
+		logxClean()
+		return nil, fmt.Errorf("initialize database schema: %w", err)
+	}
+	// Event identity columns are required even while the channel is disabled:
+	// ordinary alert persistence writes the same model. Never serve a partial DB.
+	if err := externalpush.CheckSchema(db); err != nil {
+		logger.Errorf("database schema is incomplete: %v", err)
+		logxClean()
+		return nil, fmt.Errorf("initialize external push schema: %w", err)
+	}
 	cmdbStore := &cmdb.Store{DB: db}
 	if err = cmdbStore.Migrate(); err != nil {
 		return nil, fmt.Errorf("initialize CMDB schema: %w", err)
@@ -220,6 +231,7 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 		ibex.ServerStart(true, db, redis, config.HTTP.APIForService.BasicAuth, config.Alert.Heartbeat, &config.CenterApi, r, centerRouter, config.Ibex, config.HTTP.Port)
 	}
 
+	externalPushClean := externalpush.StartWithKeys(ctx.Ctx, db, externalpush.NewFileKeys(config.Center.ExternalPushKeyFiles))
 	httpClean := httpx.Init(config.HTTP, r)
 
 	fmt.Printf("please view n9e at  http://%v:%v\n", config.Alert.Heartbeat.IP, config.HTTP.Port)
@@ -231,6 +243,7 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 		// httpClean 优雅关闭：等在途请求处理完才返回，之后不再有 remote write
 		// 请求进到本地 tsdb，Close 不会与写入竞态
 		httpClean()
+		externalPushClean()
 		if tsdbInstance != nil {
 			if err := tsdbInstance.Close(); err != nil {
 				logger.Errorf("failed to close embedded tsdb: %v", err)

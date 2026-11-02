@@ -23,6 +23,7 @@ import (
 	"github.com/ccfos/nightingale/v6/memsto"
 	"github.com/ccfos/nightingale/v6/models"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
+	"github.com/ccfos/nightingale/v6/pkg/externalpush"
 
 	"github.com/toolkits/pkg/logger"
 )
@@ -167,7 +168,12 @@ func (e *Dispatch) reloadTpls() error {
 }
 
 func (e *Dispatch) HandleEventWithNotifyRule(eventOrigin *models.AlertCurEvent) {
+	batch := &externalDispatchBatch{}
+	e.handleEventWithNotifyRule(eventOrigin, batch)
+	batch.flush(e.ctx)
+}
 
+func (e *Dispatch) handleEventWithNotifyRule(eventOrigin *models.AlertCurEvent, batch *externalDispatchBatch) {
 	if len(eventOrigin.NotifyRuleIds) > 0 {
 		for _, notifyRuleId := range eventOrigin.NotifyRuleIds {
 			// 深拷贝新的 event，避免并发修改 event 冲突
@@ -216,13 +222,19 @@ func (e *Dispatch) HandleEventWithNotifyRule(eventOrigin *models.AlertCurEvent) 
 				// TODO: 例外应按 request_config 是否引用 $tpl 判定，而不是按 ident 硬编码，
 				// 免得前后端两份例外清单再次漂移。
 				if notifyChannel.RequestType != "flashduty" && notifyChannel.RequestType != "pagerduty" &&
-					notifyChannel.Ident != "callback" && messageTemplate == nil {
+					notifyChannel.Ident != "callback" && notifyChannel.RequestType != models.ExternalPushType && messageTemplate == nil {
 					logger.Warningf("notify_id: %d, channel_name: %v, event:%s, template_id: %d, message_template not found", notifyRuleId, notifyChannel.Ident, eventCopy.Hash, notifyRule.NotifyConfigs[i].TemplateID)
 					sender.NotifyRecord(e.ctx, []*models.AlertCurEvent{eventCopy}, notifyRuleId, notifyChannel.Name, "", "", errors.New("message_template not found"))
 
 					continue
 				}
 
+				if notifyChannel.RequestType == models.ExternalPushType {
+					if notifyChannel.Enable {
+						batch.add(externalpush.Submission{ChannelID: notifyChannel.ID, NotifyRuleID: notifyRuleId, Params: notifyRule.NotifyConfigs[i].Params, Event: eventCopy})
+					}
+					continue
+				}
 				go SendByNotifyRule(e.ctx, e.userCache, e.userGroupCache, e.notifyChannelCache, e.configCvalCache, []*models.AlertCurEvent{eventCopy}, notifyRuleId, &notifyRule.NotifyConfigs[i], notifyChannel, messageTemplate)
 			}
 		}
@@ -631,6 +643,10 @@ func SendNotifyRuleMessage(ctx *ctx.Context, userCache *memsto.UserCacheType, us
 		return
 	}
 
+	if notifyChannel.RequestType == models.ExternalPushType {
+		sender.NotifyRecord(ctx, events, notifyRuleId, notifyChannel.Name, "external-push", "", errors.New("external push requires a complete applicable dispatch route plan; direct send is disabled"))
+		return
+	}
 	siteInfo := configCvalCache.GetSiteInfo()
 	tplContent := make(map[string]interface{})
 	// flashduty / pagerduty 直接从 event 字段构造 payload，不需要模板，
@@ -695,7 +711,16 @@ func NeedBatchContacts(requestConfig *models.HTTPRequestConfig) bool {
 // event: 告警/恢复事件
 // isSubscribe: 告警事件是否由subscribe的配置产生
 func (e *Dispatch) HandleEventNotify(event *models.AlertCurEvent, isSubscribe bool) {
-	go e.HandleEventWithNotifyRule(event)
+	batch := &externalDispatchBatch{}
+	e.handleEventNotify(event, isSubscribe, batch)
+	go batch.flush(e.ctx)
+}
+
+func (e *Dispatch) handleEventNotify(event *models.AlertCurEvent, isSubscribe bool, batch *externalDispatchBatch) {
+	// Snapshot before the legacy path fills receiver fields on the original.
+	notificationEvent := event.DeepCopy()
+	batch.wg.Add(1)
+	go func() { defer batch.wg.Done(); e.handleEventWithNotifyRule(notificationEvent, batch) }()
 	if event.IsRecovered && event.NotifyRecovered == 0 {
 		return
 	}
@@ -740,14 +765,14 @@ func (e *Dispatch) HandleEventNotify(event *models.AlertCurEvent, isSubscribe bo
 
 	// 如果是不是订阅规则出现的event, 则需要处理订阅规则的event
 	if !isSubscribe {
-		e.handleSubs(event)
+		e.handleSubs(event, batch)
 	}
 }
 
-func (e *Dispatch) handleSubs(event *models.AlertCurEvent) {
+func (e *Dispatch) handleSubs(event *models.AlertCurEvent, batch *externalDispatchBatch) {
 	// handle alert subscribes
 	for _, sub := range e.collectSubscribes(event) {
-		e.handleSub(sub, *event)
+		e.handleSub(sub, *event, batch)
 	}
 }
 
@@ -805,7 +830,7 @@ func (e *Dispatch) subMatches(sub *models.AlertSubscribe, event *models.AlertCur
 }
 
 // handleSub 处理订阅规则的event,注意这里event要使用值传递,因为后面会修改event的状态
-func (e *Dispatch) handleSub(sub *models.AlertSubscribe, event models.AlertCurEvent) {
+func (e *Dispatch) handleSub(sub *models.AlertSubscribe, event models.AlertCurEvent, batch *externalDispatchBatch) {
 	if !e.subMatches(sub, &event) {
 		return
 	}
@@ -815,7 +840,7 @@ func (e *Dispatch) handleSub(sub *models.AlertSubscribe, event models.AlertCurEv
 	event.SubRuleId = sub.Id
 
 	LogEvent(&event, "subscribe")
-	e.HandleEventNotify(&event, true)
+	e.handleEventNotify(&event, true, batch)
 }
 
 // CleanupNotifyMuted 命中「只屏蔽通知」跳过发送时，对与正常 dispatch 相同的 notify rule 集合

@@ -2,6 +2,7 @@ package migrate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"strings"
@@ -60,10 +61,30 @@ func migrationDB(db *gorm.DB, tableOptions string) *gorm.DB {
 }
 
 func Migrate(db *gorm.DB) {
-	defer recoverMigratePanic("migrate tables")
+	// Keep the historical exported entry point for downstream callers. Runtime
+	// startup uses MigrateChecked and must propagate its failure before serving.
+	if err := MigrateChecked(db); err != nil {
+		logger.Errorf("database migration failed: %v", err)
+	}
+}
 
-	MigrateTables(db)
+func MigrateChecked(db *gorm.DB) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("database migration panic: %v", r)
+			logger.Errorf("%v\n%s", err, debug.Stack())
+		}
+	}()
+	tablesErr := MigrateTables(db)
+	// Preserve the existing best-effort policy for this unrelated migration.
+	// MigrateEsIndexPatternTable records its own error; only required table
+	// migrations are fatal to the current center startup.
 	MigrateEsIndexPatternTable(db)
+	err = tablesErr
+	if err != nil {
+		logger.Errorf("database schema initialization failed: %v", err)
+	}
+	return err
 }
 
 func MigrateIbexTables(db *gorm.DB) {
@@ -243,6 +264,7 @@ func dropInvalidPgIndex(db *gorm.DB, name string) error {
 	return db.Exec("DROP INDEX CONCURRENTLY IF EXISTS " + name).Error
 }
 func MigrateTables(db *gorm.DB) error {
+	var migrationErrors []error
 	var tableOptions string
 	switch db.Dialector.(type) {
 	case *mysql.Dialector:
@@ -252,7 +274,7 @@ func MigrateTables(db *gorm.DB) error {
 	dts := []interface{}{&RecordingRule{}, &AlertRule{}, &AlertSubscribe{}, &AlertMute{},
 		&TaskRecord{}, &TaskTpl{}, &ChartShare{}, &Target{}, &Configs{}, &Datasource{}, &NotifyTpl{},
 		&Board{}, &BoardBusigroup{}, &Users{}, &SsoConfig{}, &models.BuiltinMetric{},
-		&models.MetricFilter{}, &models.NotificationRecord{}, &models.TargetBusiGroup{},
+		&models.MetricFilter{}, &models.ExternalPushTask{}, &models.ExternalPushStream{}, &models.ExternalPushAttempt{}, &models.ExternalPushOperation{}, &models.NotificationRecord{}, &models.TargetBusiGroup{},
 		&models.UserToken{}, &models.DashAnnotation{}, MessageTemplate{}, NotifyRule{}, NotifyChannelConfig{}, &EsIndexPatternMigrate{},
 		&models.EventPipeline{}, &models.EmbeddedProduct{}, &models.SourceToken{},
 		&models.SavedView{}, &models.UserViewFavorite{},
@@ -279,36 +301,60 @@ func MigrateTables(db *gorm.DB) error {
 		dts = append(dts, &imodels.TaskSchedulerHealth{})
 	}
 
+	// Identity columns must be available before alert producers start; leave the
+	// existing expensive history/index migrations asynchronous.
+	for _, event := range []interface{}{&models.AlertCurEvent{}, &models.AlertHisEvent{}} {
+		if !db.Migrator().HasTable(event) {
+			continue
+		}
+		for _, column := range []string{"DispatchID", "IncidentID", "IncidentSequence"} {
+			if !db.Migrator().HasColumn(event, column) {
+				if err := db.Migrator().AddColumn(event, column); err != nil {
+					failure := fmt.Errorf("external push identity migration %T.%s: %w", event, column, err)
+					logger.Errorf("%v", failure)
+					migrationErrors = append(migrationErrors, failure)
+				}
+			}
+		}
+	}
 	asyncDts := []interface{}{&AlertHisEvent{}, &AlertCurEvent{}}
+	if len(migrationErrors) > 0 {
+		// Do not retry a known failed identity migration asynchronously, after
+		// returning its error. Other synchronous module migrations still run.
+		asyncDts = nil
+	}
 	// migrationDB 已经保证每条语句都拿到独立的 Statement，这里再派生一个专供
 	// goroutine 使用的 handle：这段异步迁移会在大表上跑数十分钟的 CREATE INDEX，
 	// 一旦哪天 db 又退化成链式方法返回的 clone==0 实例，主流程就会把这条在飞的
 	// SQL 复制走重复执行、卡死在 metadata lock 上，整个启动挂死。宁可多一层。
 	asyncDB := db.Session(&gorm.Session{Context: context.Background()})
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				logger.Errorf("panic to migrate table: %v", r)
+	if len(migrationErrors) == 0 {
+		go func() {
+			defer func() {
+				if r := recover(); r != nil {
+					logger.Errorf("panic to migrate table: %v", r)
+				}
+			}()
+
+			for _, dt := range asyncDts {
+				if err := asyncDB.AutoMigrate(dt); err != nil {
+					logger.Errorf("failed to migrate table %+v err:%v", dt, err)
+				}
 			}
+
+			// 索引用原生 SQL 创建，不在部分结构体上声明 group_id 列：
+			// 存量库该列是 bigint unsigned 且无默认值，声明列会让 AutoMigrate
+			// 发出 MODIFY COLUMN，在大表上全表重建锁写
+			if !asyncDB.Migrator().HasIndex("alert_his_event", "idx_group_last_eval_time") {
+				if err := asyncDB.Exec("CREATE INDEX idx_group_last_eval_time ON alert_his_event(group_id, last_eval_time)").Error; err != nil {
+					logger.Errorf("failed to create index idx_group_last_eval_time on alert_his_event: %v", err)
+				}
+			}
+
+			migrateNotificationRecordIndexes(asyncDB)
 		}()
 
-		for _, dt := range asyncDts {
-			if err := asyncDB.AutoMigrate(dt); err != nil {
-				logger.Errorf("failed to migrate table %+v err:%v", dt, err)
-			}
-		}
-
-		// 索引用原生 SQL 创建，不在部分结构体上声明 group_id 列：
-		// 存量库该列是 bigint unsigned 且无默认值，声明列会让 AutoMigrate
-		// 发出 MODIFY COLUMN，在大表上全表重建锁写
-		if !asyncDB.Migrator().HasIndex("alert_his_event", "idx_group_last_eval_time") {
-			if err := asyncDB.Exec("CREATE INDEX idx_group_last_eval_time ON alert_his_event(group_id, last_eval_time)").Error; err != nil {
-				logger.Errorf("failed to create index idx_group_last_eval_time on alert_his_event: %v", err)
-			}
-		}
-
-		migrateNotificationRecordIndexes(asyncDB)
-	}()
+	}
 
 	if !db.Migrator().HasTable(&models.BuiltinPayload{}) {
 		if isPostgres(db) {
@@ -324,6 +370,12 @@ func MigrateTables(db *gorm.DB) error {
 		err := db.AutoMigrate(dt)
 		if err != nil {
 			logger.Errorf("failed to migrate table:%v %v", dt, err)
+			// Preserve historical best-effort migrations for unrelated modules.
+			// The new delivery ledger, like event identity, is a startup requirement.
+			switch dt.(type) {
+			case *models.ExternalPushTask, *models.ExternalPushStream, *models.ExternalPushAttempt, *models.ExternalPushOperation:
+				migrationErrors = append(migrationErrors, fmt.Errorf("migrate %T: %w", dt, err))
+			}
 		}
 	}
 
@@ -344,7 +396,10 @@ func MigrateTables(db *gorm.DB) error {
 	// 删除 builtin_metrics 表的 idx_collector_typ_name 唯一索引
 	DropUniqueFiledLimit(db, &models.BuiltinMetric{}, "idx_collector_typ_name", "idx_collector_typ_name")
 
-	return (&cmdb.Store{DB: db}).Migrate()
+	if err := (&cmdb.Store{DB: db}).Migrate(); err != nil {
+		migrationErrors = append(migrationErrors, err)
+	}
+	return errors.Join(migrationErrors...)
 }
 
 // AssistantChat / AssistantMessage row structs live in models package
@@ -436,14 +491,20 @@ type TaskTpl struct {
 	AuthLevel int `gorm:"column:auth_level;type:int;not null;default:0;comment:ai task auth level, 0=off 1/2/3=level"`
 }
 type AlertHisEvent struct {
-	LastEvalTime  int64   `gorm:"column:last_eval_time;bigint(20);not null;default:0;comment:for time filter;index:idx_last_eval_time"`
-	OriginalTags  string  `gorm:"column:original_tags;type:text;comment:labels key=val,,k2=v2"`
-	NotifyRuleIds []int64 `gorm:"column:notify_rule_ids;type:text;serializer:json;comment:notify rule ids"`
+	DispatchID       string  `gorm:"type:varchar(36);not null;default:''"`
+	IncidentID       string  `gorm:"type:varchar(36);not null;default:''"`
+	IncidentSequence int64   `gorm:"not null;default:0"`
+	LastEvalTime     int64   `gorm:"column:last_eval_time;bigint(20);not null;default:0;comment:for time filter;index:idx_last_eval_time"`
+	OriginalTags     string  `gorm:"column:original_tags;type:text;comment:labels key=val,,k2=v2"`
+	NotifyRuleIds    []int64 `gorm:"column:notify_rule_ids;type:text;serializer:json;comment:notify rule ids"`
 }
 
 type AlertCurEvent struct {
-	OriginalTags  string  `gorm:"column:original_tags;type:text;comment:labels key=val,,k2=v2"`
-	NotifyRuleIds []int64 `gorm:"column:notify_rule_ids;type:text;serializer:json;comment:notify rule ids"`
+	DispatchID       string  `gorm:"type:varchar(36);not null;default:''"`
+	IncidentID       string  `gorm:"type:varchar(36);not null;default:''"`
+	IncidentSequence int64   `gorm:"not null;default:0"`
+	OriginalTags     string  `gorm:"column:original_tags;type:text;comment:labels key=val,,k2=v2"`
+	NotifyRuleIds    []int64 `gorm:"column:notify_rule_ids;type:text;serializer:json;comment:notify rule ids"`
 }
 
 type Target struct {

@@ -24,6 +24,7 @@ import DingtalkApp from './DingtalkApp';
 import WecomApp from './WecomApp';
 import FeishuApp from './FeishuApp';
 import Jira from './Jira';
+import ExternalPush from './ExternalPush';
 import Discord from './Discord';
 import SlackWebhook from './SlackWebhook';
 import MattermostWebhook from './MattermostWebhook';
@@ -42,6 +43,7 @@ export default function FormCpt(props: Props) {
   const requestType = Form.useWatch('request_type', form);
   const ident = Form.useWatch('ident', form);
   const isKnownType = getChannelTypeMeta(ident).known;
+  const useLocalDocument = requestType === 'external_push' || !isKnownType || isNativeRequestType(requestType);
 
   useEffect(() => {
     form.setFieldsValue(props.initialValues);
@@ -170,6 +172,7 @@ export default function FormCpt(props: Props) {
                   <SlackWebhook />
                   <MattermostWebhook />
                   <JSMAlert />
+                  <ExternalPush />
                 </div>
               </div>
               <div className='border-t border-fc-200 px-4 py-3'>
@@ -195,18 +198,20 @@ export default function FormCpt(props: Props) {
                     {t('common:btn.save')}
                   </Button>
                   {/* 测试放在保存旁边：配完就能验证，不必先存下来再回来试 */}
-                  <TestModal
-                    form={form}
-                    onBeforeOpen={() =>
-                      form.validateFields().catch((err) => {
-                        if (!err?.errorFields) {
-                          console.error(err);
-                        }
-                        scrollToFirstError();
-                        throw err;
-                      })
-                    }
-                  />
+                  {requestType !== 'external_push' && (
+                    <TestModal
+                      form={form}
+                      onBeforeOpen={() =>
+                        form.validateFields().catch((err) => {
+                          if (!err?.errorFields) {
+                            console.error(err);
+                          }
+                          scrollToFirstError();
+                          throw err;
+                        })
+                      }
+                    />
+                  )}
                   <Link to={{ pathname: `/${NS}`, search: `?page=${getPageFromSearch(location.search)}` }}>
                     <Button>{t('common:btn.cancel')}</Button>
                   </Link>
@@ -220,10 +225,10 @@ export default function FormCpt(props: Props) {
                   直接拼 URL 会让整个右栏渲染一张带营销 banner 的 404 页。
                   这类回落到仓库内按 request_type 组织的本地文档。 */}
               {/* 原生对接的媒介（Jira 等）官网还没有文档页，同样走本地文档 */}
-              {requestType && isKnownType && !isNativeRequestType(requestType) && (
+              {requestType && !useLocalDocument && (
                 <Document type='iframe' documentPath={`https://flashcat.cloud/docs/content/flashcat-monitor/nightingale-v9/usage/alert-notify/notify-channel/${ident}/`} />
               )}
-              {requestType && (!isKnownType || isNativeRequestType(requestType)) && <Document documentPath={`/n9e-docs/notification-channel/${requestType}-request`} />}
+              {requestType && useLocalDocument && <Document documentPath={`/n9e-docs/notification-channel/${requestType}-request`} />}
             </div>
           </Splitter.Panel>
         </Splitter>

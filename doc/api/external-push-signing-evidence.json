@@ -1,0 +1,83 @@
+{
+  "buildId": "20261028T132139Z-e590f303",
+  "source": {
+    "commit": "ed46238250ca41c9ff881a3ffe454d17ac8f07ef",
+    "branch": "dirty-peacock",
+    "dirty": true,
+    "fingerprint": "742ee9ecac6f0ab4ec51d16ec9e3fb41f8b0b00647c40bb2d81bdbe9e788f50f"
+  },
+  "frontend": {
+    "kind": "in-tree",
+    "ref": "219e1027e95d531d43d54f57e585e68429721c871d47e93ccf8f33e188e31678",
+    "sourceSha256": "219e1027e95d531d43d54f57e585e68429721c871d47e93ccf8f33e188e31678",
+    "sha256": "f09e5094fe9e3ab8f13c74d382c91664488b1dadfc5b2aeb0386756c6b48fe25",
+    "lockSha256": "95480436c17b6890c217a1677c8106eb3599d364957afabed038db7ebdf773ba",
+    "node": "24.22.0",
+    "packageManager": "pnpm@10.32.1"
+  },
+  "lanUrl": "http://192.168.0.152:30305",
+  "public": {
+    "ok": false,
+    "error": "<urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)>"
+  },
+  "checks": [
+    "channel ten fields and rules link",
+    "default closed; explicit simulation config saved",
+    "three mappings changed in actual rule UI, saved and reopened; inactive literals removed",
+    "source guide is read-only and never sent",
+    "center private key missing/ready via actual UI; no request from readiness query",
+    "file-reference config saved with no key/path/test signature",
+    "real engine -> persistent tasks -> local form receiver: problem/ok once; independent MD5 check on actual body",
+    "source label values and whole device name preserved",
+    "recovery same incident/problemTime",
+    "saved task JSON equals actual request with sign redacted",
+    "query/refresh/reload cause zero task mutations; accepted has no resend"
+  ],
+  "requests": [
+    {
+      "alarmType": "problem",
+      "companyId": "TEST_HQ",
+      "deviceType": "TEST_SERVER",
+      "deviceName": "TEST_NODE_192.0.2.8:1443(TESTPORT2/3-)",
+      "problemTime": "2026-10-28 21:24:03",
+      "recoveryTime": "",
+      "triggerName": "TEST-field-ui-1793193825187",
+      "level": "TEST_严重",
+      "deviceTags": "['TEST_db','TEST_app']",
+      "sign": "[TEST VALUE REDACTED]"
+    },
+    {
+      "alarmType": "ok",
+      "companyId": "TEST_HQ",
+      "deviceType": "TEST_SERVER",
+      "deviceName": "TEST_NODE_192.0.2.8:1443(TESTPORT2/3-)",
+      "problemTime": "2026-10-28 21:24:03",
+      "recoveryTime": "2026-10-28 21:24:12",
+      "triggerName": "TEST-field-ui-1793193825187",
+      "level": "TEST_严重",
+      "deviceTags": "['TEST_db','TEST_app']",
+      "sign": "[TEST VALUE REDACTED]"
+    }
+  ],
+  "taskIds": [
+    29,
+    30
+  ],
+  "keyRemovedAfterTest": true,
+  "pageErrors": [],
+  "taskMutationRequests": 0,
+  "scope": "Isolated preview PostgreSQL + loopback HTTP + synthetic events; TEST-only key was removed. No production call or downstream person notification.",
+  "checksAutomated": {
+    "infra": 63,
+    "goPassedIncludingSubtests": 2777,
+    "goSkipped": 48,
+    "frontendSuites": 214,
+    "frontendTests": 1857,
+    "signatureRace": "passed",
+    "statikMatchesInTreePub": "passed",
+    "makeVerify": "passed",
+    "makeVerifyAll": "not run"
+  },
+  "humanAcceptance": "pending",
+  "sourceBaseline": "Full starting worktree, HEAD ed46238250ca41c9ff881a3ffe454d17ac8f07ef; no new commits."
+}
