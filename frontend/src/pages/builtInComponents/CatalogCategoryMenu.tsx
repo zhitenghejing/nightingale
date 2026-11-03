@@ -70,7 +70,6 @@ export default function CatalogCategoryMenu({
   const tree = categoryTree(categories).map(function node(item): any {
     const c = categories.find((value) => value.id === item.key)!;
     const level = depth(c.id);
-    const count = catalog?.entries.filter((entry) => categoryPath(categories, entry.category_id).some((part) => part.id === c.id)).length || 0;
     return {
       ...item,
       selectable: true,
@@ -119,7 +118,6 @@ export default function CatalogCategoryMenu({
             {c.name}
             {c.disabled ? '（已停用）' : ''}
           </span>
-          <span className='builtin-category-count'>{count}</span>
           <span className='builtin-category-actions' onMouseDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
             {canEdit && (
               <Button
@@ -146,21 +144,6 @@ export default function CatalogCategoryMenu({
   const editLevel = editing?.id ? depth(editing.id) : depth(editing?.parent_id || '') + 1;
   return (
     <>
-      <div className='builtin-category-heading'>
-        <strong>设备分类</strong>
-        {canEdit && (
-          <Button
-            type='text'
-            size='small'
-            icon={<PlusOutlined />}
-            aria-label='添加类型'
-            title='添加一级类型'
-            onClick={() => showForm({ parent_id: '', name: '' })}
-            disabled={busy}
-          />
-        )}
-      </div>
-      <p className='builtin-category-hint'>类型 → 品牌 → 型号</p>
       <Space className='mb-2'>
         <Button
           size='small'
@@ -180,13 +163,25 @@ export default function CatalogCategoryMenu({
         >
           全部折叠
         </Button>
+        {canEdit && (
+          <Button
+            type='text'
+            size='small'
+            icon={<PlusOutlined />}
+            aria-label='添加类型'
+            title='添加一级类型'
+            onClick={() => showForm({ parent_id: '', name: '' })}
+            disabled={busy}
+          />
+        )}
       </Space>
       <Button block type={!selected ? 'primary' : 'text'} onClick={() => onSelect('')}>
-        全部模板 ({catalog?.entries.length || 0})
+        全部模板
       </Button>
       {/* Keep native dragend cleanup mounted while saving; reject further drops instead. */}
       <Tree
         blockNode
+        expandAction='click'
         treeData={tree}
         selectedKeys={selected ? [selected] : []}
         expandedKeys={expanded}

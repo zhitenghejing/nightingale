@@ -2,10 +2,11 @@ import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Button, Modal, Spin, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { CommonStateContext } from '@/App';
+import { basePrefix, CommonStateContext } from '@/App';
 import { errorText } from '@/pages/collection/errors';
 import { Component } from '../../services';
 import { addTemplateIcon, getTemplateIcons, TemplateIcon } from '../../catalog';
+import { vendorLogos } from './materials';
 import './style.less';
 
 interface Props {
@@ -66,6 +67,21 @@ export default function LogoPicker({ components, children, onSelect, libraryEnab
   return (
     <>
       <Modal width={700} bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }} visible={visible} title={t('logo_picker_title')} onCancel={() => setVisible(false)} footer={null}>
+        <div className='mb-2'>{t('logo_vendor_title')}</div>
+        <div className='n9e-logo-picker-content n9e-logo-picker-vendors'>
+          {vendorLogos.map((icon) => (
+            <button
+              key={icon.url}
+              type='button'
+              className='n9e-logo-picker-item'
+              title={icon.name}
+              aria-label={icon.name}
+              onClick={() => select(`${basePrefix || ''}${icon.url}`)}
+            >
+              <img src={`${basePrefix || ''}${icon.url}`} alt='' />
+            </button>
+          ))}
+        </div>
         <div className='n9e-logo-picker-content'>
           {components
             .filter((item) => !!item.logo)

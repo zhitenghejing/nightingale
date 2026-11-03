@@ -1,11 +1,12 @@
 import React from 'react';
 import _ from 'lodash';
-import { Modal, Form, Input, Space, message, Switch, Button, TreeSelect } from 'antd';
+import { Modal, Form, Input, Space, message, Switch, Button } from 'antd';
 import { useTranslation } from 'react-i18next';
 import ModalHOC, { ModalWrapProps } from '@/components/ModalHOC';
 import { postComponents, putComponent, Component } from '../../services';
 import LogoPicker from '../LogoPicker';
-import { CatalogEntry, Category, categoryTree, saveMetadata } from '../../catalog';
+import { CatalogEntry, Category, saveMetadata } from '../../catalog';
+import CategorySelect from '../../CategorySelect';
 import { errorText } from '@/pages/collection/errors';
 
 interface Props {
@@ -96,7 +97,7 @@ function index(props: Props & ModalWrapProps) {
         </Form.Item>
         {catalogEntry && (
           <Form.Item label='设备分类' name='category_id' rules={[{ required: true }]}>
-            <TreeSelect treeData={categoryTree(categories || [])} treeDefaultExpandAll />
+            <CategorySelect categories={categories || []} />
           </Form.Item>
         )}
         <Form.Item

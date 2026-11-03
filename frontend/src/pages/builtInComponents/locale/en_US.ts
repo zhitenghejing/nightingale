@@ -16,6 +16,7 @@ const en_US = {
     create: 'Create template',
   },
   logo_picker_title: 'Select logo',
+  logo_vendor_title: 'Vendors and operating systems',
   logo_library_title: 'Custom icon library',
   logo_add_material: 'Add icon material',
   logo_upload_hint: 'PNG, JPG, SVG or WebP up to 2 MB. Uploaded icons can be selected by all templates.',
