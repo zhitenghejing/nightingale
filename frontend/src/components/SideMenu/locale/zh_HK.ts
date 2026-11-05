@@ -76,7 +76,7 @@ const zh_HK = {
     about: '關於產品',
     license_management: '證書管理',
     ai_config: 'AI 配置',
-    nightingale_ai: 'Nightingale AI',
+    nightingale_ai: '致腾慧运维 AI',
     ai_config_agents: 'Agent 管理',
     ai_config_llm_configs: 'LLM 管理',
     ai_config_skills: 'Skill 管理',

@@ -21,7 +21,7 @@ const zh_HK = {
   cpu_util: 'CPU',
   cpu_num: '核數',
   offset: '時間偏移',
-  offset_tip: '計算邏輯為用 夜鶯部署機器的時間減去 categraf 部署機器的時間',
+  offset_tip: '計算邏輯為用 致腾慧运维部署機器的時間減去 categraf 部署機器的時間',
   os: '作業系統',
   arch: 'CPU 架構',
   update_at: '更新時間',

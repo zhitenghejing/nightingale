@@ -18,7 +18,7 @@ export default function Discord() {
     <div style={{ display: request_type === 'discord' ? 'block' : 'none' }}>
       <Alert className='mb-4' type='info' showIcon message={t('discord_request_config.top_tip')} />
       <Form.Item label={t('discord_request_config.username')} tooltip={t('discord_request_config.username_tip')} name={[...names, 'username']}>
-        <Input placeholder='Nightingale' />
+        <Input placeholder='致腾慧运维' />
       </Form.Item>
       <Form.Item
         label={t('discord_request_config.avatar_url')}

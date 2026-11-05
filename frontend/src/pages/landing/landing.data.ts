@@ -1,3 +1,5 @@
+import { PRODUCT_NAME } from '@/utils/branding';
+
 export interface LandingCard {
   /** i18n key in `landing` namespace */
   titleKey: string;
@@ -43,7 +45,7 @@ export const DOC_LINKS = {
 
 export const landingHero = {
   badgeKey: 'hero.badge',
-  title: 'Nightingale',
+  title: PRODUCT_NAME,
   highlightKey: 'hero.highlight',
   descriptionKey: 'hero.description',
   primaryAction: {
@@ -94,7 +96,6 @@ export const landingCollectionProduct = {
   title: 'Categraf',
   descriptionKey: 'matrix.collection.description',
   footerKey: 'matrix.collection.footer',
-  iconUrl: '/image/logo.svg',
   url: DOC_LINKS.categraf,
 };
 

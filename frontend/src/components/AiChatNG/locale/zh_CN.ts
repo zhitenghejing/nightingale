@@ -23,7 +23,7 @@ const zh_CN = {
   },
   nightingale: {
     share_fallback_notice: '你没有原页面的访问权限，这里只展示对话内容',
-    title: 'Nightingale AI',
+    title: '致腾慧运维 AI',
     new_chat: '新建会话',
     sessions: '会话',
     llm_configs: 'LLM 管理',
@@ -34,9 +34,9 @@ const zh_CN = {
     expand_sidebar: '展开 AI 侧栏',
     welcome_cards: {
       overview: {
-        title: '快速了解夜莺',
+        title: '快速了解致腾慧运维',
         description: '一分钟看懂产品与 AI 助手能做什么',
-        prompt: '一分钟介绍下夜莺监控的核心功能，以及你能帮我做什么',
+        prompt: '一分钟介绍下致腾慧运维监控的核心功能，以及你能帮我做什么',
       },
       alerts: {
         title: '盘一盘我的告警',

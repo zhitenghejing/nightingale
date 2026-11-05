@@ -71,7 +71,7 @@ const es_ES = {
     "about": "Acerca del producto",
     "license_management": "Gestión de certificados",
     "ai_config": "Configuración de IA",
-    "nightingale_ai": "Nightingale AI",
+    "nightingale_ai": "致腾慧运维 AI",
     "ai_config_agents": "Gestión de agentes",
     "ai_config_llm_configs": "Gestión de LLM",
     "ai_config_skills": "Gestión de skills",

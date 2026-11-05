@@ -76,7 +76,7 @@ const ru_RU = {
     about: 'О продукте',
     license_management: 'Управление лицензиями',
     ai_config: 'AI настройки',
-    nightingale_ai: 'Nightingale AI',
+    nightingale_ai: '致腾慧运维 AI',
     ai_config_agents: 'Agent управление',
     ai_config_llm_configs: 'LLM управление',
     ai_config_skills: 'Skill управление',

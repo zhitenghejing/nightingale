@@ -119,7 +119,7 @@ const fr_FR = {
       "Recommandé : créez un compte de service dans admin.atlassian.com → Annuaire → Comptes de service, attribuez-lui le rôle User pour Jira, puis créez un jeton d'API. Les tickets seront signalés par ce compte. Les jetons d'API Jira Cloud expirent au plus tard après 1 an ; les notifications échouent ensuite.",
     site_url: 'URL du site',
     site_url_tip:
-      "L'adresse avec laquelle vous ouvrez Jira dans le navigateur, par exemple https://your-domain.atlassian.net, sans /rest/api. Avec un jeton à portée, indiquez aussi l'URL du site : Nightingale la convertit automatiquement en adresse de la passerelle Atlassian.",
+      "L'adresse avec laquelle vous ouvrez Jira dans le navigateur, par exemple https://your-domain.atlassian.net, sans /rest/api. Avec un jeton à portée, indiquez aussi l'URL du site : 致腾慧运维 la convertit automatiquement en adresse de la passerelle Atlassian.",
     site_url_invalid: 'Doit commencer par http:// ou https://, par exemple https://your-domain.atlassian.net',
     token_type: 'Type de jeton',
     token_type_tip:
@@ -181,7 +181,7 @@ const fr_FR = {
     api_url_invalid: 'Doit commencer par http:// ou https://',
     priority_map: 'Gravité et priorité',
     priority_map_tip:
-      "Priorité de l'alerte JSM pour chaque gravité Nightingale. Les priorités JSM sont les mêmes sur tout le site : elles se règlent une fois ici pour toutes les règles ; par défaut S1→P1, S2→P2, S3→P3",
+      "Priorité de l'alerte JSM pour chaque gravité 致腾慧运维. Les priorités JSM sont les mêmes sur tout le site : elles se règlent une fois ici pour toutes les règles ; par défaut S1→P1, S2→P2, S3→P3",
     proxy_tip: "À renseigner si api.atlassian.com n'est joignable que via un proxy, par exemple http://127.0.0.1:7890",
   },
   pagerduty_request_config: {

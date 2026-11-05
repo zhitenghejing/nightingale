@@ -22,7 +22,7 @@ const ko_KR = {
     "more_actions": "대화 관련 추가 작업"
   },
   "nightingale": {
-    "title": "Nightingale AI",
+    "title": "致腾慧运维 AI",
     "new_chat": "새 대화",
     "sessions": "대화",
     "llm_configs": "LLM 관리",
@@ -33,9 +33,9 @@ const ko_KR = {
     "expand_sidebar": "AI 사이드바 펼치기",
     "welcome_cards": {
       "overview": {
-        "title": "Nightingale 빠르게 알아보기",
+        "title": "致腾慧运维 빠르게 알아보기",
         "description": "제품과 AI 어시스턴트로 무엇을 할 수 있는지 1분 만에 파악하기",
-        "prompt": "Nightingale 모니터링의 핵심 기능과 네가 도와줄 수 있는 일을 1분 안에 설명해 줘"
+        "prompt": "致腾慧运维 모니터링의 핵심 기능과 네가 도와줄 수 있는 일을 1분 안에 설명해 줘"
       },
       "alerts": {
         "title": "내 알림 점검하기",

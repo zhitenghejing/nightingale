@@ -1,13 +1,13 @@
 ---
 name: query-datasource
-description: Query data from various datasources in a Nightingale (n9e) environment. Supports Prometheus metric queries, Elasticsearch/Loki log queries, and SQL datasource queries such as ClickHouse/MySQL/PostgreSQL/TDengine/Doris. Use when the user asks to query metrics, view monitoring data, search logs, or run PromQL or SQL queries.
+description: Query data from various datasources in a 致腾慧运维 environment. Supports Prometheus metric queries, Elasticsearch/Loki log queries, and SQL datasource queries such as ClickHouse/MySQL/PostgreSQL/TDengine/Doris. Use when the user asks to query metrics, view monitoring data, search logs, or run PromQL or SQL queries.
 tags:
   - internal
 ---
 
-# Nightingale (n9e) Query Datasource Data
+# 致腾慧运维 Query Datasource Data
 
-Query monitoring metrics, logs, and time-series data from various datasources on the Nightingale monitoring platform.
+Query monitoring metrics, logs, and time-series data from various datasources on the 致腾慧运维 monitoring platform.
 
 Based on the datasource type the user needs, read the corresponding file under the `datasources/` directory to get the query method and parameter format:
 - [datasources/prometheus.md](datasources/prometheus.md) - Prometheus / VictoriaMetrics metric queries (PromQL)
@@ -26,7 +26,7 @@ Based on the datasource type the user needs, read the corresponding file under t
 ## Prerequisites
 
 The user needs to provide:
-- **n9e address**: e.g. `http://<n9e-host>:<port>`
+- **致腾慧运维 address**: e.g. `http://<n9e-host>:<port>`
 - **Username/password**: e.g. `<username>/<password>`
 - **Query requirement description**: e.g. "query CPU usage over the last hour", "search logs containing error"
 

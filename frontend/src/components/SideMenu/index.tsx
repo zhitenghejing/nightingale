@@ -18,6 +18,7 @@ import { getEmbeddedProducts } from '@/pages/embeddedProduct/services';
 import { eventBus, EVENT_KEYS } from '@/pages/embeddedProduct/eventBus';
 import { DETAIL_PATH as embeddedProductDetailPath } from '@/pages/embeddedProduct/constants';
 import { V8_BETA_14_TS } from '@/utils/constant';
+import { DEFAULT_MENU_LOGOS } from '@/utils/branding';
 
 import { cn, getCurrentMenuList, isInventoryMenuPath } from './utils';
 import SideMenuHeader from './Header';
@@ -113,12 +114,7 @@ const SideMenu = (props: SideMenuProps) => {
   }
   const {
     topExtra,
-    defaultLogos = {
-      light_menu_big_logo_url: '/image/logo-light-l.png',
-      light_menu_small_logo_url: '/image/logo-light.png',
-      menu_big_logo_url: '/image/logo-l.png',
-      menu_small_logo_url: '/image/logo.png',
-    },
+    defaultLogos = DEFAULT_MENU_LOGOS,
     getMenuList = getCurrentMenuList,
     onMenuClick,
     isGoldTheme,

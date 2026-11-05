@@ -116,7 +116,7 @@ const ko_KR = {
       "url_tip": "흔히 쓰는 시계열 데이터베이스 설정 예이며 Prometheus 조회 API와 호환됩니다:",
       "help_content": "시계열 데이터베이스가 아직 없나요? <a>설치 안내서</a>를 보고 준비하세요",
       "prom_installation_title": "설치 안내서",
-      "prom_installation": "Nightingale이 설치된 머신에서 다음 명령을 실행해 Prometheus를 설치하세요. 운영 환경에서는 클러스터 버전 VictoriaMetrics를 권하며 <a>공식 문서</a>를 참고하세요",
+      "prom_installation": "致腾慧运维이 설치된 머신에서 다음 명령을 실행해 Prometheus를 설치하세요. 운영 환경에서는 클러스터 버전 VictoriaMetrics를 권하며 <a>공식 문서</a>를 참고하세요",
       "tsdb_type": "시계열 데이터베이스 유형"
     },
     "es": {

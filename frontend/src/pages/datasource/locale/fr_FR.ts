@@ -116,7 +116,7 @@ const fr_FR = {
       "url_tip": "Exemples de configuration de bases temporelles compatibles avec l'API de requête Prometheus :",
       "help_content": "Pas encore de base temporelle ? Suivez le <a>guide d'installation</a>",
       "prom_installation_title": "Guide d'installation",
-      "prom_installation": "Exécutez la commande suivante sur la machine où Nightingale est installé pour déployer Prometheus. En production, préférez VictoriaMetrics en version cluster ; voyez la <a>documentation officielle</a>",
+      "prom_installation": "Exécutez la commande suivante sur la machine où 致腾慧运维 est installé pour déployer Prometheus. En production, préférez VictoriaMetrics en version cluster ; voyez la <a>documentation officielle</a>",
       "tsdb_type": "Type de base temporelle"
     },
     "es": {

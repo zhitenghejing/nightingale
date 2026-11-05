@@ -5,6 +5,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Sparkles } from 'lucide-react';
 
 import { IS_ENT } from '@/utils/constant';
+import { PRODUCT_AI_NAME } from '@/utils/branding';
 import {
   AiChatExecuteQueryForQueryContent,
   AiChatPageActionOutcomes,
@@ -345,7 +346,7 @@ export function EmptyConversation({ prompts, onPromptClick, children }: { prompt
         <div className='text-l4 font-bold'>
           <Space align='baseline'>
             <img src='/image/ai-chat/ai.gif' className='w-[24px] h-[24px]' />
-            <TypedGreeting prefix={greetingPrefix} brand='NightingaleAI' />
+            <TypedGreeting prefix={greetingPrefix} brand={PRODUCT_AI_NAME} />
           </Space>
         </div>
       </div>

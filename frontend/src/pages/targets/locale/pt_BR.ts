@@ -21,7 +21,7 @@ const pt_BR = {
   "cpu_util": "CPU",
   "cpu_num": "Núcleos",
   "offset": "Desvio de relógio",
-  "offset_tip": "Calculado como o horário da máquina do Nightingale menos o horário da máquina do categraf",
+  "offset_tip": "Calculado como o horário da máquina do 致腾慧运维 menos o horário da máquina do categraf",
   "os": "Sistema operacional",
   "arch": "Arquitetura de CPU",
   "update_at": "Atualizado em",

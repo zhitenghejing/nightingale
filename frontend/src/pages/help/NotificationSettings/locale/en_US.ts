@@ -3,7 +3,7 @@ const en_US = {
   disabled: 'Disable',
   webhooks: {
     help_content:
-      'Callback mechanism for integrating Nightingale with other systems. After Nightingale generates an alert event, it pushes the event to each callback URL. You can build your own HTTP API and configure it here to receive Nightingale alert events and run automated, customized logic. Nightingale calls back with HTTP POST and puts the alert event in the request body as JSON; refer to the docs for the event data structure. To try it out, find a machine reachable from Nightingale (say its IP is 10.1.2.3), listen on a port with nc (e.g. `nc -k -l 4321`), configure `http://10.1.2.3:4321` as the callback URL, then create an alert rule; once it triggers, Nightingale calls back this address and the nc output shows the exact callback data format.',
+      'Callback mechanism for integrating 致腾慧运维 with other systems. After 致腾慧运维 generates an alert event, it pushes the event to each callback URL. You can build your own HTTP API and configure it here to receive 致腾慧运维 alert events and run automated, customized logic. 致腾慧运维 calls back with HTTP POST and puts the alert event in the request body as JSON; refer to the docs for the event data structure. To try it out, find a machine reachable from 致腾慧运维 (say its IP is 10.1.2.3), listen on a port with nc (e.g. `nc -k -l 4321`), configure `http://10.1.2.3:4321` as the callback URL, then create an alert rule; once it triggers, 致腾慧运维 calls back this address and the nc output shows the exact callback data format.',
     title: 'Callbacks',
     enable: 'Enable',
     note: 'Note',
@@ -14,13 +14,13 @@ const en_US = {
     skip_verify: 'Skip SSL verify',
     add: 'Add',
     help: `
-      If you want to forward all Nightingale alert events to another platform for processing, you can achieve this through the global callback URL here.
+      If you want to forward all 致腾慧运维 alert events to another platform for processing, you can achieve this through the global callback URL here.
       <br />
       <br />
       Generally speaking, the monitoring system focuses on data collection, storage, analysis, and alert event generation. The subsequent routing, noise reduction, claiming, escalation, scheduling, and collaboration on events is usually handled by a separate product, collectively called an OnCall product. OnCall products are widely used in companies that practice the SRE concept.
       <br />
       <br />
-      OnCall products usually can connect to various monitoring systems, such as Prometheus, Nightingale, Zabbix, ElastAlert, Blue Whale, various cloud monitoring, etc. Each monitoring system pushes alert events to the OnCall center through webhooks, and users complete subsequent routing, noise reduction, and processing in the OnCall center.
+      OnCall products usually can connect to various monitoring systems, such as Prometheus, 致腾慧运维, Zabbix, ElastAlert, Blue Whale, various cloud monitoring, etc. Each monitoring system pushes alert events to the OnCall center through webhooks, and users complete subsequent routing, noise reduction, and processing in the OnCall center.
       <br />
       <br />
       Well-known OnCall products include <a1>PagerDuty</a1> overseas and <a2>FlashDuty</a2> in China.

@@ -1,5 +1,5 @@
 const ja_JP = {
-  pageTitle: 'Nightingale へようこそ',
+  pageTitle: '致腾慧运维 へようこそ',
   onboarding: {
     dismiss: '今後表示しない',
     title: 'はじめに',
@@ -107,11 +107,11 @@ const ja_JP = {
     ai: {
       title: 'AI インテリジェンス',
       description: 'LLM とエージェント',
-      links: ['Nightingale にはどんな組み込みスキルがありますか？', 'エージェントでアラートを分析するには？'],
+      links: ['致腾慧运维 にはどんな組み込みスキルがありますか？', 'エージェントでアラートを分析するには？'],
     },
   },
   aiAssistant: {
-    title: 'Nightingale AI アシスタント',
+    title: '致腾慧运维 AI アシスタント',
     description: 'LLM により、自然言語による操作・データ照会・根本原因分析を実現します。',
     capabilities: ['自然言語クエリ', '根本原因分析', 'PromQL / LogQL 生成', 'ドキュメント Q&A'],
     action: 'AI アシスタントを試す',

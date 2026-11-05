@@ -99,10 +99,10 @@ const id_ID = {
   exit_full_screen: 'Keluar dari layar penuh',
   copyPanelTip: 'Konfigurasi grafik telah disalin. Klik "Tambah grafik" > "Tempel grafik" untuk menempelkan JSON-nya dan membuat grafik',
   batch: {
-    import: 'Impor JSON dasbor Nightingale',
+    import: 'Impor JSON dasbor 致腾慧运维',
     label: 'JSON dasbor',
     import_grafana: 'Impor dasbor Grafana (tidak disarankan)',
-    import_grafana_tip: 'Hanya dasbor dengan sumber data Prometheus yang bisa diimpor, sebatas jenis grafik dan fitur yang didukung Nightingale <a>Laporkan masalah</a>',
+    import_grafana_tip: 'Hanya dasbor dengan sumber data Prometheus yang bisa diimpor, sebatas jenis grafik dan fitur yang didukung 致腾慧运维 <a>Laporkan masalah</a>',
     import_grafana_tip_version_error: 'Konfigurasi dasbor di bawah v7 tidak bisa diimpor',
     import_grafana_tip_version_warning: 'Saat mengimpor konfigurasi dasbor di bawah v8, sebagian grafik mungkin tidak didukung atau tidak tampil dengan benar',
     import_grafana_url: 'Tautan dasbor Grafana (disarankan)',

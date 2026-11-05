@@ -68,7 +68,7 @@ const ja_JP = {
   beat_time_hours_ago_other: '{{count}} hours ago',
   mem_util: 'メモリ',
   offset: '時間オフセット',
-  offset_tip: 'オフセットの計算ロジックは Nightingale 配備ホストの時刻から Categraf 配備ホストの時刻を差し引きます',
+  offset_tip: 'オフセットの計算ロジックは 致腾慧运维 配備ホストの時刻から Categraf 配備ホストの時刻を差し引きます',
   remote_addr: '送信元 IP',
   remote_addr_tip: '送信元 IP は HTTP Header から取得されます。プロキシ経由の場合、実際の送信元 IP ではない可能性があります',
   note: '備考',
@@ -145,7 +145,7 @@ const ja_JP = {
   install: {
     entry: 'Categraf をワンクリックインストール',
     title: 'Categraf コレクターのインストール',
-    addr_label: 'Nightingale のアドレス',
+    addr_label: '致腾慧运维 のアドレス',
     addr_tip: '監視対象ホストからこのアドレスに到達できる必要があります。既定値はサーバーが検出した自身のアドレスです。',
     addr_invalid: '有効なアドレスを入力してください（例：http://10.1.1.1:17000）',
     step_run: '対象ホストで root 権限で実行してください',

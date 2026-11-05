@@ -96,7 +96,7 @@ const ja_JP = {
   exit_full_screen: '全画面を退出',
   copyPanelTip: 'パネル設定がコピーされました。"パネルを追加" > "パネルを貼り付け" をクリックして、設定JSONを貼り付けてパネルを作成します',
   batch: {
-    import: '夜鶯ダッシュボード JSON をインポート',
+    import: '致腾慧运维ダッシュボード JSON をインポート',
     label: 'ダッシュボード JSON',
     import_grafana: 'Grafanaダッシュボードをインポート（非推奨）',
     import_grafana_tip:

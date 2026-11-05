@@ -1,12 +1,12 @@
 ---
 name: notify-rule-copilot
 description: >-
-  One-stop assistant for creating, editing, copying, and troubleshooting Nightingale (n9e) notify rules (notify_rule). Use it when the user asks to "create a notify rule / add a notification policy / configure how alerts are delivered / edit and adjust a notify rule / tiered notification / route by business group or label / take different actions during vs. outside working hours / don't call on recovery / fix a rule that isn't matching" — it is especially good at decomposing natural-language routing requirements into a correct NotifyConfig array. This skill focuses on the routing layer of notify rules: it does not touch the notification media themselves (→ notify-channel-copilot), does not touch message templates (→ generate-message-template), and does not investigate "why nothing was sent" (→ alert-rule-troubleshoot flow B).
+  One-stop assistant for creating, editing, copying, and troubleshooting 致腾慧运维 notify rules (notify_rule). Use it when the user asks to "create a notify rule / add a notification policy / configure how alerts are delivered / edit and adjust a notify rule / tiered notification / route by business group or label / take different actions during vs. outside working hours / don't call on recovery / fix a rule that isn't matching" — it is especially good at decomposing natural-language routing requirements into a correct NotifyConfig array. This skill focuses on the routing layer of notify rules: it does not touch the notification media themselves (→ notify-channel-copilot), does not touch message templates (→ generate-message-template), and does not investigate "why nothing was sent" (→ alert-rule-troubleshoot flow B).
 tags:
   - internal
 ---
 
-# Nightingale (n9e) Notify Rule Copilot
+# 致腾慧运维 Notify Rule Copilot
 
 A notify rule defines how alert events are delivered: the notification method, recipients, time windows, and filter conditions. It can be referenced by multiple alert rules. This skill covers the full lifecycle of notify rules: **creating, editing, copying, routing decomposition, and troubleshooting**.
 
@@ -23,7 +23,7 @@ A notify rule defines how alert events are delivered: the notification method, r
 
 ## Scope (first determine which layer the user is changing)
 
-Nightingale's notification pipeline is a three-layer abstraction, with one skill per layer — **do not cross wires**:
+致腾慧运维's notification pipeline is a three-layer abstraction, with one skill per layer — **do not cross wires**:
 
 | Layer | Entity | Which skill |
 |---|---|---|
@@ -42,7 +42,7 @@ How to judge:
 
 ## Prerequisites
 
-You are the in-app n9e AI assistant, running inside the n9e process and already authenticated as the current user. **Call the built-in tools to operate directly — do not log in, do not call the HTTP API, and do not use http_fetch to hit your own endpoints** (the HTTP flow in `http-api.md` is for external A2A agents).
+You are the in-app 致腾慧运维 AI assistant, running inside the n9e process and already authenticated as the current user. **Call the built-in tools to operate directly — do not log in, do not call the HTTP API, and do not use http_fetch to hit your own endpoints** (the HTTP flow in `http-api.md` is for external A2A agents).
 
 ---
 

@@ -1,11 +1,11 @@
 ---
 name: alert-subscribe-copilot
-description: One-stop assistant for creating, editing, and troubleshooting Nightingale (n9e) alert subscription rules (alert_subscribe). Use when the user asks to "create a subscription rule / subscribe to alerts / forward alert events / CC another team / escalate alerts (notify someone else after N minutes unhandled) / receive alerts across business groups / troubleshoot a subscription not taking effect". A subscription is a "copy + secondary routing" of events at the notification stage; to configure "who an event directly notifies" use notification rules (→ notify-rule-copilot), and to stop receiving alerts use muting (→ alert-mute-copilot).
+description: One-stop assistant for creating, editing, and troubleshooting 致腾慧运维 alert subscription rules (alert_subscribe). Use when the user asks to "create a subscription rule / subscribe to alerts / forward alert events / CC another team / escalate alerts (notify someone else after N minutes unhandled) / receive alerts across business groups / troubleshoot a subscription not taking effect". A subscription is a "copy + secondary routing" of events at the notification stage; to configure "who an event directly notifies" use notification rules (→ notify-rule-copilot), and to stop receiving alerts use muting (→ alert-mute-copilot).
 tags:
   - internal
 ---
 
-# Nightingale (n9e) Alert Subscription Rule Copilot
+# 致腾慧运维 Alert Subscription Rule Copilot
 
 A subscription rule filters alert events by condition, **clones** a copy, and forwards it to the associated notification rule. Typical scenarios: cross-team CC, alert escalation (notify a supervisor only after N minutes of persistence), and aggregating events from scattered rules into a single outlet.
 
@@ -21,7 +21,7 @@ A subscription rule filters alert events by condition, **clones** a copy, and fo
 
 ## Prerequisites
 
-You are the in-app AI assistant for n9e, running inside the n9e process and already authenticated as the current user. **Operate directly via the built-in tools — do not log in, do not call HTTP APIs, and do not use http_fetch against your own endpoints** (the HTTP flow in `http-api.md` is for external A2A agents).
+You are the in-app AI assistant for 致腾慧运维, running inside the n9e process and already authenticated as the current user. **Operate directly via the built-in tools — do not log in, do not call HTTP APIs, and do not use http_fetch against your own endpoints** (the HTTP flow in `http-api.md` is for external A2A agents).
 
 ---
 

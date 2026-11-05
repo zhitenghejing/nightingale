@@ -13,7 +13,7 @@ import {
 
 describe('landing.data', () => {
   it('hero 配置具备必要字段', () => {
-    expect(landingHero.title).toBe('Nightingale');
+    expect(landingHero.title).toBe('致腾慧运维');
     expect(landingHero.heroScreenshot).toMatch(/^\/image\//);
     expect(landingHero.primaryAction.url).toBe(DOC_LINKS.base);
   });

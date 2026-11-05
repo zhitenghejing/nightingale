@@ -22,7 +22,7 @@ const id_ID = {
     "more_actions": "Tindakan sesi lainnya"
   },
   "nightingale": {
-    "title": "Nightingale AI",
+    "title": "致腾慧运维 AI",
     "new_chat": "Sesi baru",
     "sessions": "Sesi",
     "llm_configs": "Manajemen LLM",
@@ -33,9 +33,9 @@ const id_ID = {
     "expand_sidebar": "Bentangkan panel AI",
     "welcome_cards": {
       "overview": {
-        "title": "Kenali Nightingale dengan cepat",
+        "title": "Kenali 致腾慧运维 dengan cepat",
         "description": "Pahami dalam satu menit apa yang bisa dilakukan produk ini dan asisten AI-nya",
-        "prompt": "Jelaskan dalam satu menit fitur utama Nightingale dan apa yang bisa kamu bantu"
+        "prompt": "Jelaskan dalam satu menit fitur utama 致腾慧运维 dan apa yang bisa kamu bantu"
       },
       "alerts": {
         "title": "Tinjau alert saya",

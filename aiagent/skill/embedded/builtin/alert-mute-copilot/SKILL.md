@@ -1,11 +1,11 @@
 ---
 name: alert-mute-copilot
-description: One-stop assistant for creating, editing, and troubleshooting Nightingale (n9e) alert mute rules (alert_mute). Use it when the user asks to "create a mute rule / mute an alert / silence an alert / do-not-disturb during a maintenance window / set up periodic muting / mute every early morning / adjust or extend a mute / troubleshoot why a mute isn't working". Muting takes effect during the event evaluation stage (muted events are neither persisted nor notified); to configure "which events get notified to whom", use notification rules (→ notify-rule-copilot); to investigate "why didn't I get a notification", go to alert troubleshooting (→ alert-rule-troubleshoot).
+description: One-stop assistant for creating, editing, and troubleshooting 致腾慧运维 alert mute rules (alert_mute). Use it when the user asks to "create a mute rule / mute an alert / silence an alert / do-not-disturb during a maintenance window / set up periodic muting / mute every early morning / adjust or extend a mute / troubleshoot why a mute isn't working". Muting takes effect during the event evaluation stage (muted events are neither persisted nor notified); to configure "which events get notified to whom", use notification rules (→ notify-rule-copilot); to investigate "why didn't I get a notification", go to alert troubleshooting (→ alert-rule-troubleshoot).
 tags:
   - internal
 ---
 
-# Nightingale (n9e) Alert Mute Rule Copilot
+# 致腾慧运维 Alert Mute Rule Copilot
 
 Mute (silence) rules are used to suppress matching alert events by tag conditions within a specific time range. Typical scenarios: machine maintenance windows, do-not-disturb during nightly batch jobs, and noise reduction for known issues.
 
@@ -21,7 +21,7 @@ Mute (silence) rules are used to suppress matching alert events by tag condition
 
 ## Prerequisites
 
-You are the in-app n9e AI assistant, running inside the n9e process and already authenticated as the current user. **Operate by calling the built-in tools directly. Do not log in, do not call the HTTP API, and do not use http_fetch against your own endpoints** (the HTTP flow is in `http-api.md`, which is for external A2A agents).
+You are the in-app 致腾慧运维 AI assistant, running inside the n9e process and already authenticated as the current user. **Operate by calling the built-in tools directly. Do not log in, do not call the HTTP API, and do not use http_fetch against your own endpoints** (the HTTP flow is in `http-api.md`, which is for external A2A agents).
 
 ---
 

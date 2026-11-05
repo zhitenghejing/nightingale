@@ -1,5 +1,5 @@
 const zh_HK = {
-  pageTitle: '歡迎使用 Nightingale',
+  pageTitle: '歡迎使用 致腾慧运维',
   onboarding: {
     dismiss: '不再顯示',
     title: '新手引導',
@@ -107,11 +107,11 @@ const zh_HK = {
     ai: {
       title: 'AI 智慧化',
       description: '大模型與智慧體',
-      links: ['夜鶯有哪些內置技能？', '如何使用 Agent 自動分析告警？'],
+      links: ['致腾慧运维有哪些內置技能？', '如何使用 Agent 自動分析告警？'],
     },
   },
   aiAssistant: {
-    title: 'Nightingale AI 智慧助手',
+    title: '致腾慧运维 AI 智慧助手',
     description: '基於大語言模型，自然語言完成平台操作、查詢數據、分析告警根因。',
     capabilities: ['自然語言查詢', '告警根因分析', 'PromQL / LogQL 生成', '文檔智慧問答'],
     action: '立即體驗 AI 助手',

@@ -1,6 +1,6 @@
 ---
 name: modify-dashboard
-description: Modify an existing monitoring dashboard on Nightingale (n9e). Use when the user asks to change a dashboard's variables, check and fix variables, modify charts/series (change PromQL, legend, unit, add/remove series), rename a chart, or change the chart type (e.g., turn a stat chart into a timeseries chart). Distinct from "creating a dashboard from scratch" (that is create-dashboard).
+description: Modify an existing monitoring dashboard on 致腾慧运维. Use when the user asks to change a dashboard's variables, check and fix variables, modify charts/series (change PromQL, legend, unit, add/remove series), rename a chart, or change the chart type (e.g., turn a stat chart into a timeseries chart). Distinct from "creating a dashboard from scratch" (that is create-dashboard).
 max_iterations: 16
 examples:
   - "Change the default value of the ident variable on this dashboard to web01"
@@ -21,7 +21,7 @@ builtin_tools:
 
 ---
 
-# Skill: Nightingale (N9E) Modify an Existing Dashboard
+# Skill: 致腾慧运维 Modify an Existing Dashboard
 
 Help users **modify an existing dashboard** using natural language — not create a new one. Three typical kinds of requests:
 
