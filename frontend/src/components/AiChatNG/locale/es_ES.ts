@@ -22,7 +22,7 @@ const es_ES = {
     "more_actions": "Más acciones de la sesión"
   },
   "nightingale": {
-    "title": "致腾慧运维 AI",
+    "title": "致慧AI",
     "new_chat": "Nueva sesión",
     "sessions": "Sesión",
     "llm_configs": "Gestión de LLM",

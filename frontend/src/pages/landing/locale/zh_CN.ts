@@ -123,7 +123,7 @@ const zh_CN = {
     },
   },
   aiAssistant: {
-    title: '致腾慧运维 AI 智能助手',
+    title: '致慧AI 智能助手',
     description: '基于大语言模型，自然语言完成平台操作、查询数据、分析告警根因。',
     capabilities: ['自然语言查询', '告警根因分析', 'PromQL / LogQL 生成', '文档智能问答'],
     action: '立即体验 AI 助手',

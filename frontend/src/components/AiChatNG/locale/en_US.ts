@@ -23,7 +23,7 @@ const en_US = {
   },
   nightingale: {
     share_fallback_notice: 'You do not have access to the original page, only the conversation is shown here',
-    title: '致腾慧运维 AI',
+    title: '致慧AI',
     new_chat: 'New chat',
     sessions: 'Conversations',
     llm_configs: 'LLM configs',

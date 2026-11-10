@@ -184,7 +184,7 @@ const pt_BR = {
     }
   },
   "aiAssistant": {
-    "title": "Assistente de IA do 致腾慧运维",
+    "title": "Assistente de IA do 致慧AI",
     "description": "Com modelos de linguagem, opere a plataforma, consulte dados e investigue a causa raiz dos alertas em linguagem natural.",
     "capabilities": [
       "Consulta em linguagem natural",

@@ -184,7 +184,7 @@ const id_ID = {
     }
   },
   "aiAssistant": {
-    "title": "Asisten cerdas 致腾慧运维 AI",
+    "title": "Asisten cerdas 致慧AI",
     "description": "Berbasis model bahasa besar: jalankan operasi platform, kueri data, dan analisis akar masalah alert lewat bahasa sehari-hari.",
     "capabilities": [
       "Kueri bahasa sehari-hari",

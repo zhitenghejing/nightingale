@@ -22,7 +22,7 @@ const id_ID = {
     "more_actions": "Tindakan sesi lainnya"
   },
   "nightingale": {
-    "title": "致腾慧运维 AI",
+    "title": "致慧AI",
     "new_chat": "Sesi baru",
     "sessions": "Sesi",
     "llm_configs": "Manajemen LLM",

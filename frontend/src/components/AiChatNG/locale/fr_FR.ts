@@ -22,7 +22,7 @@ const fr_FR = {
     "more_actions": "Autres actions sur la conversation"
   },
   "nightingale": {
-    "title": "致腾慧运维 AI",
+    "title": "致慧AI",
     "new_chat": "Nouvelle conversation",
     "sessions": "Conversation",
     "llm_configs": "Gestion des LLM",

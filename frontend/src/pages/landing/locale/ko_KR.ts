@@ -184,7 +184,7 @@ const ko_KR = {
     }
   },
   "aiAssistant": {
-    "title": "致腾慧运维 AI 어시스턴트",
+    "title": "致慧AI 어시스턴트",
     "description": "대규모 언어 모델을 바탕으로 일상 언어만으로 플랫폼을 조작하고 데이터를 조회하며 알림의 근본 원인을 분석합니다.",
     "capabilities": [
       "일상 언어로 조회",

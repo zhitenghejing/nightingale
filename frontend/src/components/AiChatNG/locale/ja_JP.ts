@@ -23,7 +23,7 @@ const ja_JP = {
   },
   nightingale: {
     share_fallback_notice: '元のページへのアクセス権限がないため、ここでは会話のみを表示しています',
-    title: '致腾慧运维 AI',
+    title: '致慧AI',
     new_chat: '新規会話',
     sessions: '会話',
     llm_configs: 'LLM 管理',

@@ -42,7 +42,7 @@ How to judge:
 
 ## Prerequisites
 
-You are the in-app 致腾慧运维 AI assistant, running inside the n9e process and already authenticated as the current user. **Call the built-in tools to operate directly — do not log in, do not call the HTTP API, and do not use http_fetch to hit your own endpoints** (the HTTP flow in `http-api.md` is for external A2A agents).
+You are the in-app 致慧AI assistant, running inside the n9e process and already authenticated as the current user. **Call the built-in tools to operate directly — do not log in, do not call the HTTP API, and do not use http_fetch to hit your own endpoints** (the HTTP flow in `http-api.md` is for external A2A agents).
 
 ---
 

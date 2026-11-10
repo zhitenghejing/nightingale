@@ -123,7 +123,7 @@ const en_US = {
     },
   },
   aiAssistant: {
-    title: '致腾慧运维 AI Assistant',
+    title: '致慧AI Assistant',
     description: 'Powered by LLMs — operate the platform, query data and analyze root causes with natural language.',
     capabilities: ['Natural language queries', 'Root-cause analysis', 'PromQL / LogQL generation', 'Documentation Q&A'],
     action: 'Try the AI Assistant',

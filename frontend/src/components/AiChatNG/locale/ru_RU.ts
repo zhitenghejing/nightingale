@@ -23,7 +23,7 @@ const ru_RU = {
   },
   nightingale: {
     share_fallback_notice: 'У вас нет доступа к исходной странице, здесь показан только диалог',
-    title: '致腾慧运维 AI',
+    title: '致慧AI',
     new_chat: 'Новый чат',
     sessions: 'Диалоги',
     llm_configs: 'Управление LLM',

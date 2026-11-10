@@ -1,6 +1,6 @@
 /** Product identity. Keep routes, API identifiers and third-party brands unchanged. */
 export const PRODUCT_NAME = '致腾慧运维';
-export const PRODUCT_AI_NAME = `${PRODUCT_NAME} AI`;
+export const PRODUCT_AI_NAME = '致慧AI';
 
 export const BRAND_ASSETS = {
   light: '/image/brand/logo-light.svg',

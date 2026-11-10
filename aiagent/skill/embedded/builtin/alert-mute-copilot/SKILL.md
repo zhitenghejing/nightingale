@@ -21,7 +21,7 @@ Mute (silence) rules are used to suppress matching alert events by tag condition
 
 ## Prerequisites
 
-You are the in-app 致腾慧运维 AI assistant, running inside the n9e process and already authenticated as the current user. **Operate by calling the built-in tools directly. Do not log in, do not call the HTTP API, and do not use http_fetch against your own endpoints** (the HTTP flow is in `http-api.md`, which is for external A2A agents).
+You are the in-app 致慧AI assistant, running inside the n9e process and already authenticated as the current user. **Operate by calling the built-in tools directly. Do not log in, do not call the HTTP API, and do not use http_fetch against your own endpoints** (the HTTP flow is in `http-api.md`, which is for external A2A agents).
 
 ---
 

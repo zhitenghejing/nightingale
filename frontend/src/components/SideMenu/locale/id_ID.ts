@@ -71,7 +71,7 @@ const id_ID = {
     "about": "Tentang produk",
     "license_management": "Manajemen sertifikat",
     "ai_config": "Konfigurasi AI",
-    "nightingale_ai": "致腾慧运维 AI",
+    "nightingale_ai": "致慧AI",
     "ai_config_agents": "Manajemen agen",
     "ai_config_llm_configs": "Manajemen LLM",
     "ai_config_skills": "Manajemen skill",

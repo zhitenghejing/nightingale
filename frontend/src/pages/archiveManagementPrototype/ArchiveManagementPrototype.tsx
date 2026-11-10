@@ -676,7 +676,7 @@ export function ArchiveManagementPrototype() {
         <div className='archive-header-actions'>
           <Tag>界面原型 · 模拟数据</Tag>
           <Button size='small' icon={icon(Sparkles, 13)} onClick={() => demo()}>
-            致腾慧运维 AI
+            致慧AI
           </Button>
           <Button size='small' icon={icon(BookOpen, 13)} onClick={() => demo('当前仅用于确认档案页面样式')}>
             产品文档
@@ -1245,7 +1245,7 @@ export function ArchiveManagementPrototype() {
             {[
               [House, '首页'],
               [Search, '快捷跳转'],
-              [Sparkles, '致腾慧运维 AI'],
+              [Sparkles, '致慧AI'],
               [LayoutGrid, '数据查询'],
               [Bell, '告警通知'],
               [FolderClosed, '基础设施'],

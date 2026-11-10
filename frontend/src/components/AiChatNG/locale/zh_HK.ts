@@ -23,7 +23,7 @@ const zh_HK = {
   },
   nightingale: {
     share_fallback_notice: '你沒有原頁面的存取權限，這裡只顯示對話內容',
-    title: '致腾慧运维 AI',
+    title: '致慧AI',
     new_chat: '新建會話',
     sessions: '會話',
     llm_configs: 'LLM 管理',

@@ -1,6 +1,6 @@
 ---
 name: skill-creator
-description: Create/edit 致腾慧运维 AI Skills. Use when the user wants to create a new skill, codify a troubleshooting or operations workflow into a reusable skill, build a skill that can run scripts (Python/Bash), or modify/improve/optimize an existing self-built skill. Use this skill whenever the user says things like "make a skill", "save this workflow as a skill", "teach the AI a new trick", "tweak that skill of mine", "let the AI learn to troubleshoot following these steps", etc.
+description: Create/edit 致慧AI Skills. Use when the user wants to create a new skill, codify a troubleshooting or operations workflow into a reusable skill, build a skill that can run scripts (Python/Bash), or modify/improve/optimize an existing self-built skill. Use this skill whenever the user says things like "make a skill", "save this workflow as a skill", "teach the AI a new trick", "tweak that skill of mine", "let the AI learn to troubleshoot following these steps", etc.
 max_iterations: 30
 builtin_tools:
   - list_skill_builtin_tools
@@ -11,7 +11,7 @@ builtin_tools:
 
 # Skill: 致腾慧运维 Skill Authoring Assistant
 
-Help the user **create and improve their own AI skills directly in the conversation**. A skill is a single `SKILL.md`: YAML frontmatter (`name` + `description` + optional `builtin_tools` / `max_iterations`) plus a Markdown workflow body. A skill teaches the 致腾慧运维 AI a **reusable, auto-triggerable** way of working.
+Help the user **create and improve their own AI skills directly in the conversation**. A skill is a single `SKILL.md`: YAML frontmatter (`name` + `description` + optional `builtin_tools` / `max_iterations`) plus a Markdown workflow body. A skill teaches the 致慧AI a **reusable, auto-triggerable** way of working.
 
 Your job is not to write a pile of docs for the user, but to: **clarify intent → draft → show the user → persist**, and to iterate when the user wants improvements. Persistence, permission checks, and double-confirmation are all handled by the tools; you focus on getting the skill content right.
 
@@ -52,7 +52,7 @@ Normally only `name + description` of a skill stays resident in the "available s
 - ❌ Too dry: `Generate a Redis troubleshooting report.`
 - ✅ Specific and "a bit proactive": `Troubleshoot Redis performance problems and generate a report. Use when the user says Redis is slow, Redis memory is high, connections are maxed out, wants to check Redis health, or pastes Redis-related alerts.`
 
-Key points: cover **multiple colloquial phrasings**, include trigger scenarios, push moderately ("the 致腾慧运维 AI tends to under-trigger skills, so writing the description proactively corrects for that"), but **do not exaggerate** to the point of pulling in unrelated requests.
+Key points: cover **multiple colloquial phrasings**, include trigger scenarios, push moderately ("the 致慧AI tends to under-trigger skills, so writing the description proactively corrects for that"), but **do not exaggerate** to the point of pulling in unrelated requests.
 
 ---
 

@@ -111,7 +111,7 @@ const ja_JP = {
     },
   },
   aiAssistant: {
-    title: '致腾慧运维 AI アシスタント',
+    title: '致慧AI アシスタント',
     description: 'LLM により、自然言語による操作・データ照会・根本原因分析を実現します。',
     capabilities: ['自然言語クエリ', '根本原因分析', 'PromQL / LogQL 生成', 'ドキュメント Q&A'],
     action: 'AI アシスタントを試す',

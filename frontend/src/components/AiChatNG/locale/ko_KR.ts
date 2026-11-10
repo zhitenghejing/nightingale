@@ -22,7 +22,7 @@ const ko_KR = {
     "more_actions": "대화 관련 추가 작업"
   },
   "nightingale": {
-    "title": "致腾慧运维 AI",
+    "title": "致慧AI",
     "new_chat": "새 대화",
     "sessions": "대화",
     "llm_configs": "LLM 관리",

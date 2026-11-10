@@ -184,7 +184,7 @@ const fr_FR = {
     }
   },
   "aiAssistant": {
-    "title": "Assistant intelligent 致腾慧运维 AI",
+    "title": "Assistant intelligent 致慧AI",
     "description": "Porté par les grands modèles de langage, il permet de piloter la plateforme, d'interroger les données et d'analyser la cause racine des alertes en langage naturel.",
     "capabilities": [
       "Requête en langage naturel",
