@@ -305,7 +305,7 @@ alerts until a pack is selected explicitly.
 
 目录的三级含义固定为“类型 → 品牌 → 型号”，如“操作系统 → 微软 → Windows Server 2019”“服务器 → 戴尔 → R640”。通用软件/协议包使用明确的通用型号，不假定已有精确版本或硬件适配。初始化包含服务器、数据库、操作系统、安全设备、网络设备、存储等类型，其余软件和云服务类型继续保留。型号下可以有多个采集模板。
 
-根目录加号添加类型；类型旁加号添加品牌；品牌旁加号添加型号；型号旁加号添加同级型号，不生成第四级。每一级旁均可编辑名称/属性或删除，已有子目录/模板时拒绝直接删除并提示先移出。保留展开、折叠、选择、搜索与列表/卡片切换。
+根目录加号添加类型；类型旁加号添加品牌；品牌旁加号添加型号；型号旁加号添加同级型号，不生成第四级。每一级旁均可编辑名称/属性或删除，已有子目录/模板时拒绝直接删除并提示先移出。保留展开、折叠、选择、搜索与列表/卡片切换。模板新增和基本信息编辑中的设备分类下拉每次打开均全部折叠，逐级展开后选择型号；下拉和左侧目录均支持点击三角或分类文字展开、折叠。
 
 目录通过拖拽调整同级顺序，或拖入另一个上级目录（例如跨品牌移动型号、跨类型移动整个品牌）。后台锁定目录并验证深度、同级重名和版本；不允许改变类型/品牌/型号的层级。模板卡片、列表行均可拖到型号目录；只更新位置及版本锁，不把客户端旧名称、图标或草稿一并覆盖。只读用户不显示写操作或拖拽入口，服务端仍要求管理员及原生组件权限。失败时保留原位置并提示重试。
 
@@ -398,6 +398,12 @@ SVG or WebP (up to 2 MiB; raster dimensions up to 4096 pixels per side), then se
 the uploaded icon and save the template metadata. Importing alone does not modify
 a template or publish collection configuration. Icons are reusable across templates
 and survive page refreshes and deployment refreshes in the Center database.
+
+The picker also includes Dell, HPE, Inspur, Ruijie and Galaxy Kylin artwork as
+64×64 circular assets, displayed at 42×42 in the picker. These ship under
+`frontend/public/image/template-logos/` with source URLs and hashes in
+`sources.json`; selecting one saves its stable local URL. Keep these files in the
+paired frontend build and embedded ZIP when deploying or exporting the database.
 
 * `GET /api/n9e/collection/icons`: authenticated list of `{id,name,url,created_at}`.
 * `POST /api/n9e/collection/icons`: administrator plus `/components/put`; JSON
