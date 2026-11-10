@@ -536,7 +536,7 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
                                 if (!Array.isArray(JSON.parse(value))) throw new Error();
                                 return Promise.resolve();
                               } catch {
-                                return Promise.reject(new Error('请输入有效的夜莺模板数组'));
+                                return Promise.reject(new Error('请输入有效的致腾慧运维模板数组'));
                               }
                             },
                           },
@@ -561,13 +561,13 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
               <Form.Item noStyle shouldUpdate={(previous, next) => previous.notify?.mode !== next.notify?.mode}>
                 {() =>
                   form.getFieldValue(['notify', 'mode']) === 'rules' ? (
-                    <Form.Item name={['notify', 'rule_ids']} label='夜莺通知规则' rules={[{ required: true, message: '请选择通知规则' }]}>
+                    <Form.Item name={['notify', 'rule_ids']} label='致腾慧运维通知规则' rules={[{ required: true, message: '请选择通知规则' }]}>
                       <Select mode='multiple' options={notificationRules.map((r) => ({ value: r.id, label: r.name }))} />
                     </Form.Item>
                   ) : null
                 }
               </Form.Item>
-              <Form.Item name={['notify', 'message']} label='消息内容' extra='随设备告警发送；投递格式和渠道由所选夜莺通知规则控制。'>
+              <Form.Item name={['notify', 'message']} label='消息内容' extra='随设备告警发送；投递格式和渠道由所选致腾慧运维通知规则控制。'>
                 <Input.TextArea rows={4} maxLength={1024} />
               </Form.Item>
               <Alert type='info' message='没有映射有效通知规则时，只生成告警事件。保存后仍需等待采集器返回必需指标，才显示采集正常。' />

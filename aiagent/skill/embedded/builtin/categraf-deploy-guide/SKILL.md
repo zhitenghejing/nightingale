@@ -1,7 +1,7 @@
 ---
 name: categraf-deploy-guide
 description: >-
-  Answers "how do I deploy the categraf collector". Trigger scenarios: the user asks "how to install categraf / how to deploy categraf / run categraf with Docker / install categraf on Windows / how to register categraf as a system service / report categraf to Nightingale / how to write categraf config.toml / how to verify that categraf is collecting data". Covers binary + systemd, Docker, Windows, K8s tips, key configuration, and common verification commands. This skill is instructional/guidance-oriented, calls no tools, and outputs ready-to-paste commands and configuration snippets.
+  Answers "how do I deploy the categraf collector". Trigger scenarios: the user asks "how to install categraf / how to deploy categraf / run categraf with Docker / install categraf on Windows / how to register categraf as a system service / report categraf to 致腾慧运维 / how to write categraf config.toml / how to verify that categraf is collecting data". Covers binary + systemd, Docker, Windows, K8s tips, key configuration, and common verification commands. This skill is instructional/guidance-oriented, calls no tools, and outputs ready-to-paste commands and configuration snippets.
 tags:
   - internal
 ---
@@ -14,9 +14,9 @@ tags:
 - "how to install / how to deploy / how to start categraf"
 - "run categraf on Docker / Kubernetes / Windows / Linux"
 - "how to register categraf as a systemd service / start on boot"
-- "report categraf to Nightingale / how to write config.toml / what to put in the writer URL"
+- "report categraf to 致腾慧运维 / how to write config.toml / what to put in the writer URL"
 - "how to verify that categraf is collecting data"
-- "categraf is installed but Nightingale can't see the machine" → **do not enter this skill**, route to `host-onboard-diagnose`
+- "categraf is installed but 致腾慧运维 can't see the machine" → **do not enter this skill**, route to `host-onboard-diagnose`
 
 **Do not enter this skill**:
 - Diagnosing onboarding failures after install → `host-onboard-diagnose`
@@ -76,7 +76,7 @@ categraf/
 
 ## Step 2: Correctly Write `conf/config.toml`
 
-Minimal working configuration (reporting to Nightingale n9e):
+Minimal working configuration (reporting to 致腾慧运维):
 
 ```toml
 [global]
@@ -97,13 +97,13 @@ dial_timeout = 2500
 max_idle_conns_per_host = 100
 
 [heartbeat]
-enable = true                  # must be enabled, otherwise this machine won't appear in the Nightingale machine list
+enable = true                  # must be enabled, otherwise this machine won't appear in the 致腾慧运维 machine list
 url = "http://N9E_HOST:17000/v1/n9e/heartbeat"
 interval = 10
 ```
 
 **Key fields**:
-- `[[writers]].url`: n9e's remote write receiving endpoint; the path is fixed at `/prometheus/v1/write`, and the default port is 17000.
+- `[[writers]].url`: 致腾慧运维's remote write receiving endpoint; the path is fixed at `/prometheus/v1/write`, and the default port is 17000.
 - `[heartbeat].enable=true` + `[heartbeat].url`: heartbeat reporting, which lets the "machine list" see this machine; **if missing → installed but invisible**.
 - `[global].hostname`: leave empty to use the system hostname; if the `hostname` command in a container/cloned machine returns a duplicated name like `localhost.localdomain`, **you must specify it explicitly**, otherwise different machines will overwrite each other.
 - `[global].labels`: global tags; setting good distinguishing dimensions (region / env / idc) makes building dashboards and alerts much easier later.
@@ -194,7 +194,7 @@ Windows does not support `kill -HUP` reload; after changing the config, use `--w
 ### Option D: Kubernetes
 
 On K8s you typically use a DaemonSet (one per Node to collect host metrics) + a ConfigMap (to distribute `config.toml` uniformly). The official release package includes a `k8s/` directory with sample YAML; just run `kubectl apply -f k8s/`. **The two things you must change**:
-1. The `[[writers]].url` and `[heartbeat].url` in the ConfigMap should point to your n9e;
+1. The `[[writers]].url` and `[heartbeat].url` in the ConfigMap should point to your 致腾慧运维 instance;
 2. If you use multiple clusters, add `cluster = "xxx"` to `[global.labels]` to distinguish them.
 
 ## Step 4: Verify
@@ -214,9 +214,9 @@ If metric lines appear on stdout, local collection is OK; if it errors out (fail
 kill -HUP `pidof categraf`   # Linux-only, not supported on Windows
 ```
 
-### 4.3 Verify on the Nightingale side
+### 4.3 Verify on the 致腾慧运维 side
 
-- Open n9e in a browser → **Infrastructure / Machine List**; you should be able to see this `ident`, with OS/CPU/agent_version all not unknown.
+- Open 致腾慧运维 in a browser → **Infrastructure / Machine List**; you should be able to see this `ident`, with OS/CPU/agent_version all not unknown.
 - If it doesn't appear → route to `host-onboard-diagnose` and run the 5-stage troubleshooting; don't guess blindly here.
 
 ### 4.4 Self-upgrade (v0.3.36+)
@@ -224,7 +224,7 @@ kill -HUP `pidof categraf`   # Linux-only, not supported on Windows
 ```bash
 ./categraf --update --update_url https://github.com/flashcatcloud/categraf/releases/download/vX.Y.Z/categraf-vX.Y.Z-linux-amd64.tar.gz
 
-# On an intranet, point --update_url at nightingale's own bundled package instead:
+# On an intranet, point --update_url at 致腾慧运维's own bundled package instead:
 ./categraf --update --update_url 'http://N9E_HOST:17000/api/n9e/agents/categraf/download?arch=amd64'
 ```
 
@@ -242,9 +242,9 @@ kill -HUP `pidof categraf`   # Linux-only, not supported on Windows
 
 ## Output Style
 
-- **Clarify before giving a solution**: when the user hasn't stated the OS / deployment form, first ask "Do you want to install it on a Linux physical machine, Docker, or K8s? What is the n9e access URL?"
+- **Clarify before giving a solution**: when the user hasn't stated the OS / deployment form, first ask "Do you want to install it on a Linux physical machine, Docker, or K8s? What is the 致腾慧运维 access URL?"
 - **Give a ready-to-paste command for every suggestion** — don't write "tweak the config", write "change `[[writers]].url` in `config.toml` to `http://your-n9e:17000/prometheus/v1/write`".
 - **Configuration examples must include placeholder-replacement notes** (such as `N9E_HOST`) so the user knows what to change.
 - Reply in the user's language (Chinese for Chinese users, English for English users).
-- After deployment, **always remind them to run `--test --inputs cpu` once** and "take a look at the Nightingale machine list", otherwise there's no way to know right then whether the install is working.
+- After deployment, **always remind them to run `--test --inputs cpu` once** and "take a look at the 致腾慧运维 machine list", otherwise there's no way to know right then whether the install is working.
 - If the user says "I finished installing but can't see the machine" → don't give more deployment instructions; route them directly to `host-onboard-diagnose`.

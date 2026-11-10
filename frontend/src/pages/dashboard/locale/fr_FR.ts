@@ -99,11 +99,11 @@ const fr_FR = {
   exit_full_screen: 'Quitter le plein écran',
   copyPanelTip: 'Configuration du graphique copiée. Cliquez sur « Ajouter un graphique » puis « Coller un graphique » pour créer le graphique à partir de ce JSON',
   batch: {
-    import: 'Importer un JSON de tableau de bord Nightingale',
+    import: 'Importer un JSON de tableau de bord 致腾慧运维',
     label: 'JSON du tableau de bord',
     import_grafana: 'Importer un tableau de bord Grafana (déconseillé)',
     import_grafana_tip:
-      'Seuls les tableaux de bord reposant sur une source Prometheus sont importables, et uniquement dans la limite des types de graphiques et fonctions pris en charge par Nightingale <a>Signaler un problème</a>',
+      'Seuls les tableaux de bord reposant sur une source Prometheus sont importables, et uniquement dans la limite des types de graphiques et fonctions pris en charge par 致腾慧运维 <a>Signaler un problème</a>',
     import_grafana_tip_version_error: 'Les configurations de tableau de bord antérieures à la v7 ne peuvent pas être importées',
     import_grafana_tip_version_warning: "À l'import d'une configuration antérieure à la v8, certains graphiques peuvent ne pas être pris en charge ou s'afficher incorrectement",
     import_grafana_url: 'Lien du tableau de bord Grafana (recommandé)',

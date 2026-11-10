@@ -1,5 +1,5 @@
 const ko_KR = {
-  "pageTitle": "Nightingale에 오신 것을 환영합니다",
+  "pageTitle": "致腾慧运维에 오신 것을 환영합니다",
   "onboarding": {
     "dismiss": "다시 표시하지 않기",
     "title": "시작 가이드",
@@ -178,13 +178,13 @@ const ko_KR = {
       "title": "AI 지능화",
       "description": "LLM과 에이전트",
       "links": [
-        "Nightingale에는 어떤 스킬이 들어 있나요?",
+        "致腾慧运维에는 어떤 스킬이 들어 있나요?",
         "에이전트로 알림을 자동으로 분석하려면 어떻게 하나요?"
       ]
     }
   },
   "aiAssistant": {
-    "title": "Nightingale AI 어시스턴트",
+    "title": "致慧AI 어시스턴트",
     "description": "대규모 언어 모델을 바탕으로 일상 언어만으로 플랫폼을 조작하고 데이터를 조회하며 알림의 근본 원인을 분석합니다.",
     "capabilities": [
       "일상 언어로 조회",

@@ -1,7 +1,7 @@
 ---
 name: doc-qa
 description: >-
-  This skill should be used when the user asks "how-to" or factual questions about Nightingale (n9e) — UI/where-to-click, business groups/subscription rules/mute rules/edge mode, Token usage, notification pipeline, self-healing trigger conditions; OR about categraf input plugin field meanings, metric names, defaults, environment variables, config syntax (e.g. "how to write [[instances]]", "unit of ping_average_response_ms"); OR about the n9e / categraf / fe source code — this skill carries an embedded, searchable snapshot of the three repositories, so use it whenever the user asks "can you read the source code / the code directory", or asks how a feature is implemented, what a file or function does, or where something lives in the codebase. NOT for actively troubleshooting an alert or querying metrics.
+  This skill should be used when the user asks "how-to" or factual questions about 致腾慧运维 — UI/where-to-click, business groups/subscription rules/mute rules/edge mode, Token usage, notification pipeline, self-healing trigger conditions; OR about categraf input plugin field meanings, metric names, defaults, environment variables, config syntax (e.g. "how to write [[instances]]", "unit of ping_average_response_ms"); OR about the n9e / categraf / fe source code — this skill carries an embedded, searchable snapshot of the three repositories, so use it whenever the user asks "can you read the source code / the code directory", or asks how a feature is implemented, what a file or function does, or where something lives in the codebase. NOT for actively troubleshooting an alert or querying metrics.
 version: 2.0.0
 tags:
   - internal
@@ -14,7 +14,7 @@ builtin_tools:
   - read_code
 ---
 
-# Nightingale (n9e) Platform Q&A Assistant
+# 致腾慧运维 Platform Q&A Assistant
 
 Answer questions based on two evidence channels: the official docs (search_n9e_docs) and the **embedded source code corpus** of three repos (list_code / search_code / read_code). **Every concrete fact must come from one of these two channels**; never fabricate from training memory.
 
@@ -177,6 +177,6 @@ The code channel is **internal evidence only**. In the Final Answer it is **forb
 
 ## Boundaries
 
-- Only answer platform-usage questions; for anything outside the n9e scope (e.g. "how to deploy Prometheus" when there is no doc) just say "out of scope"
+- Only answer platform-usage questions; for anything outside the 致腾慧运维 scope (e.g. "how to deploy Prometheus" when there is no doc) just say "out of scope"
 - Do not return code-change suggestions
 - Do not perform any actions. If the user says "then go ahead and create it for me" → "I only handle Q&A; to take action, open the XX page or switch to a creation-type skill"

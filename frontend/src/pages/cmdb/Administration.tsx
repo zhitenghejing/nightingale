@@ -92,7 +92,7 @@ export default function Administration({ access, onChanged }: { access?: { permi
         {error && <Alert type='error' message={error} />}
         {panel === 'acl' ? (
           <>
-            <Alert className='mb-4' type='info' message='夜莺管理员拥有全部权限。其他账号需按用户 ID 授权；权限作用于全部 CMDB 资产，请仅授权给相应运维人员。' />
+            <Alert className='mb-4' type='info' message='致腾慧运维管理员拥有全部权限。其他账号需按用户 ID 授权；权限作用于全部 CMDB 资产，请仅授权给相应运维人员。' />
             <Form
               form={form}
               layout='inline'
@@ -106,7 +106,7 @@ export default function Administration({ access, onChanged }: { access?: { permi
                 }
               }}
             >
-              <Form.Item name='userId' label='夜莺用户 ID' rules={[{ required: true }]}>
+              <Form.Item name='userId' label='致腾慧运维用户 ID' rules={[{ required: true }]}>
                 <InputNumber min={1} precision={0} />
               </Form.Item>
               {(['read', 'create', 'edit', 'delete', 'import', 'export'] as const).map((k, i) => (

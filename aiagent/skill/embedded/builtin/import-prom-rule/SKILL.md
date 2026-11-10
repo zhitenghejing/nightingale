@@ -23,7 +23,7 @@ tags:
 
 ## Overview
 
-Bulk-create Prometheus official rule YAML (in any of the three forms: with `groups`, a plain `rules` array, or a single rule) into n9e. Typical sources:
+Bulk-create Prometheus official rule YAML (in any of the three forms: with `groups`, a plain `rules` array, or a single rule) into 致腾慧运维. Typical sources:
 
 - A remote URL (e.g. awesome-prometheus-alerts on GitHub raw)
 - YAML text pasted directly by the user
@@ -166,9 +166,9 @@ Do not list all 36 rule IDs; the frontend will display them as cards. **Do not p
 
 ## severity mapping (automatic)
 
-The tool automatically maps the `labels.severity` string to n9e's number:
+The tool automatically maps the `labels.severity` string to 致腾慧运维's number:
 
-| Prom labels.severity | n9e severity |
+| Prom labels.severity | 致腾慧运维 severity |
 |---|---|
 | critical / error / fatal / page / sev1 | 1 |
 | warning / warn / sev2 | 2 |
@@ -179,15 +179,15 @@ No manual conversion by the LLM is needed.
 
 ## Handling of other labels
 
-All labels other than `severity` are automatically assembled into n9e's `append_tags` (format `k=v`, spaces are stripped).
+All labels other than `severity` are automatically assembled into 致腾慧运维's `append_tags` (format `k=v`, spaces are stripped).
 
 ## Common Pitfalls
 
 1. **`datasource_ids` must be a JSON array string**: pass `"[1]"`, not `"1"` or `1`.
 2. **`http_fetch` cannot fetch from the intranet**: a `http://10.x.x.x/...` URL given by the user will be rejected outright. Ask the user to use a public URL or paste the content directly.
 3. **`payload_file` must be one written by http_fetch**: the tool validates that the path is under `os.TempDir()` and starts with `n9e-aiagent-fetch-`. An arbitrary path cannot be used.
-4. **The `expr` in the YAML is stored verbatim**: n9e stores the original expression directly (including thresholds); do not have the LLM split the `>`/`<` and the threshold.
-5. **The `for` field is converted to seconds**: `5m` → 300, `1h` → 3600. If the original YAML has no `for`, n9e uses 0 seconds (triggers immediately).
+4. **The `expr` in the YAML is stored verbatim**: 致腾慧运维 stores the original expression directly (including thresholds); do not have the LLM split the `>`/`<` and the threshold.
+5. **The `for` field is converted to seconds**: `5m` → 300, `1h` → 3600. If the original YAML has no `for`, 致腾慧运维 uses 0 seconds (triggers immediately).
 6. **Do not query `list_alert_rules` to detect duplicate names**. Call import directly and decide whether to retry with a prefix based on the returned error.
 
 ## Example Conversation

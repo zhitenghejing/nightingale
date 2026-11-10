@@ -11,7 +11,7 @@ export default function useInventory() {
     try {
       const permission = await api<{ permissions: Permissions; admin: boolean }>('access');
       setAccess(permission);
-      if (!permission.permissions.read) throw new Error('当前账号没有 CMDB 查看权限，请联系夜莺管理员授权');
+      if (!permission.permissions.read) throw new Error('当前账号没有 CMDB 查看权限，请联系致腾慧运维管理员授权');
       const [rows, hierarchy] = await Promise.all([api<Device[]>('devices'), api<Catalog>('catalog')]);
       setDevices(rows);
       setCatalog(hierarchy);

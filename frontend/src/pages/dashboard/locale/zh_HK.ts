@@ -96,10 +96,10 @@ const zh_HK = {
   exit_full_screen: '退出全屏',
   copyPanelTip: '圖表配置已複製。單擊 "添加圖表" > "粘貼圖表" 粘貼配置 JSON 來創建圖表',
   batch: {
-    import: '導入夜鶯儀表盤 JSON',
+    import: '導入致腾慧运维儀表盤 JSON',
     label: '儀表盤 JSON',
     import_grafana: '匯入 Grafana 儀表盤（不推薦）',
-    import_grafana_tip: '只支援導入 Prometheus 類型資料來源的儀表盤，以及夜鶯支援的圖表類型和功能 <a>問題反饋</a>',
+    import_grafana_tip: '只支援導入 Prometheus 類型資料來源的儀表盤，以及致腾慧运维支援的圖表類型和功能 <a>問題反饋</a>',
     import_grafana_url: 'Grafana 儀表盤地址（建議）',
     import_grafana_url_label: 'Grafana 儀表盤地址',
     show_time_picker: '顯示時間選擇器',

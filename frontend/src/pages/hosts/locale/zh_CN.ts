@@ -82,7 +82,7 @@ const zh_CN = {
   beat_time_hours_ago_other: '{{count}} hours ago',
   mem_util: '内存',
   offset: '时间偏移',
-  offset_tip: '计算逻辑为用 夜莺部署机器的时间减去categraf部署机器的时间',
+  offset_tip: '计算逻辑为用 致腾慧运维部署机器的时间减去categraf部署机器的时间',
   remote_addr: '来源 IP',
   remote_addr_tip: '来源 IP 是从 HTTP Header 中获取的，如果经过了代理，不一定是真实的来源IP',
   note: '备注',
@@ -159,7 +159,7 @@ const zh_CN = {
   install: {
     entry: '一键安装 Categraf',
     title: '安装 Categraf 采集器',
-    addr_label: '夜莺服务端地址',
+    addr_label: '致腾慧运维服务端地址',
     addr_tip: '被监控机器需要能访问到该地址；默认取服务端自身识别到的地址，可修改',
     addr_invalid: '请填写合法地址，例如 http://10.1.1.1:17000',
     step_run: '在目标机器上以 root 权限执行',

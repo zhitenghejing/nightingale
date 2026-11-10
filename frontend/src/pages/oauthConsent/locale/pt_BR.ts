@@ -1,6 +1,6 @@
 const pt_BR = {
   "title": "Solicitação de autorização",
-  "intro": "O aplicativo abaixo solicita acessar as APIs MCP / A2A do Nightingale em seu nome:",
+  "intro": "O aplicativo abaixo solicita acessar as APIs MCP / A2A do 致腾慧运维 em seu nome:",
   "asUser": "Conectado como:",
   "redirectTo": "Endereço de callback:",
   "scope": "Permissões solicitadas:",

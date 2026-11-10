@@ -15,7 +15,7 @@ tags:
 - "Is the host-unreachable alert a false positive"
 - "Is the agent stuck / hung"
 - "Is this host really down"
-- "This machine is pingable but Nightingale shows it as down"
+- "This machine is pingable but 致腾慧运维 shows it as down"
 
 **Do NOT enter this skill**:
 - Change alert rule thresholds, add/adjust host-unreachable alerts → `creation` / `troubleshooting`
@@ -26,7 +26,7 @@ tags:
 
 **A diagnosis that concludes from a single layer of evidence is almost always wrong.**
 
-When n9e shows a machine as unreachable, it may stem from:
+When 致腾慧运维 shows a machine as unreachable, it may stem from:
 - The agent really died (process panic / OOM)
 - The agent is still alive but cannot send heartbeats (network partition / DNS / broken proxy / cannot write to Redis)
 - Redis write latency on the server side

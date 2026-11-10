@@ -81,7 +81,7 @@ const en_US = {
   beat_time_hours_ago_other: '{{count}} hours ago',
   mem_util: 'Memory',
   offset: 'Time offset',
-  offset_tip: 'The offset is the clock time of the Nightingale server minus the clock time of the host running Categraf',
+  offset_tip: 'The offset is the clock time of the 致腾慧运维 server minus the clock time of the host running Categraf',
   remote_addr: 'Source IP',
   remote_addr_tip: 'Source IP is obtained from the HTTP Header. If a proxy is used, it may not be the real source IP',
   note: 'Note',
@@ -158,7 +158,7 @@ const en_US = {
   install: {
     entry: 'Install Categraf',
     title: 'Install the Categraf collector',
-    addr_label: 'Nightingale address',
+    addr_label: '致腾慧运维 address',
     addr_tip: 'The monitored host must be able to reach this address. Defaults to the address the server detected for itself.',
     addr_invalid: 'Enter a valid address, e.g. http://10.1.1.1:17000',
     step_run: 'Run this on the target host as root',

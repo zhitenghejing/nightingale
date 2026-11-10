@@ -172,7 +172,7 @@ const zh: typeof en = {
   profile_metric_name: '指标名称',
   profile_unit: '单位',
   profile_note: '说明',
-  profile_alert_hint: '以下为此设备的独立夜莺告警规则，可编辑阈值和通知渠道。暂停设备时会暂停关联规则。',
+  profile_alert_hint: '以下为此设备的独立致腾慧运维告警规则，可编辑阈值和通知渠道。暂停设备时会暂停关联规则。',
 
   actions: '操作',
   snmp_templates: 'SNMP 采集模板',

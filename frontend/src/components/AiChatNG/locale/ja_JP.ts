@@ -23,7 +23,7 @@ const ja_JP = {
   },
   nightingale: {
     share_fallback_notice: '元のページへのアクセス権限がないため、ここでは会話のみを表示しています',
-    title: 'Nightingale AI',
+    title: '致慧AI',
     new_chat: '新規会話',
     sessions: '会話',
     llm_configs: 'LLM 管理',
@@ -34,9 +34,9 @@ const ja_JP = {
     expand_sidebar: 'AI サイドバーを開く',
     welcome_cards: {
       overview: {
-        title: 'Nightingale をすばやく知る',
+        title: '致腾慧运维 をすばやく知る',
         description: '製品と AI アシスタントのできることを 1 分で理解',
-        prompt: 'Nightingale 監視の主な機能と、あなたが支援できることを 1 分で紹介してください',
+        prompt: '致腾慧运维 監視の主な機能と、あなたが支援できることを 1 分で紹介してください',
       },
       alerts: {
         title: 'アラートを見直す',

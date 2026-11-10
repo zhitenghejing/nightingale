@@ -1,5 +1,5 @@
 const zh_CN = {
-  pageTitle: '欢迎使用 Nightingale',
+  pageTitle: '欢迎使用 致腾慧运维',
   onboarding: {
     dismiss: '不再显示',
     title: '新手引导',
@@ -119,11 +119,11 @@ const zh_CN = {
     ai: {
       title: 'AI 智能化',
       description: '大模型与智能体',
-      links: ['夜莺有哪些内置技能？', '如何使用 Agent 自动分析告警？'],
+      links: ['致腾慧运维有哪些内置技能？', '如何使用 Agent 自动分析告警？'],
     },
   },
   aiAssistant: {
-    title: 'Nightingale AI 智能助手',
+    title: '致慧AI 智能助手',
     description: '基于大语言模型，自然语言完成平台操作、查询数据、分析告警根因。',
     capabilities: ['自然语言查询', '告警根因分析', 'PromQL / LogQL 生成', '文档智能问答'],
     action: '立即体验 AI 助手',

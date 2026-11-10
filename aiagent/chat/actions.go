@@ -143,20 +143,20 @@ func stripCodeFence(s string) string {
 // --- general_chat action ---
 
 func buildGeneralChatPrompt(req *AIChatRequest) string {
-	return fmt.Sprintf(`You are a helpful assistant for the n9e (Nightingale) monitoring platform, specializing in IT operations, monitoring, and observability.
+	return fmt.Sprintf(`You are a helpful assistant for the 致腾慧运维 monitoring platform, specializing in IT operations, monitoring, and observability.
 
 When the user asks what you can do, summarize from the "Available Skills" catalog in your system instructions (plus your read/query/create/update tools) in the user's language — the catalog is the authoritative capability list.
 
 DOMAIN LIMIT (STRICT):
 ONLY answer questions in these domains:
-  - n9e (Nightingale) usage, configuration, features
+  - 致腾慧运维 usage, configuration, features
   - IT operations / SRE / DevOps practice
   - Alerting (rules, notifications, on-call, suppression, escalation)
   - Observability — metrics, logs, traces, distributed tracing
   - Related infrastructure (Prometheus, Grafana, Loki, ClickHouse, ElasticSearch, OpenSearch, VictoriaMetrics, etc.)
   - Performance / capacity / troubleshooting in the above contexts
 
-If the user asks anything outside these domains (general programming help unrelated to ops, life advice, news, personal questions, creative writing, math homework, etc.), politely decline in the user's language and remind them this assistant is specialized for n9e and observability topics. Do NOT attempt to answer such questions even partially.
+If the user asks anything outside these domains (general programming help unrelated to ops, life advice, news, personal questions, creative writing, math homework, etc.), politely decline in the user's language and remind them this assistant is specialized for 致腾慧运维 and observability topics. Do NOT attempt to answer such questions even partially.
 
 This is the default general agent path — handle a broad range of (in-domain) requests yourself, loading a matching skill from the Available Skills catalog when one clearly applies.
 
@@ -164,7 +164,7 @@ Tool usage policy (IMPORTANT — pick the right tool, don't fan out):
 
 1. **Vendor-neutral concept questions** (e.g. "什么是 P99", "PromQL 和 MetricsQL 区别", "histogram vs summary", "黄金信号", "alert fatigue"): answer DIRECTLY from your own knowledge. Do NOT call tools. These don't require product-specific facts.
 
-2. **n9e / categraf / 夜莺 SPECIFIC FACTUAL questions** (e.g. "ping 监控对应的 promql", "Severity 1 是什么", "config.toml http 段作用", "categraf_self 指标怎么获取", "Token 调接口 401 怎么回事", "[http] 段是不是给 Prometheus 抓的"): MUST call **search_n9e_docs** first to get authoritative facts. The doc index contains real toml samples + V9 documentation. NEVER answer such questions from memory — you have a documented history of hallucinating field names / metric names / Severity mappings / Header names when answering without doc retrieval (Severity=Critical / Authorization: Bearer / ping_result_code / [[inputs.xxx]] / enable_queue / N9E_ADDR ... 这些都是历史翻车样本)。
+2. **致腾慧运维 / n9e / categraf / 夜莺 SPECIFIC FACTUAL questions** (e.g. "ping 监控对应的 promql", "Severity 1 是什么", "config.toml http 段作用", "categraf_self 指标怎么获取", "Token 调接口 401 怎么回事", "[http] 段是不是给 Prometheus 抓的"): MUST call **search_n9e_docs** first to get authoritative facts. The doc index contains real toml samples + V9 documentation. NEVER answer such questions from memory — you have a documented history of hallucinating field names / metric names / Severity mappings / Header names when answering without doc retrieval (Severity=Critical / Authorization: Bearer / ping_result_code / [[inputs.xxx]] / enable_queue / N9E_ADDR ... 这些都是历史翻车样本)。
 
    When search_n9e_docs returns `+"`quality: empty`"+` or `+"`must_refuse: true`"+`, you MUST NOT invent specific identifiers — instead reply with the refusal template (see below) and offer vendor-neutral concept guidance.
 
@@ -242,7 +242,7 @@ func buildCreationPrompt(req *AIChatRequest) string {
 		ctxHint.WriteString(fmt.Sprintf("\nUser-selected team_ids: %v", v))
 	}
 
-	return fmt.Sprintf(`You are a monitoring system assistant helping the user CREATE a new resource in Nightingale (n9e).
+	return fmt.Sprintf(`You are a monitoring system assistant helping the user CREATE a new resource in 致腾慧运维.
 
 User request: %s%s
 

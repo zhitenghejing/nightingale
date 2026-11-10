@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { cn } from '@/components/menu/SideMenu/utils';
 import { CommonStateContext } from '@/App';
+import { PRODUCT_NAME, getMenuLogoSrc } from '@/utils/branding';
 
 interface Props {
   collapsed: boolean;
@@ -8,37 +9,20 @@ interface Props {
   sideMenuBgMode: string;
 }
 
-const getLogoSrc = (collapsed: boolean, sideMenuBgMode: string, siteInfo?: any) => {
-  if (!collapsed) {
-    if (sideMenuBgMode === 'light') {
-      return siteInfo?.light_menu_big_logo_url || '/image/logo-light-l.png';
-    }
-    return siteInfo?.menu_big_logo_url || '/image/logo-l.png';
-  }
-  if (sideMenuBgMode === 'light') {
-    return siteInfo?.light_menu_small_logo_url || '/image/logo-light.png';
-  }
-  return siteInfo?.menu_small_logo_url || '/image/logo.png';
-};
-
 export default function SideMenuHeader(props: Props) {
   const { collapsed, collapsedHover, sideMenuBgMode } = props;
   const { siteInfo } = useContext(CommonStateContext);
 
-  const noCollapsedLogo = getLogoSrc(false, sideMenuBgMode, siteInfo);
-  const collapsedLogo = getLogoSrc(true, sideMenuBgMode, siteInfo);
+  const noCollapsedLogo = getMenuLogoSrc(false, sideMenuBgMode, {}, siteInfo);
+  const collapsedLogo = getMenuLogoSrc(true, sideMenuBgMode, {}, siteInfo);
   const showExpandedLogo = !collapsed || collapsedHover;
 
   return (
-    <div
-      className={cn(
-        'relative mt-6 h-10 w-full shrink-0 overflow-hidden transition-spacing flex',
-        showExpandedLogo ? 'justify-start pl-2' : 'justify-center',
-      )}
-    >
+    <div className={cn('relative mt-6 h-10 w-full shrink-0 overflow-hidden transition-spacing flex', showExpandedLogo ? 'justify-start pl-2' : 'justify-center')}>
       <div className={cn(showExpandedLogo && 'pl-3.5')}>
         <img
           src={noCollapsedLogo}
+          alt={PRODUCT_NAME}
           width={120}
           height={38}
           className='max-w-[120px]'
@@ -48,6 +32,7 @@ export default function SideMenuHeader(props: Props) {
         />
         <img
           src={collapsedLogo}
+          alt={PRODUCT_NAME}
           width={36}
           height={38}
           className='max-w-[120px]'
