@@ -11,7 +11,7 @@ const ja_JP = {
     app_id_tip:
       'フィシュオープンプラットフォームアプリケーションの一意の識別子。アプリケーションを作成すると、システムによって自動的に生成され、ユーザーは変更できません。アプリケーションの<1>開発者バックエンド</1>の証明書と基本情報ページでapp_idを確認できます',
     app_secret_tip: 'アプリケーションのシークレット。アプリケーションを作成すると、システムによって自動的に生成されます',
-    cover_attributes_tip: 'ログインするたびに、ユーザー情報が変更された場合、フィシュのユーザー情報でNightingaleのユーザー情報（電話番号、メール）を上書きします',
+    cover_attributes_tip: 'ログインするたびに、ユーザー情報が変更された場合、フィシュのユーザー情報で致腾慧运维のユーザー情報（電話番号、メール）を上書きします',
   },
   dingtalk_setting: {
     enable: '有効化',
@@ -21,7 +21,7 @@ const ja_JP = {
     client_id: 'Client ID',
     client_secret: 'Client Secret',
     cover_attributes: 'ユーザー情報を更新',
-    cover_attributes_tip: 'ログインするたびに、ユーザー情報が変更された場合、DingTalkのユーザー情報でNightingaleのユーザー情報（電話番号、メール）を上書きします',
+    cover_attributes_tip: 'ログインするたびに、ユーザー情報が変更された場合、DingTalkのユーザー情報で致腾慧运维のユーザー情報（電話番号、メール）を上書きします',
     username_field: 'ユーザー名フィールド',
     default_team: 'デフォルトチーム',
     username_field_map: {

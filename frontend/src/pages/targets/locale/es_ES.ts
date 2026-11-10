@@ -21,7 +21,7 @@ const es_ES = {
   "cpu_util": "CPU",
   "cpu_num": "Núcleos",
   "offset": "Desfase de reloj",
-  "offset_tip": "Se calcula restando la hora de la máquina de categraf a la de la máquina de Nightingale",
+  "offset_tip": "Se calcula restando la hora de la máquina de categraf a la de la máquina de 致腾慧运维",
   "os": "Sistema operativo",
   "arch": "Arquitectura de CPU",
   "update_at": "Actualizado el",

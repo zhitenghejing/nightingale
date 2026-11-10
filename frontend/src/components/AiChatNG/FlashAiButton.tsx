@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 
 import { IS_ENT } from '@/utils/constant';
+import { PRODUCT_AI_NAME } from '@/utils/branding';
 import LayoutHeaderAiBtn from '@/components/AiChat/AiBtn/LayoutHeaderAiBtn';
 
 import { useAiChatContext } from './context';
@@ -76,7 +77,7 @@ function FlashAiButtonContent() {
       size='small'
       onClick={handleClick}
     >
-      Nightingale AI
+      {PRODUCT_AI_NAME}
     </Button>
   );
 }

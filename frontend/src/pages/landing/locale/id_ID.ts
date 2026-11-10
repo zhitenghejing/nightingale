@@ -1,5 +1,5 @@
 const id_ID = {
-  "pageTitle": "Selamat datang di Nightingale",
+  "pageTitle": "Selamat datang di 致腾慧运维",
   "onboarding": {
     "dismiss": "Jangan tampilkan lagi",
     "title": "Panduan pemula",
@@ -178,13 +178,13 @@ const id_ID = {
       "title": "Kecerdasan AI",
       "description": "Model bahasa besar dan agen",
       "links": [
-        "Skill apa saja yang sudah ada di Nightingale?",
+        "Skill apa saja yang sudah ada di 致腾慧运维?",
         "Bagaimana cara memakai agen untuk menganalisis alert secara otomatis?"
       ]
     }
   },
   "aiAssistant": {
-    "title": "Asisten cerdas Nightingale AI",
+    "title": "Asisten cerdas 致慧AI",
     "description": "Berbasis model bahasa besar: jalankan operasi platform, kueri data, dan analisis akar masalah alert lewat bahasa sehari-hari.",
     "capabilities": [
       "Kueri bahasa sehari-hari",

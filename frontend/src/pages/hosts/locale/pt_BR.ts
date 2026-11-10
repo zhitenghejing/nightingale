@@ -63,7 +63,7 @@ const pt_BR = {
   "beat_time_hours_ago_other": "{{count}} hours ago",
   "mem_util": "Memória",
   "offset": "Desvio de relógio",
-  "offset_tip": "Calculado como o horário da máquina do Nightingale menos o horário da máquina do categraf",
+  "offset_tip": "Calculado como o horário da máquina do 致腾慧运维 menos o horário da máquina do categraf",
   "remote_addr": "IP de origem",
   "remote_addr_tip": "O IP de origem vem do cabeçalho HTTP; havendo um proxy no caminho, ele pode não ser o IP real",
   "note": "Observação",
@@ -139,7 +139,7 @@ const pt_BR = {
   "install": {
     "entry": "Instalar o Categraf com um clique",
     "title": "Instalar o coletor Categraf",
-    "addr_label": "Endereço do servidor Nightingale",
+    "addr_label": "Endereço do servidor 致腾慧运维",
     "addr_tip": "As máquinas monitoradas precisam alcançar este endereço. Por padrão usamos o endereço que o próprio servidor identificou, mas você pode alterá-lo",
     "addr_invalid": "Informe um endereço válido, por exemplo http://10.1.1.1:17000",
     "step_run": "Execute como root na máquina de destino",

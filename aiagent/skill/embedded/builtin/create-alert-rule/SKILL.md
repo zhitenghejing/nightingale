@@ -28,7 +28,7 @@ tags:
   - export
 ---
 
-# Skill: Nightingale (N9E) Alert Rule Creation
+# Skill: 致腾慧运维 Alert Rule Creation
 
 Two tools: `import_alert_rule_template` (reuse the validated rules in integrations) and `create_alert_rule` (hand-write rules).
 

@@ -1,13 +1,13 @@
 ---
 name: modify-task-tpl
-description: Helps users generate, modify, or troubleshoot Nightingale (n9e) alert self-healing scripts (task_tpl / ibex scripts). Use when the user asks to "write a self-healing script for disk cleanup / restarting a service / cleaning logs / dumping a process / reloading nginx", or asks "how does a self-healing script get the parameters passed from the alert", "what format is stdin in", "what should I set timeout to", "why is is_recovered always false", "why can't my self-healing script get the k8s namespace", "what do I do when a script stays running forever". This skill focuses on the **script body layer**—if the user wants to change alert rules, recipients, or notification templates, direct them to the corresponding skill.
+description: Helps users generate, modify, or troubleshoot 致腾慧运维 alert self-healing scripts (task_tpl / ibex scripts). Use when the user asks to "write a self-healing script for disk cleanup / restarting a service / cleaning logs / dumping a process / reloading nginx", or asks "how does a self-healing script get the parameters passed from the alert", "what format is stdin in", "what should I set timeout to", "why is is_recovered always false", "why can't my self-healing script get the k8s namespace", "what do I do when a script stays running forever". This skill focuses on the **script body layer**—if the user wants to change alert rules, recipients, or notification templates, direct them to the corresponding skill.
 tags:
   - internal
 ---
 
-# Nightingale (n9e) Alert Self-Healing Script (task_tpl) Generation
+# 致腾慧运维 Alert Self-Healing Script (task_tpl) Generation
 
-Nightingale alert self-healing is the **ibex subsystem**: when an alert rule's `callbacks` field is written as `${ibex}/<task_tpl_id>`, after an alert event fires it pulls up the script of the corresponding task_tpl on the machine matching the current event's `TargetIdent` and runs it on that machine's categraf. The script receives the labels of the current alert through **stdin**.
+致腾慧运维 alert self-healing is the **ibex subsystem**: when an alert rule's `callbacks` field is written as `${ibex}/<task_tpl_id>`, after an alert event fires it pulls up the script of the corresponding task_tpl on the machine matching the current event's `TargetIdent` and runs it on that machine's categraf. The script receives the labels of the current alert through **stdin**.
 
 This skill focuses on **writing/modifying the `task_tpl.script` field itself**—it does not cover creating alert rules, configuring recipients, or editing notification templates.
 
@@ -15,7 +15,7 @@ This skill focuses on **writing/modifying the `task_tpl.script` field itself**�
 
 ## 1. Scope: First Determine Which Layer the User Is Changing
 
-The Nightingale alert pipeline has four layers, and each goes through a different skill:
+The 致腾慧运维 alert pipeline has four layers, and each goes through a different skill:
 
 | Layer | Entity | Key files | Handled by this skill |
 |---|---|---|---|
@@ -28,7 +28,7 @@ The Nightingale alert pipeline has four layers, and each goes through a differen
 
 ---
 
-## 2. Data Model (What the User Can Fill In, Which Fields Nightingale Actually Uses)
+## 2. Data Model (What the User Can Fill In, Which Fields 致腾慧运维 Actually Uses)
 
 ### `TaskTpl` (`models/task_tpl.go:17-35`)
 

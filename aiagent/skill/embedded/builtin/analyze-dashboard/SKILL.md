@@ -1,6 +1,6 @@
 ---
 name: analyze-dashboard
-description: Analyze the data health of a given dashboard on Nightingale (n9e) over a time window. Use when the user asks to "analyze what problems a dashboard has", "check whether the xx dashboard has been normal over the last 24 hours", "inspect this dashboard", or "does this dashboard have any anomalies". Distinct from modifying a dashboard (modify-dashboard) and creating a dashboard (create-dashboard).
+description: Analyze the data health of a given dashboard on 致腾慧运维 over a time window. Use when the user asks to "analyze what problems a dashboard has", "check whether the xx dashboard has been normal over the last 24 hours", "inspect this dashboard", or "does this dashboard have any anomalies". Distinct from modifying a dashboard (modify-dashboard) and creating a dashboard (create-dashboard).
 max_iterations: 12
 examples:
   - "Analyze what data problems the etcd dashboard has within 24 hours"
@@ -17,7 +17,7 @@ tags:
   - internal
 ---
 
-# Skill: Nightingale (N9E) Analyze Dashboard
+# Skill: 致腾慧运维 Analyze Dashboard
 
 Help the user analyze the data health of an **existing dashboard** over a given time window, and produce an anomaly list with recommendations.
 

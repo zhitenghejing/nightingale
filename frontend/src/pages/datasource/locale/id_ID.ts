@@ -116,7 +116,7 @@ const id_ID = {
       "url_tip": "Contoh konfigurasi basis data deret waktu yang umum, kompatibel dengan API kueri Prometheus:",
       "help_content": "Belum punya basis data deret waktu? Ikuti <a>panduan pemasangan</a> untuk menyiapkannya",
       "prom_installation_title": "Panduan pemasangan",
-      "prom_installation": "Jalankan perintah berikut di mesin tempat Nightingale terpasang untuk memasang Prometheus. Untuk lingkungan produksi, VictoriaMetrics versi kluster lebih disarankan; lihat <a>dokumentasi resminya</a>",
+      "prom_installation": "Jalankan perintah berikut di mesin tempat 致腾慧运维 terpasang untuk memasang Prometheus. Untuk lingkungan produksi, VictoriaMetrics versi kluster lebih disarankan; lihat <a>dokumentasi resminya</a>",
       "tsdb_type": "Jenis basis data deret waktu"
     },
     "es": {

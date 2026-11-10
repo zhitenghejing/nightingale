@@ -116,11 +116,11 @@ const zh_HK = {
       '推薦使用服務帳號：在 admin.atlassian.com → 目錄 → 服務帳戶 建立，給 Jira 分配 User 角色，再為它建立 API Token。工單的報告人會顯示為這個服務帳號。Jira Cloud 的 API Token 最長有效期 1 年，到期後通知會失敗，請留意更換。',
     site_url: '站點地址',
     site_url_tip:
-      '和瀏覽器裡開啟 Jira 的地址一致，如 https://your-domain.atlassian.net，不要帶 /rest/api。使用帶權限範圍的權杖時也填站點地址，夜鶯會自動換算成 Atlassian 閘道地址。',
+      '和瀏覽器裡開啟 Jira 的地址一致，如 https://your-domain.atlassian.net，不要帶 /rest/api。使用帶權限範圍的權杖時也填站點地址，致腾慧运维會自動換算成 Atlassian 閘道地址。',
     site_url_invalid: '須以 http:// 或 https:// 開頭，如 https://your-domain.atlassian.net',
     token_type: '權杖類型',
     token_type_tip:
-      '服務帳號的權杖、以及點 Create API token with scopes 建立的權杖選第一項：它們必須經 Atlassian 閘道（api.atlassian.com）存取，夜鶯會根據站點地址自動取得 Cloud ID。點 Create API token 建立的一般權杖選第二項，直接存取站點地址。',
+      '服務帳號的權杖、以及點 Create API token with scopes 建立的權杖選第一項：它們必須經 Atlassian 閘道（api.atlassian.com）存取，致腾慧运维會根據站點地址自動取得 Cloud ID。點 Create API token 建立的一般權杖選第二項，直接存取站點地址。',
     token_scoped: '帶權限範圍的 API Token（含服務帳號，推薦）',
     token_classic: '一般 API Token',
     email: '信箱',
@@ -129,7 +129,7 @@ const zh_HK = {
     api_token_tip:
       '服務帳號：在服務帳號詳情頁的 Credentials 裡建立 API Token（授予 read:jira-work、write:jira-work，read:jira-user 可選）。個人帳號：https://id.atlassian.com/manage-profile/security/api-tokens。權杖只顯示一次。支援用 {{.變數名}} 引用變數設定。缺哪項權限以「校驗憑證」的結果為準。',
     cloud_id: 'Cloud ID',
-    cloud_id_tip: '一般留空，夜鶯會根據站點地址自動取得。自動取得失敗時手填：開啟 admin.atlassian.com，網址列裡 /s/ 後面那一段就是（注意不是 Organization ID）。',
+    cloud_id_tip: '一般留空，致腾慧运维會根據站點地址自動取得。自動取得失敗時手填：開啟 admin.atlassian.com，網址列裡 /s/ 後面那一段就是（注意不是 Organization ID）。',
     cloud_id_placeholder: '留空自動取得',
     proxy_tip: '存取 Jira 需要經過代理時填寫，如 http://127.0.0.1:7890',
     insecure_skip_verify: '略過憑證校驗',
@@ -175,7 +175,7 @@ const zh_HK = {
     api_url_tip: '留空使用 https://api.atlassian.com；介面路徑 /jsm/ops/integration/v2/alerts 會自動加上',
     api_url_invalid: '須以 http:// 或 https:// 開頭',
     priority_map: '級別與優先級',
-    priority_map_tip: '夜鶯各告警級別對應的 JSM 告警優先級。JSM 的優先級全站統一，所以在媒介裡配一次，所有規則共用；預設 S1→P1、S2→P2、S3→P3',
+    priority_map_tip: '致腾慧运维各告警級別對應的 JSM 告警優先級。JSM 的優先級全站統一，所以在媒介裡配一次，所有規則共用；預設 S1→P1、S2→P2、S3→P3',
     proxy_tip: '存取 api.atlassian.com 需要經過代理時填寫，如 http://127.0.0.1:7890',
   },
   pagerduty_request_config: {

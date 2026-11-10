@@ -88,13 +88,13 @@ const zh_CN = {
     key_check_failed: '无法检查center密钥状态；仅管理员可查看。',
 
     source_conflict: '当前同时存在固定文本和标签映射，发送会被阻止。请明确切换并只保留一种来源。',
-    mapping_title: 'JSON 字段与夜莺来源',
+    mapping_title: 'JSON 字段与致腾慧运维来源',
     mapping_location: '渠道页配置传输；通知规则页配置业务字段映射；任务详情查看实际保存的脱敏 JSON。',
     mapping_notice:
       '下面是字段来源表达式，不会发送，也不是可编辑的请求模板。实际从原始持久告警构造一个 JSON 对象，再放入表单 json 字段；deviceTags按已确认的字符串发送。',
     open_rules: '前往通知规则配置业务字段',
     json_field: 'JSON 字段（传输值均为字符串）',
-    field_source: '夜莺来源 / 填写规则',
+    field_source: '致腾慧运维来源 / 填写规则',
     structure_preview: 'JSON 结构与来源示意（不发送）',
     choose_rule_source: '在通知规则中选择固定文本或告警标签',
     choose_label: '在通知规则中指定标签键',
@@ -106,7 +106,7 @@ const zh_CN = {
     payload_notice:
       '这是任务保存的报文快照，读取不会发送。零次尝试不表示已投递；等待中的恢复报文在领取时才引用已受理故障字段。文件签名按已确认转换规则生成，UTF-8编码已确认。',
     payload_unavailable: '没有可解析的报文快照；请查看校验原因。',
-    pairing_notice: '夜莺按同一逻辑目的端 + 持久故障轮次 UUID 关联；恢复沿用已受理故障的归属、设备、problemTime 等字段。派发 UUID 用于去重，sign 不参与。本地身份不使用sign，1.0内部恢复处理不在本系统实现。',
+    pairing_notice: '致腾慧运维按同一逻辑目的端 + 持久故障轮次 UUID 关联；恢复沿用已受理故障的归属、设备、problemTime 等字段。派发 UUID 用于去重，sign 不参与。本地身份不使用sign，1.0内部恢复处理不在本系统实现。',
     sources: {
       alarmType: '自动：IsRecovered=false → problem；true → ok（已确认）。',
       companyId: '规则：固定外部归属文本，或指定原始告警标签值；不自动使用业务组ID，1.0可解析为不同的客户显示名称。',
@@ -312,11 +312,11 @@ const zh_CN = {
       '推荐使用服务账号：在 admin.atlassian.com → 目录 → 服务账户 创建，给 Jira 分配 User 角色，再为它创建 API Token。工单的报告人会显示为这个服务账号。Jira Cloud 的 API Token 最长有效期 1 年，到期后通知会失败，请留意更换。',
     site_url: '站点地址',
     site_url_tip:
-      '和浏览器里打开 Jira 的地址一致，如 https://your-domain.atlassian.net，不要带 /rest/api。使用带权限范围的令牌时也填站点地址，夜莺会自动换算成 Atlassian 网关地址。',
+      '和浏览器里打开 Jira 的地址一致，如 https://your-domain.atlassian.net，不要带 /rest/api。使用带权限范围的令牌时也填站点地址，致腾慧运维会自动换算成 Atlassian 网关地址。',
     site_url_invalid: '须以 http:// 或 https:// 开头，如 https://your-domain.atlassian.net',
     token_type: '令牌类型',
     token_type_tip:
-      '服务账号的令牌、以及点 Create API token with scopes 创建的令牌选第一项：它们必须经 Atlassian 网关（api.atlassian.com）访问，夜莺会根据站点地址自动获取 Cloud ID。点 Create API token 创建的普通令牌选第二项，直接访问站点地址。',
+      '服务账号的令牌、以及点 Create API token with scopes 创建的令牌选第一项：它们必须经 Atlassian 网关（api.atlassian.com）访问，致腾慧运维会根据站点地址自动获取 Cloud ID。点 Create API token 创建的普通令牌选第二项，直接访问站点地址。',
     token_scoped: '带权限范围的 API Token（含服务账号，推荐）',
     token_classic: '普通 API Token',
     email: '邮箱',
@@ -325,7 +325,7 @@ const zh_CN = {
     api_token_tip:
       '服务账号：在服务账号详情页的 Credentials 里创建 API Token（授予 read:jira-work、write:jira-work，read:jira-user 可选）。个人账号：https://id.atlassian.com/manage-profile/security/api-tokens。令牌只显示一次。支持用 {{.变量名}} 引用变量配置。缺哪项权限以「校验凭证」的结果为准。',
     cloud_id: 'Cloud ID',
-    cloud_id_tip: '一般留空，夜莺会根据站点地址自动获取。自动获取失败时手填：打开 admin.atlassian.com，地址栏里 /s/ 后面那一段就是（注意不是 Organization ID）。',
+    cloud_id_tip: '一般留空，致腾慧运维会根据站点地址自动获取。自动获取失败时手填：打开 admin.atlassian.com，地址栏里 /s/ 后面那一段就是（注意不是 Organization ID）。',
     cloud_id_placeholder: '留空自动获取',
     proxy_tip: '访问 Jira 需要经过代理时填写，如 http://127.0.0.1:7890',
     insecure_skip_verify: '跳过证书校验',
@@ -371,7 +371,7 @@ const zh_CN = {
     api_url_tip: '留空使用 https://api.atlassian.com；接口路径 /jsm/ops/integration/v2/alerts 会自动拼上',
     api_url_invalid: '须以 http:// 或 https:// 开头',
     priority_map: '级别与优先级',
-    priority_map_tip: '夜莺各告警级别对应的 JSM 告警优先级。JSM 的优先级全站统一，所以在媒介里配一次，所有规则共用；默认 S1→P1、S2→P2、S3→P3',
+    priority_map_tip: '致腾慧运维各告警级别对应的 JSM 告警优先级。JSM 的优先级全站统一，所以在媒介里配一次，所有规则共用；默认 S1→P1、S2→P2、S3→P3',
     proxy_tip: '访问 api.atlassian.com 需要经过代理时填写，如 http://127.0.0.1:7890',
   },
   pagerduty_request_config: {

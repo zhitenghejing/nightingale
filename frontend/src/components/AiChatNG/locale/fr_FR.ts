@@ -22,7 +22,7 @@ const fr_FR = {
     "more_actions": "Autres actions sur la conversation"
   },
   "nightingale": {
-    "title": "Nightingale AI",
+    "title": "致慧AI",
     "new_chat": "Nouvelle conversation",
     "sessions": "Conversation",
     "llm_configs": "Gestion des LLM",
@@ -33,9 +33,9 @@ const fr_FR = {
     "expand_sidebar": "Déplier le panneau IA",
     "welcome_cards": {
       "overview": {
-        "title": "Découvrir Nightingale rapidement",
+        "title": "Découvrir 致腾慧运维 rapidement",
         "description": "Comprendre en une minute ce que le produit et l'assistant IA savent faire",
-        "prompt": "Présente-moi en une minute les fonctions essentielles de Nightingale et ce que tu peux faire pour moi"
+        "prompt": "Présente-moi en une minute les fonctions essentielles de 致腾慧运维 et ce que tu peux faire pour moi"
       },
       "alerts": {
         "title": "Faire le point sur mes alertes",

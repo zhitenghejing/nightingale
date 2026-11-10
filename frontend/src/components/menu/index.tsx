@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import querystring from 'query-string';
 import { getMenuPerm } from '@/services/common';
 import { CommonStateContext } from '@/App';
+import { BRAND_ASSETS, PRODUCT_NAME } from '@/utils/branding';
 import IconFont from '../IconFont';
 import menuIcon from './configs';
 import './menu.less';
@@ -325,9 +326,9 @@ const SideMenu: FC = () => {
     }
   }, [profile?.roles, i18n.language]);
 
-  let imgURL = siteInfo?.menu_big_logo_url || '/image/logo-l.svg';
+  let imgURL = siteInfo?.menu_big_logo_url || BRAND_ASSETS.dark;
   if (collapsed === '1') {
-    imgURL = siteInfo?.menu_small_logo_url || '/image/logo.svg';
+    imgURL = siteInfo?.menu_small_logo_url || BRAND_ASSETS.mark;
   }
 
   return (
@@ -350,7 +351,7 @@ const SideMenu: FC = () => {
           })}
         >
           <div className='name' onClick={() => history.push('/')} key='overview'>
-            <img src={imgURL} alt='' className='logo' />
+            <img src={imgURL} alt={PRODUCT_NAME} className='logo' />
           </div>
         </div>
       )}

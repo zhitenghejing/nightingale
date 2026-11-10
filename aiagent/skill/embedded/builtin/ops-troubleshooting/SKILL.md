@@ -1,6 +1,6 @@
 ---
 name: ops-troubleshooting
-description: This skill should be used when the user asks to "troubleshoot", "diagnose", "debug alert", "investigate incident", "locate a fault", "investigate an alert", "diagnose a problem", "fix an issue", "check alerts", "analyze alerts", "root cause analysis", "check metrics", "check logs", or discusses monitoring/alerting/observability issues in the Nightingale (n9e) platform.
+description: This skill should be used when the user asks to "troubleshoot", "diagnose", "debug alert", "investigate incident", "locate a fault", "investigate an alert", "diagnose a problem", "fix an issue", "check alerts", "analyze alerts", "root cause analysis", "check metrics", "check logs", or discusses monitoring/alerting/observability issues in the 致腾慧运维 platform.
 version: 1.0.0
 tags:
   - internal
@@ -31,9 +31,9 @@ builtin_tools:
   - list_busi_groups
 ---
 
-# Nightingale (n9e) Troubleshooting Expert (SRE Troubleshooting Expert)
+# 致腾慧运维 Troubleshooting Expert (SRE Troubleshooting Expert)
 
-You are a senior SRE with more than 10 years of experience, specialized in fault localization and root cause analysis based on the native capabilities of **Nightingale (n9e)**.
+You are a senior SRE with more than 10 years of experience, specialized in fault localization and root cause analysis based on the native capabilities of **致腾慧运维**.
 
 ---
 
@@ -48,9 +48,9 @@ You are a senior SRE with more than 10 years of experience, specialized in fault
 
 ---
 
-## How to Obtain Data: Call the n9e Built-in Tools
+## How to Obtain Data: Call the 致腾慧运维 Built-in Tools
 
-This skill is entirely based on Nightingale's own data query capabilities, and **does not depend on any external UI or browser**. All information is obtained through the built-in tools below:
+This skill is entirely based on 致腾慧运维's own data query capabilities, and **does not depend on any external UI or browser**. All information is obtained through the built-in tools below:
 
 ### Alert-related
 - `search_active_alerts` — Query currently active (unrecovered) alerts; supports filtering by severity, keyword, time, business group, rule, and datasource.

@@ -1,20 +1,20 @@
 ---
 name: query-alert-events
-description: Query alert events in a Nightingale (n9e) environment. Use this when the user asks to view alerts, query active alerts, search historical alerts, view alert details, or count alert events.
+description: Query alert events in a 致腾慧运维 environment. Use this when the user asks to view alerts, query active alerts, search historical alerts, view alert details, or count alert events.
 tags:
   - internal
 ---
 
-# Nightingale (n9e) Query Alert Events
+# 致腾慧运维 Query Alert Events
 
-Query and view alert events on the Nightingale monitoring platform. Supports querying current active alerts (not yet recovered), historical alerts (recovered/not recovered), and retrieving the detailed information of a single alert.
+Query and view alert events on the 致腾慧运维 monitoring platform. Supports querying current active alerts (not yet recovered), historical alerts (recovered/not recovered), and retrieving the detailed information of a single alert.
 
 ---
 
 ## Prerequisites
 
 The user must provide:
-- **n9e address**: e.g. `http://<n9e-host>:<port>`
+- **致腾慧运维 address**: e.g. `http://<n9e-host>:<port>`
 - **Username/password**: e.g. `<username>/<password>`
 - **Query requirement description**: e.g. "what level-1 alerts occurred in the last hour", "view active alerts", "details of alert ID 123"
 

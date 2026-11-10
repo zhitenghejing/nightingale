@@ -10,7 +10,7 @@ const zh_CN = {
   feishu_setting: {
     app_id_tip: '飞书开放平台应用的唯一标识, 在创建应用时，由系统自动生成，用户不能自行修改。可以在<1>开发者后台</1>的凭证与基础信息页面查看app_id',
     app_secret_tip: '应用的秘钥。在创建应用时，由系统自动生成',
-    cover_attributes_tip: '每次登陆后，如果用户信息有变化，会使用飞书中用户的信息覆盖夜莺中用户的信息(手机号、邮箱)',
+    cover_attributes_tip: '每次登陆后，如果用户信息有变化，会使用飞书中用户的信息覆盖致腾慧运维中用户的信息(手机号、邮箱)',
   },
   dingtalk_setting: {
     enable: '启用',
@@ -20,7 +20,7 @@ const zh_CN = {
     client_id: 'Client ID',
     client_secret: 'Client secret',
     cover_attributes: '更新用户信息',
-    cover_attributes_tip: '每次登陆后，如果用户信息有变化，会使用钉钉中用户的信息覆盖夜莺中用户的信息(手机号、邮箱)',
+    cover_attributes_tip: '每次登陆后，如果用户信息有变化，会使用钉钉中用户的信息覆盖致腾慧运维中用户的信息(手机号、邮箱)',
     username_field: '用户名字段',
     default_team: '默认团队',
     username_field_map: {

@@ -13,7 +13,7 @@ tags:
   - export
 ---
 
-# Skill: Nightingale (N9E) Dashboard Creation
+# Skill: 致腾慧运维 Dashboard Creation
 
 There are two paths to create a dashboard. **Prefer path A (import an integration template)**, since templates are hand-tuned, validated, finished products with quality far higher than hand-assembled ones; only fall back to path B when there is no ready-made template or the user wants custom metrics.
 

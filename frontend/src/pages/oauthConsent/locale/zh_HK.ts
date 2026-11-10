@@ -1,6 +1,6 @@
 const zh_HK = {
   title: '授權請求',
-  intro: '以下應用申請以你的身份訪問夜鶯的 MCP / A2A 介面：',
+  intro: '以下應用申請以你的身份訪問致腾慧运维的 MCP / A2A 介面：',
   asUser: '當前登入身份：',
   redirectTo: '回調地址：',
   scope: '申請權限：',

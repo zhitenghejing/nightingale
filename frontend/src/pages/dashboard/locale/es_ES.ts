@@ -98,11 +98,11 @@ const es_ES = {
   exit_full_screen: 'Salir de la pantalla completa',
   copyPanelTip: 'Configuración del gráfico copiada. Usa «Añadir gráfico» > «Pegar gráfico» para crear uno a partir del JSON',
   batch: {
-    import: 'Importar un JSON de dashboard de Nightingale',
+    import: 'Importar un JSON de dashboard de 致腾慧运维',
     label: 'JSON del dashboard',
     import_grafana: 'Importar un dashboard de Grafana (no recomendado)',
     import_grafana_tip:
-      'Solo pueden importarse dashboards con orígenes de datos Prometheus y con los tipos de gráfico y funciones que admite Nightingale <a>Informar de un problema</a>',
+      'Solo pueden importarse dashboards con orígenes de datos Prometheus y con los tipos de gráfico y funciones que admite 致腾慧运维 <a>Informar de un problema</a>',
     import_grafana_tip_version_error: 'No se pueden importar configuraciones de dashboard anteriores a la v7',
     import_grafana_tip_version_warning: 'Al importar configuraciones anteriores a la v8, puede que algunos gráficos no se admitan o no se dibujen correctamente',
     import_grafana_url: 'Enlace del dashboard de Grafana (recomendado)',

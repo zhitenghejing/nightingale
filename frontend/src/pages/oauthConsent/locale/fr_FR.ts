@@ -1,6 +1,6 @@
 const fr_FR = {
   "title": "Demande d'autorisation",
-  "intro": "L'application suivante demande à accéder aux interfaces MCP / A2A de Nightingale en votre nom :",
+  "intro": "L'application suivante demande à accéder aux interfaces MCP / A2A de 致腾慧运维 en votre nom :",
   "asUser": "Connecté en tant que :",
   "redirectTo": "URL de rappel :",
   "scope": "Droits demandés :",

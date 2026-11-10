@@ -1,6 +1,6 @@
 const ko_KR = {
   "title": "권한 요청",
-  "intro": "다음 앱이 당신의 이름으로 Nightingale의 MCP / A2A 인터페이스에 접근하려 합니다:",
+  "intro": "다음 앱이 당신의 이름으로 致腾慧运维의 MCP / A2A 인터페이스에 접근하려 합니다:",
   "asUser": "현재 로그인 계정:",
   "redirectTo": "콜백 주소:",
   "scope": "요청한 권한:",

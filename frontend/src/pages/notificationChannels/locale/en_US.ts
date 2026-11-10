@@ -88,13 +88,13 @@ const en_US = {
     key_check_failed: 'Unable to inspect center key readiness; administrators only.',
 
     source_conflict: 'Both literal and label mappings exist; sending is blocked. Explicitly select one source to resolve the conflict.',
-    mapping_title: 'JSON fields and Nightingale sources',
+    mapping_title: 'JSON fields and 致腾慧运维 sources',
     mapping_location: 'Transport is configured on the channel; business mappings on notification rules; saved redacted JSON in task details.',
     mapping_notice:
       'Source expressions only: this is neither a send action nor an editable request template. One validated JSON object is encoded in form field json. deviceTags is sent as a confirmed JSON string.',
     open_rules: 'Open notification rules to configure business mappings',
     json_field: 'JSON field (string values)',
-    field_source: 'Nightingale source / mapping rule',
+    field_source: '致腾慧运维 source / mapping rule',
     structure_preview: 'JSON structure and source expressions (never sent)',
     choose_rule_source: 'Choose a literal or event label in the notification rule',
     choose_label: 'Specify the event label key in the notification rule',
@@ -321,7 +321,7 @@ const en_US = {
       'Recommended: create a service account in admin.atlassian.com → Directory → Service accounts, give it the User role for Jira, and create an API token for it. Issues are reported by this account. Jira Cloud API tokens expire after at most 1 year; notifications fail once the token expires.',
     site_url: 'Site URL',
     site_url_tip:
-      'The address you open Jira with in the browser, e.g. https://your-domain.atlassian.net, without /rest/api. Fill in the site URL even with a scoped token; Nightingale converts it to the Atlassian gateway address automatically.',
+      'The address you open Jira with in the browser, e.g. https://your-domain.atlassian.net, without /rest/api. Fill in the site URL even with a scoped token; 致腾慧运维 converts it to the Atlassian gateway address automatically.',
     site_url_invalid: 'Must start with http:// or https://, e.g. https://your-domain.atlassian.net',
     token_type: 'Token type',
     token_type_tip:
@@ -384,7 +384,7 @@ const en_US = {
     api_url_invalid: 'Must start with http:// or https://',
     priority_map: 'Severity to priority',
     priority_map_tip:
-      'JSM alert priority for each Nightingale severity. JSM priorities are the same across the site, so this is set once here for all rules; defaults are S1→P1, S2→P2, S3→P3',
+      'JSM alert priority for each 致腾慧运维 severity. JSM priorities are the same across the site, so this is set once here for all rules; defaults are S1→P1, S2→P2, S3→P3',
     proxy_tip: 'Fill in when api.atlassian.com can only be reached through a proxy, e.g. http://127.0.0.1:7890',
   },
   pagerduty_request_config: {

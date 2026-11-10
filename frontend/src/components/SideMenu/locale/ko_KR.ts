@@ -71,7 +71,7 @@ const ko_KR = {
     "about": "제품 정보",
     "license_management": "인증서 관리",
     "ai_config": "AI 설정",
-    "nightingale_ai": "Nightingale AI",
+    "nightingale_ai": "致慧AI",
     "ai_config_agents": "에이전트 관리",
     "ai_config_llm_configs": "LLM 관리",
     "ai_config_skills": "스킬 관리",

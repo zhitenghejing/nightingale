@@ -96,10 +96,10 @@ const ko_KR = {
   exit_full_screen: '전체 화면 끝내기',
   copyPanelTip: '그래프 설정을 복사했습니다. "그래프 추가" > "그래프 붙여넣기"를 눌러 JSON을 붙여 넣으면 그래프가 만들어집니다',
   batch: {
-    import: 'Nightingale 대시보드 JSON 가져오기',
+    import: '致腾慧运维 대시보드 JSON 가져오기',
     label: '대시보드 JSON',
     import_grafana: 'Grafana 대시보드 가져오기 (권장하지 않음)',
-    import_grafana_tip: 'Prometheus 데이터 소스를 쓰는 대시보드만, 그것도 Nightingale이 지원하는 그래프 유형과 기능 범위 안에서만 가져올 수 있습니다 <a>문제 신고</a>',
+    import_grafana_tip: 'Prometheus 데이터 소스를 쓰는 대시보드만, 그것도 致腾慧运维이 지원하는 그래프 유형과 기능 범위 안에서만 가져올 수 있습니다 <a>문제 신고</a>',
     import_grafana_tip_version_error: 'v7 미만 버전의 대시보드 설정은 가져올 수 없습니다',
     import_grafana_tip_version_warning: 'v8 미만 버전의 대시보드 설정을 가져오면 일부 그래프가 지원되지 않거나 제대로 표시되지 않을 수 있습니다',
     import_grafana_url: 'Grafana 대시보드 링크 (권장)',

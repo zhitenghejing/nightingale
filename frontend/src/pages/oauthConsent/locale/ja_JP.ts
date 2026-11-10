@@ -1,6 +1,6 @@
 const ja_JP = {
   title: '認可リクエスト',
-  intro: '以下のアプリケーションが、あなたとして Nightingale の MCP / A2A API へのアクセスを要求しています：',
+  intro: '以下のアプリケーションが、あなたとして 致腾慧运维 の MCP / A2A API へのアクセスを要求しています：',
   asUser: 'ログイン中のユーザー：',
   redirectTo: 'リダイレクト先：',
   scope: '要求された権限：',

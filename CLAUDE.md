@@ -89,6 +89,11 @@ Alert engines register in `alerting_engine` table with `engine_cluster` (= `Aler
 
 ## Conventions worth knowing
 
+- Product UI branding is centralized in `frontend/src/utils/branding.ts` and
+  `frontend/public/image/brand/`: red/black on light surfaces, red/white on dark
+  surfaces, symbol only when collapsed. Preserve site-specific Logo/title
+  overrides, menu themes, third-party icons, routes/API identifiers, upstream
+  links and copyright notices. Keep the legacy Logo paths compatible.
 - Config is TOML in `etc/config.toml` loaded by `conf/` (koding/multiconfig, env overrides). Secret fields can be encrypted with `--crypto-key`.
 - API docs for newer features are in `doc/api/*.md`; add one when introducing a new endpoint family.
 - Comments in code are frequently Chinese; keep commit messages and new code comments in English unless matching surrounding style.

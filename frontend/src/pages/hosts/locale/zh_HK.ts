@@ -69,7 +69,7 @@ const zh_HK = {
   beat_time_hours_ago_other: '{{count}} hours ago',
   mem_util: '記憶體',
   offset: '時間偏移',
-  offset_tip: '計算邏輯為用 夜鶯部署機器的時間減去 categraf 部署機器的時間',
+  offset_tip: '計算邏輯為用 致腾慧运维部署機器的時間減去 categraf 部署機器的時間',
   remote_addr: '來源 IP',
   remote_addr_tip: '來源 IP 是從 HTTP Header 中獲取的，如果經過了代理，不一定是真實的來源 IP',
   note: '備註',
@@ -146,7 +146,7 @@ const zh_HK = {
   install: {
     entry: '一鍵安裝 Categraf',
     title: '安裝 Categraf 採集器',
-    addr_label: '夜鶯服務端地址',
+    addr_label: '致腾慧运维服務端地址',
     addr_tip: '被監控機器需要能訪問該地址；預設取服務端自身識別到的地址，可修改',
     addr_invalid: '請填寫合法地址，例如 http://10.1.1.1:17000',
     step_run: '在目標機器上以 root 權限執行',

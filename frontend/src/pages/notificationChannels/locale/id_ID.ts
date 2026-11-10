@@ -118,7 +118,7 @@ const id_ID = {
       'Disarankan: buat akun layanan di admin.atlassian.com → Direktori → Akun layanan, berikan peran User untuk Jira, lalu buat token API untuknya. Issue akan dilaporkan oleh akun ini. Token API Jira Cloud berlaku paling lama 1 tahun; setelah kedaluwarsa notifikasi akan gagal.',
     site_url: 'URL situs',
     site_url_tip:
-      'Alamat yang Anda gunakan untuk membuka Jira di browser, misalnya https://your-domain.atlassian.net, tanpa /rest/api. Saat memakai token berlingkup, tetap isi URL situs; Nightingale akan mengubahnya ke alamat gateway Atlassian secara otomatis.',
+      'Alamat yang Anda gunakan untuk membuka Jira di browser, misalnya https://your-domain.atlassian.net, tanpa /rest/api. Saat memakai token berlingkup, tetap isi URL situs; 致腾慧运维 akan mengubahnya ke alamat gateway Atlassian secara otomatis.',
     site_url_invalid: 'Harus diawali http:// atau https://, misalnya https://your-domain.atlassian.net',
     token_type: 'Jenis token',
     token_type_tip:
@@ -180,7 +180,7 @@ const id_ID = {
     api_url_invalid: 'Harus diawali http:// atau https://',
     priority_map: 'Tingkat dan prioritas',
     priority_map_tip:
-      'Prioritas alert JSM untuk tiap tingkat Nightingale. Prioritas JSM sama di seluruh situs, jadi cukup diatur sekali di sini untuk semua aturan; default S1→P1, S2→P2, S3→P3',
+      'Prioritas alert JSM untuk tiap tingkat 致腾慧运维. Prioritas JSM sama di seluruh situs, jadi cukup diatur sekali di sini untuk semua aturan; default S1→P1, S2→P2, S3→P3',
     proxy_tip: 'Isi jika api.atlassian.com hanya dapat dijangkau melalui proxy, misalnya http://127.0.0.1:7890',
   },
   pagerduty_request_config: {

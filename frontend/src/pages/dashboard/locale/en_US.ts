@@ -98,10 +98,10 @@ const en_US = {
   exit_full_screen: 'Exit full screen',
   copyPanelTip: 'Panel config copied. Click "Add panel" > "Paste panel" to paste the config JSON to create a panel',
   batch: {
-    import: 'Import Nightingale dashboard JSON',
+    import: 'Import 致腾慧运维 dashboard JSON',
     label: 'Dashboard JSON',
     import_grafana: 'Import Grafana dashboard (not recommended)',
-    import_grafana_tip: 'Only dashboards using Prometheus data sources, and the chart types and features supported by Nightingale, can be imported <a>feedback</a>',
+    import_grafana_tip: 'Only dashboards using Prometheus data sources, and the chart types and features supported by 致腾慧运维, can be imported <a>feedback</a>',
     import_grafana_url: 'Import Grafana dashboard URL',
     import_grafana_url_label: 'Grafana dashboard URL',
     show_time_picker: 'Show time picker',
