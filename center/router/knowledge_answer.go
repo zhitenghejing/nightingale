@@ -26,7 +26,7 @@ type knowledgeAnswerEvidence struct {
 }
 
 func (e *knowledgeAnswerEvidence) observe(tool, text string) {
-	if tool != "read_knowledge" && tool != "search_knowledge" && tool != "query_knowledge_data" && tool != "resolve_knowledge_object" {
+	if tool != "read_knowledge" && tool != "search_knowledge" && tool != "query_knowledge_data" && tool != "resolve_knowledge_object" && tool != "query_environment" {
 		return
 	}
 	if strings.HasPrefix(text, "Error:") {
@@ -36,7 +36,7 @@ func (e *knowledgeAnswerEvidence) observe(tool, text string) {
 		}
 		return
 	}
-	if tool == "query_knowledge_data" || tool == "resolve_knowledge_object" {
+	if tool == "query_knowledge_data" || tool == "resolve_knowledge_object" || tool == "query_environment" {
 		var data aiagent.KnowledgeDataEvidence
 		if json.Unmarshal([]byte(text), &data) == nil && data.Operation != "" && data.QueriedAt > 0 && len(data.Result) > 0 {
 			data.Result = nil

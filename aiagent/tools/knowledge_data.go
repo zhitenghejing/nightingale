@@ -18,6 +18,7 @@ import (
 	"github.com/ccfos/nightingale/v6/dskit/sqlbase"
 	"github.com/ccfos/nightingale/v6/dskit/types"
 	"github.com/ccfos/nightingale/v6/models"
+	"github.com/ccfos/nightingale/v6/pkg/environment"
 	"github.com/prometheus/prometheus/promql/parser"
 )
 
@@ -51,6 +52,9 @@ func CheckKnowledgeDataAccess(ctx context.Context, d *aiagent.ToolDeps, userID i
 	user, err := getUser(d, map[string]string{"user_id": fmt.Sprint(userID)})
 	if err != nil || user.Disabled != 0 {
 		return fmt.Errorf("没有权限查阅")
+	}
+	if strings.HasPrefix(e.Operation, "environment_") {
+		return (&environment.Store{DB: d.DBCtx.DB.WithContext(ctx)}).Validate(userID, e.EnvironmentRefs)
 	}
 	for _, id := range e.DatasourceIDs {
 		ds, err := models.DatasourceGet(d.DBCtx, id)

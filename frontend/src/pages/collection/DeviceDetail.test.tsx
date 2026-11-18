@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 import React from 'react';
+jest.mock('@/utils/request', () => ({ __esModule: true, default: jest.fn() }));
 import { fireEvent, render, screen } from '@testing-library/react';
 import { CommonStateContext } from '@/App';
 import { getDeviceDetail } from '@/services/collection';

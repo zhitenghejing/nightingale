@@ -295,6 +295,7 @@ func (rt *Router) Config(r *gin.Engine) {
 	rt.configArchiveRoutes(pages)
 	rt.configOpsRoutes(pages)
 	rt.configLibraryRoutes(pages)
+	rt.configEnvironmentRoutes(pages)
 	rt.configCollection(r, pages)
 	{
 

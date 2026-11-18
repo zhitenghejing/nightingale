@@ -31,6 +31,7 @@ import (
 	"github.com/ccfos/nightingale/v6/pkg/cmdb"
 	"github.com/ccfos/nightingale/v6/pkg/collection"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
+	"github.com/ccfos/nightingale/v6/pkg/environment"
 	"github.com/ccfos/nightingale/v6/pkg/evallog"
 	"github.com/ccfos/nightingale/v6/pkg/externalpush"
 	"github.com/ccfos/nightingale/v6/pkg/flashduty"
@@ -277,6 +278,7 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 	opsContext, opsCancel := context.WithCancel(ctx.Ctx)
 	opsWait := centerRouter.Ops.Start(opsContext)
 	libraryWait := centerRouter.Library.Start(opsContext)
+	environmentWait := (&environment.Store{DB: db}).Start(opsContext)
 
 	fmt.Printf("please view n9e at  http://%v:%v\n", config.Alert.Heartbeat.IP, config.HTTP.Port)
 	if isRootInit {
@@ -287,6 +289,7 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 		opsCancel()
 		opsWait()
 		libraryWait()
+		environmentWait()
 		// httpClean 优雅关闭：等在途请求处理完才返回，之后不再有 remote write
 		// 请求进到本地 tsdb，Close 不会与写入竞态
 		httpClean()

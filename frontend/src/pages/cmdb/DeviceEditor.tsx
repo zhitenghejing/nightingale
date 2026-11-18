@@ -1,3 +1,4 @@
+import EnvironmentRelations from '@/components/EnvironmentRelations';
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, Col, Form, Input, InputNumber, Modal, Popconfirm, Radio, Row, Select, Space, message } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
@@ -139,7 +140,8 @@ export default function DeviceEditor({
       onCancel={closeEditor}
       maskClosable={false}
       footer={
-        <Space>
+        <Space wrap>
+          {editor?.device?.id && <EnvironmentRelations objectRef={`asset:${editor.device.id}`} />}
           <span className='cmdb-modal-hint'>{readonly ? '只读查看' : '保存后同步更新清单与机柜图'}</span>
           {editor?.mode !== 'add' && editor?.device?.id && (
             <Popconfirm title='设备将移入回收站并释放 U 位，可从 CMDB 回收站恢复。' okText='确认删除' cancelText='取消' disabled={!canDelete || saving} onConfirm={deleteDevice}>

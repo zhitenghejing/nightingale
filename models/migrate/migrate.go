@@ -289,6 +289,7 @@ func MigrateTables(db *gorm.DB) error {
 	dts = append(dts, models.OpsTables()...)
 	dts = append(dts, models.KnowledgeTables()...)
 	dts = append(dts, models.LibraryTables()...)
+	dts = append(dts, models.EnvironmentTables()...)
 
 	if isPostgres(db) {
 		dts = append(dts, &models.AssistantMessageRow{}) // PostgreSQL: text is unlimited

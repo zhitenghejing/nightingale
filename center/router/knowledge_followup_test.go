@@ -55,7 +55,7 @@ func TestKnowledgeHistoryDoesNotTreatOlderToolResultsAsCurrentTurnEvidence(t *te
 func TestKnowledgeDocumentSearchCannotUseTargetCatalogAsDocumentEvidence(t *testing.T) {
 	h, _ := chat.Lookup("knowledge_qa")
 	names := h.SelectTools(&chat.AIChatRequest{UserInput: "请查找只含 ZZNOFOLLOWUP781923 的资料"})
-	require.Equal(t, []string{"search_knowledge", "read_knowledge"}, names)
+	require.Equal(t, []string{"search_knowledge", "read_knowledge", "query_environment"}, names)
 	require.True(t, chat.KnowledgeDocumentSearch("请查找这个编号的资料"))
 }
 
@@ -115,4 +115,22 @@ func (m *knowledgeAuditTestModel) Generate(_ context.Context, r *llm.GenerateReq
 }
 func (m *knowledgeAuditTestModel) GenerateStream(context.Context, *llm.GenerateRequest) (<-chan llm.StreamChunk, error) {
 	panic("audit must not stream unverified conclusions")
+}
+func TestEnvironmentConclusionsAreReviewedWithoutDocumentReads(t *testing.T) {
+	e := knowledgeAnswerEvidence{Data: []aiagent.KnowledgeDataEvidence{{Operation: "environment_trace"}}}
+	require.True(t, knowledgeNeedsAudit("当前依赖及采样情况", e))
+	require.False(t, knowledgeNeedsAudit("解释术语", knowledgeAnswerEvidence{}))
+	model := &knowledgeAuditTestModel{}
+	rt := &Router{}
+	raw := `{"operation":"environment_trace","queried_at":123,"result":{"nodes":[{"ref":"target:1","name":"Sim-App","attributes":{"host_ip":"10.0.0.1"},"fingerprint":"private-hash"}],"relations":[{"from_ref":"service:1","to_ref":"target:1","effective":"confirmed","from":{"ref":"service:1","name":"Sim-ESB","fingerprint":"private-hash"}}],"truncated":true,"evidence":{"private":"hash"}}}`
+	_, err := rt.auditKnowledgeAnswer(context.Background(), model, 1, "当前依赖及采样情况", e, "所有设备无采样", []aiagent.ChatMessage{{Role: "tool", ToolName: "query_environment", Content: raw}})
+	require.NoError(t, err)
+	require.NotNil(t, model.request)
+	require.Empty(t, model.request.Tools)
+	payload := model.request.Messages[1].Content
+	require.Contains(t, payload, "Sim-App")
+	require.Contains(t, payload, "confirmed")
+	require.NotContains(t, payload, "private-hash")
+	require.Contains(t, model.request.Messages[0].Content, "指定选择器")
+	require.Contains(t, model.request.Messages[0].Content, "60秒步进")
 }

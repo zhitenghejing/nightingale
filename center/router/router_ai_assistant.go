@@ -845,14 +845,14 @@ func (rt *Router) processAssistantMessage(parentCtx context.Context, parentCance
 		if chat.KnowledgeDocumentSearch(msg.Query.Content) && len(qaEvidence.Sections)+len(qaEvidence.Procedures) == 0 {
 			qaEvidence.Data = nil // A device/catalog lookup cannot prove a document match.
 		}
-		if len(qaEvidence.Sections) > 0 && knowledgeConclusionQuestion(msg.Query.Content) {
+		if knowledgeNeedsAudit(msg.Query.Content, qaEvidence) {
 			state.Update(parentCtx, func(m *models.AssistantMessage) { m.CurStep = "核对资料与结论" })
 			_ = rt.streamBus.Append(parentCtx, msg.ChatID, streamID, aiagent.StreamMessage{P: "step", V: "核对资料与结论"})
 		}
 		reviewed, reviewErr := rt.auditKnowledgeAnswer(parentCtx, llmClient, userId, msg.Query.Content, qaEvidence, markdown, turnMsgs)
 		if reviewErr != nil {
 			logger.Warningf("[KnowledgeQA] answer review unavailable chat=%s seq=%d", msg.ChatID, msg.SeqID)
-			markdown = "已找到相关历史资料，但本次结论核验未完成，暂不能据此判断当前状态或最终原因。可先核对下列原文。"
+			markdown = "已取得部分资料或查询结果，但本次结论核验未完成，暂不能据此判断当前状态或最终原因。可先核对下列来源。"
 		} else {
 			markdown = reviewed
 		}

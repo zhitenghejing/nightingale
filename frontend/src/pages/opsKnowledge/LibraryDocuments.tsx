@@ -1,3 +1,4 @@
+import EnvironmentRelations from '@/components/EnvironmentRelations';
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, Drawer, Input, Space, Table, Tabs, Tag, message } from 'antd';
 import { Link } from 'react-router-dom';
@@ -136,7 +137,7 @@ export default function LibraryDocuments() {
       <Drawer width='min(900px, 96vw)' title={reading ? `${reading.title} · V${reading.sequence}` : ''} visible={!!reading} onClose={() => setReading(undefined)}>
         {reading && (
           <>
-            <LibraryStatus item={reading} />
+            <Space wrap><LibraryStatus item={reading} /><EnvironmentRelations objectRef={`document:${reading.id}`} /></Space>
             <Tabs defaultActiveKey='markdown'>
               <Tabs.TabPane tab='Markdown 原文' key='markdown'>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{reading.markdown || '原文尚未解析，请查看处理状态。'}</ReactMarkdown>

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -16,7 +17,7 @@ import (
 // negation and correlation vs causation errors before publication. Source scope
 // is still revalidated by groundKnowledgeAnswer after this inference.
 func (rt *Router) auditKnowledgeAnswer(ctx context.Context, client llm.LLM, user int64, question string, e knowledgeAnswerEvidence, draft string, turns []aiagent.ChatMessage) (string, error) {
-	if len(e.Sections) == 0 || !knowledgeConclusionQuestion(question) {
+	if !knowledgeNeedsAudit(question, e) {
 		return draft, nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
@@ -45,14 +46,48 @@ func (rt *Router) auditKnowledgeAnswer(ctx context.Context, client llm.LLM, user
 		}
 	}
 	live := []string{}
+	observations := []aiagent.KnowledgeDataEvidence{}
 	for _, m := range turns {
-		if m.Role == "tool" && (m.ToolName == "query_knowledge_data" || m.ToolName == "resolve_knowledge_object") && !strings.HasPrefix(m.Content, "Error:") {
-			text := []rune(m.Content)
-			if len(text) > 5000 {
-				text = text[:5000]
-			}
-			live = append(live, string(text))
+		if m.Role != "tool" || (m.ToolName != "query_knowledge_data" && m.ToolName != "resolve_knowledge_object" && m.ToolName != "query_environment") || strings.HasPrefix(m.Content, "Error:") {
+			continue
 		}
+		var receipt aiagent.KnowledgeDataEvidence
+		if json.Unmarshal([]byte(m.Content), &receipt) == nil && receipt.Operation != "" {
+			observations = append(observations, receipt)
+		}
+	}
+	priority := func(op string) int {
+		switch op {
+		case "query_prometheus", "get_target_realtime_status", "environment_trace":
+			return 0
+		case "environment_context":
+			return 1
+		default:
+			return 2
+		}
+	}
+	sort.SliceStable(observations, func(i, j int) bool { return priority(observations[i].Operation) < priority(observations[j].Operation) })
+	budget := 30000
+	for _, receipt := range observations {
+		var result interface{}
+		if json.Unmarshal(receipt.Result, &result) != nil {
+			continue
+		}
+		if strings.HasPrefix(receipt.Operation, "environment_") {
+			result = knowledgeEnvironmentReviewProjection(result)
+		}
+		raw, _ := json.Marshal(map[string]interface{}{"operation": receipt.Operation, "query": receipt.Query, "time_range": receipt.TimeRange, "queried_at": receipt.QueriedAt, "truncated": receipt.Truncated, "result": result})
+		text := []rune(string(raw))
+		limit := 8000
+		if len(text) > limit {
+			text = append(text[:limit], []rune("（核验输入已截断，不能作完整覆盖结论）")...)
+		}
+		if len(text) > budget {
+			live = append(live, "其他查询未包含在核验输入中，不能据此补充或排除事实。")
+			break
+		}
+		budget -= len(text)
+		live = append(live, string(text))
 	}
 	payload, _ := json.Marshal(map[string]interface{}{"question": question, "draft": draft, "document_sources": sources, "current_read_results": live})
 	max := 4096
@@ -66,7 +101,10 @@ func (rt *Router) auditKnowledgeAnswer(ctx context.Context, client llm.LLM, user
 4. 旧巡检正常只能说明报告日期当时的记录。未取得同一设备的实时状态，准确说当前未知；不同院区同型号不建立关联。
 5. 采样时间早于求值时，正的 lag_seconds 表示滞后，不得写成采样更晚；空结果、没有告警不能证明正常或不会复发。
 6. 只可说当前可查询范围内未找到，不把未找到说成不存在。数据源列表不能证明平台没有告警/工单记录。
-7. 使用资料标题、Vn 版本序号与原链接；删去内部数据库 ID。原文、解释和未确认事项用自然语言区分，不套固定报告模板。
+7. 环境关系仅以已确认且当前有效的边为依据；未维护或遍历截断不能证明完整影响范围。台账记录不是当前健康证据，资产审计不是全部IT变更。
+8. 从未收到本平台心跳，只能说明该心跳链路未收到数据。几个指定选择器的空结果，只能说明该数据源和这些选择器下未查到，不能泛化为“设备没有任何真实采样”。按IP猜测instance标签不能证明标识映射正确。
+9. 指标目录截断时不能排除未展示的指标类型。60秒步进返回点全部正常，只能证明这些求值点的结果，不能断言间隔内每次采样都成功或整个窗口从未中断。
+10. 使用资料标题、Vn 版本序号与原链接；删去内部数据库 ID。原文、解释和未确认事项用自然语言区分，不套固定报告模板。
 已有证据不足就如实收窄结论，不编造补齐。`},
 		{Role: llm.RoleUser, Content: string(payload)},
 	}})
@@ -89,4 +127,49 @@ func knowledgeConclusionQuestion(input string) bool {
 		}
 	}
 	return false
+}
+
+func knowledgeNeedsAudit(question string, e knowledgeAnswerEvidence) bool {
+	if len(e.Sections) > 0 && knowledgeConclusionQuestion(question) {
+		return true
+	}
+	if len(e.Data) == 0 {
+		return false
+	}
+	for _, term := range []string{"现在", "当前", "目前", "采样", "健康", "依赖", "影响", "环境", "故障", "风险"} {
+		if strings.Contains(question, term) {
+			return true
+		}
+	}
+	return false
+}
+
+// Remove receipt bookkeeping and repeated endpoint attributes while preserving
+// node facts, relation direction/effective state and explicit source limitations.
+func knowledgeEnvironmentReviewProjection(value interface{}) interface{} {
+	switch v := value.(type) {
+	case map[string]interface{}:
+		out := map[string]interface{}{}
+		for key, item := range v {
+			if key == "fingerprint" || key == "evidence" || key == "writable" {
+				continue
+			}
+			if key == "from" || key == "to" {
+				if entity, ok := item.(map[string]interface{}); ok {
+					out[key] = map[string]interface{}{"ref": entity["ref"], "name": entity["name"], "kind": entity["kind"]}
+					continue
+				}
+			}
+			out[key] = knowledgeEnvironmentReviewProjection(item)
+		}
+		return out
+	case []interface{}:
+		out := make([]interface{}, 0, len(v))
+		for _, item := range v {
+			out = append(out, knowledgeEnvironmentReviewProjection(item))
+		}
+		return out
+	default:
+		return v
+	}
 }
