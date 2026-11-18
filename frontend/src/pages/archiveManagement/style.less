@@ -28,7 +28,9 @@
 }
 @font-face {
   font-family: 'Noto Sans CJK SC';
-  src: url('/font/NotoSansSC-Regular.ttf') format('truetype');
+  // This family is also in the application's system-font fallback stack.
+  // A URL-only face shadows installed Noto and downloads 10 MiB on other pages.
+  src: local('Noto Sans CJK SC'), local('NotoSansCJKsc-Regular'), url('/font/NotoSansSC-Regular.ttf') format('truetype');
   font-weight: 400;
   font-display: swap;
 }

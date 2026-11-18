@@ -286,6 +286,9 @@ func MigrateTables(db *gorm.DB) error {
 
 	dts = append(dts, models.ArchiveTables()...)
 	dts = append(dts, models.MonitorTables()...)
+	dts = append(dts, models.OpsTables()...)
+	dts = append(dts, models.KnowledgeTables()...)
+	dts = append(dts, models.LibraryTables()...)
 
 	if isPostgres(db) {
 		dts = append(dts, &models.AssistantMessageRow{}) // PostgreSQL: text is unlimited
@@ -374,6 +377,9 @@ func MigrateTables(db *gorm.DB) error {
 		err := db.AutoMigrate(dt)
 		if err != nil {
 			logger.Errorf("failed to migrate table:%v %v", dt, err)
+			if named, ok := dt.(interface{ TableName() string }); ok && strings.HasPrefix(named.TableName(), "ops_") {
+				migrationErrors = append(migrationErrors, fmt.Errorf("migrate %s: %w", named.TableName(), err))
+			}
 			// Preserve historical best-effort migrations for unrelated modules.
 			// The new delivery ledger, like event identity, is a startup requirement.
 			switch dt.(type) {

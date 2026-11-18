@@ -6,7 +6,7 @@ import _ from 'lodash';
 import queryString from 'query-string';
 import { Link } from 'react-router-dom';
 
-import { deleteAlertEventsModal } from '../index';
+import { deleteAlertEventsModal } from '../shared';
 import SharingLinkModal from './SharingLinkModal';
 
 // @ts-ignore

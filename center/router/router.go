@@ -31,6 +31,8 @@ import (
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
 	"github.com/ccfos/nightingale/v6/pkg/ginx"
 	"github.com/ccfos/nightingale/v6/pkg/httpx"
+	"github.com/ccfos/nightingale/v6/pkg/knowledgebase"
+	"github.com/ccfos/nightingale/v6/pkg/ops"
 	"github.com/ccfos/nightingale/v6/pkg/sandbox"
 	"github.com/ccfos/nightingale/v6/pkg/version"
 	"github.com/ccfos/nightingale/v6/prom"
@@ -70,6 +72,8 @@ type Router struct {
 	CMDB             *cmdb.API
 	Collection       *collection.Store
 	CollectionStatus *collection.StatusService
+	Ops              *ops.Service
+	Library          *knowledgebase.Store
 
 	// Pushgw is this deployment's forwarding config. It is only read to answer
 	// "which datasource do host metrics end up in" (categrafMeta), so it is set
@@ -289,6 +293,8 @@ func (rt *Router) Config(r *gin.Engine) {
 	pagesPrefix := "/api/n9e"
 	pages := r.Group(pagesPrefix)
 	rt.configArchiveRoutes(pages)
+	rt.configOpsRoutes(pages)
+	rt.configLibraryRoutes(pages)
 	rt.configCollection(r, pages)
 	{
 

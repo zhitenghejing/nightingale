@@ -21,10 +21,27 @@ import { acquire, api, downloadBlob, downloadDocuments, errorText, exportDocumen
 import { openPrintWindow, printPdf } from './print';
 import MetadataForm, { categoryFields, getFieldLabel } from './MetadataForm';
 import HistoryPanel from './HistoryPanel';
+import { LibraryStatus, libraryAPI, LibraryDocument } from '../opsKnowledge/LibraryDocuments';
 export default function Detail() {
   const { id } = useParams<{ id: string }>();
   const history = useHistory();
   const [a, setA] = useState<Archive>();
+  const [knowledgeStatus, setKnowledgeStatus] = useState<LibraryDocument[]>([]);
+  useEffect(() => {
+    let active = true;
+    const load = () =>
+      libraryAPI<LibraryDocument[]>()
+        .then((rows) => {
+          if (active) setKnowledgeStatus(rows);
+        })
+        .catch(() => {});
+    load();
+    const timer = setInterval(load, 10000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [id]);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<Archive>();
   const [busy, setBusy] = useState(false);
@@ -411,6 +428,11 @@ export default function Detail() {
                   ),
                 },
                 { title: '用途', dataIndex: 'purpose', width: 124, render: (v) => purposes[a.category].find((p) => p.value === v)?.label || v },
+                {
+                  title: '知识整理',
+                  width: 210,
+                  render: (_, d) => <LibraryStatus item={knowledgeStatus.find((k) => k.document_id === d.id && k.source_version_id === d.version?.id)} />,
+                },
                 { title: '格式', dataIndex: 'kind', width: 96, render: (v) => <Tag>{v === 'online' ? '在线文档' : v === 'image' ? '图片' : v.toUpperCase()}</Tag> },
                 {
                   title: '主文档',

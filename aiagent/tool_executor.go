@@ -21,6 +21,18 @@ import (
 // *ToolInterrupt 时原样上交给调用方（chat 的两个主循环据此停轮、交路由层持久化
 // Pending）。tools 为本次 Run 的可见工具表（runCtx.tools 快照），不再从 a.cfg.Tools 读取。
 func (a *Agent) executeToolI(ctx context.Context, toolName string, input string, req *AgentRequest, tools []AgentTool) (string, *ToolInterrupt) {
+	if a.cfg.RestrictTools {
+		allowed := false
+		for _, tool := range tools {
+			if tool.Name == toolName {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return fmt.Sprintf("Error: tool %q is outside the permitted workflow tool set", toolName), nil
+		}
+	}
 	// 1. 优先检查并执行内置工具
 	if result, handled, err := ExecuteBuiltinTool(ctx, a.toolDeps, toolName, req.Params, input); handled {
 		if err != nil {

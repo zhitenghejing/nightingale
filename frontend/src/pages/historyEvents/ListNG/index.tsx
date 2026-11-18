@@ -28,7 +28,7 @@ import Tags from '@/components/TableTags/Tags';
 import { HISTORY_EVENT_TAGS_EXPANDED_TABLE_KEY, readAlertEventTagsExpanded, writeAlertEventTagsExpanded } from '@/pages/alertCurEvent/utils/eventColumnExpandedStorage';
 
 import exportEvents, { downloadFile } from '../exportEvents';
-import { SeverityColor } from '../../event';
+import { SeverityColor } from '../../event/shared';
 import DeleteEventsModal from './DeleteEventsModal';
 
 // @ts-ignore

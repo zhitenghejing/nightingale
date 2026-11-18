@@ -1,49 +1,27 @@
-import React from 'react';
-import { Drawer } from 'antd';
-import { CloseOutlined } from '@ant-design/icons';
+import React, { Suspense } from 'react';
+import { Drawer, Spin } from 'antd';
 import { useTranslation } from 'react-i18next';
 
-import DetailNG from '@/pages/event/DetailNG';
-import getActions from '@/pages/event/DetailNG/Actions';
-
 import { NS } from '../../constants';
+import type { Props } from './EventDetailDrawerContent';
 
-interface Props {
-  showDeleteBtn?: boolean;
-  showAckBtn?: boolean;
-  visible: boolean;
-  data: any;
-  onClose: () => void;
-  onDeleteSuccess: () => void;
-  onRefresh?: () => void;
-}
+// Detail includes datasource editors and graphs. Keep it out of the list's
+// initial dependency graph, including while a closed drawer is mounted.
+const Content = React.lazy(() => import('./EventDetailDrawerContent'));
 
 export default function EventDetailDrawer(props: Props) {
   const { t } = useTranslation(NS);
-  const { showDeleteBtn = true, showAckBtn, visible, onClose, data, onDeleteSuccess, onRefresh } = props;
+  if (!props.visible) return null;
 
   return (
-    <Drawer
-      width='80%'
-      closable={false}
-      title={t('detail_title')}
-      destroyOnClose
-      extra={<CloseOutlined onClick={() => onClose()} />}
-      onClose={() => onClose()}
-      visible={visible}
-      footer={getActions({
-        eventDetail: data,
-        showDeleteBtn,
-        showAckBtn,
-        onDeleteSuccess: () => {
-          onClose();
-          onDeleteSuccess();
-        },
-        onRefresh,
-      })}
-      className='n9e-antd-drawer'
+    <Suspense
+      fallback={
+        <Drawer width='80%' title={t('detail_title')} visible onClose={props.onClose} className='n9e-antd-drawer'>
+          <Spin />
+        </Drawer>
+      }
     >
-      {data && <DetailNG data={data} showGraph />}
-    </Drawer>
+      <Content {...props} />
+    </Suspense>
   );
 }

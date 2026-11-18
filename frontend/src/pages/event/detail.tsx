@@ -18,6 +18,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router';
 import _ from 'lodash';
 import { Card, Affix } from 'antd';
+import EnterOpsCaseButton from '../opsShared/EnterOpsCaseButton';
 import { useTranslation } from 'react-i18next';
 import PageLayout from '@/components/pageLayout';
 import { getHistoryEventsById } from '@/services/warning';
@@ -50,6 +51,9 @@ const EventDetailPage = () => {
         </Card>
         <Affix offsetBottom={0}>
           <Card size='small' className='affix-bottom-shadow'>
+            <span style={{ marginRight: 8 }}>
+              <EnterOpsCaseButton eventId={eventDetail?.id} />
+            </span>
             {getActions({
               showAckBtn: true,
               eventDetail: eventDetail,

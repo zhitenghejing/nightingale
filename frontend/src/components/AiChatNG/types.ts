@@ -43,6 +43,7 @@ export interface IAiChatSkillReference {
 }
 
 export interface IAiChatMessageQuery {
+  mode?: 'ops' | 'knowledge_qa';
   content: string;
   references?: IAiChatSkillReference[];
   action?: IAiChatAction;

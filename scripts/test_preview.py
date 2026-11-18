@@ -61,6 +61,29 @@ class PreviewTest(unittest.TestCase):
                 self.assertEqual(config["Redis"]["RedisType"], "miniredis")
                 self.assertFalse(config["EmbeddedTSDB"]["Enable"])
 
+    def test_operations_demo_is_private_loopback_and_never_enables_production_execution(self):
+        binding = {"instance": "ops-instance", "role": "development", "profile": "basic"}
+        directory = preview.instance(binding)
+        directory.mkdir(parents=True)
+        (directory / "postgres.json").write_text(json.dumps({"dsn": "isolated-preview"}))
+        settings = {"demoURL": "http://127.0.0.1:39708", "modelEnable": True}
+        path = directory / "ops.json"
+        path.write_text(json.dumps(settings))
+        config = tomllib.loads(preview.app_config(binding, 30310))
+        self.assertTrue(config["Center"]["Ops"]["DemoEnable"])
+        self.assertTrue(config["Center"]["Ops"]["ModelEnable"])
+        self.assertFalse(config["Center"]["Ops"]["AllowExecution"])
+        self.assertFalse(config["Ibex"]["Enable"])
+        self.assertEqual(config["Center"]["Ops"]["DataDir"], str(directory / "ops-data"))
+        binding["role"] = "stable"
+        with self.assertRaisesRegex(ValueError, "private development operations"):
+            preview.app_config(binding, 30310)
+        binding["role"] = "development"
+        for url in ("https://example.com", "http://192.168.0.1:90", "http://localhost:90", "http://127.0.0.1:90?x=1"):
+            path.write_text(json.dumps({**settings, "demoURL": url}))
+            with self.assertRaisesRegex(ValueError, "loopback"):
+                preview.app_config(binding, 30310)
+
     def test_collection_preview_retains_private_keys_and_gates_provider(self):
         binding = {"instance": "collection-instance", "role": "development"}
         directory = preview.instance(binding)

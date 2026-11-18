@@ -216,6 +216,8 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 	// 加进 New 的参数表，避免动到嵌入方（企业版）调用的函数签名。
 	centerRouter.Pushgw = config.Pushgw
 	centerRouter.CMDB = &cmdb.API{Store: cmdbStore}
+	centerRouter.InitOps()
+	centerRouter.InitLibrary()
 	pushgwRouter := pushgwrt.New(config.HTTP, config.Pushgw, config.Alert, targetCache, busiGroupCache, idents, metas, writers, ctx)
 	collectionCancel := func() {}
 	collectionWait := func() {}
@@ -272,6 +274,9 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 
 	externalPushClean := externalpush.StartWithKeys(ctx.Ctx, db, externalpush.NewFileKeys(config.Center.ExternalPushKeyFiles))
 	httpClean := httpx.Init(config.HTTP, r)
+	opsContext, opsCancel := context.WithCancel(ctx.Ctx)
+	opsWait := centerRouter.Ops.Start(opsContext)
+	libraryWait := centerRouter.Library.Start(opsContext)
 
 	fmt.Printf("please view n9e at  http://%v:%v\n", config.Alert.Heartbeat.IP, config.HTTP.Port)
 	if isRootInit {
@@ -279,6 +284,9 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 	}
 
 	return func() {
+		opsCancel()
+		opsWait()
+		libraryWait()
 		// httpClean 优雅关闭：等在途请求处理完才返回，之后不再有 remote write
 		// 请求进到本地 tsdb，Close 不会与写入竞态
 		httpClean()

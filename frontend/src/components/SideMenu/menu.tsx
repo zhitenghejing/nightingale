@@ -13,6 +13,8 @@ import './locale';
 export const getMenuList = (embeddedProductMenu: MenuItem[] = [], hideDeprecatedMenus: boolean = false) => {
   const menu: MenuItem[] = [
     { key: '/archives', label: 'menu.archives', icon: <FolderOpenOutlined />, children: [] },
+    { key: '/ops/cases', label: 'menu.ops_cases', icon: <FolderOpenOutlined />, children: [] },
+    { key: '/ops/knowledge', label: 'menu.ops_knowledge', icon: <FolderOpenOutlined />, children: [] },
     {
       key: '/nightingale-ai',
       label: 'menu.nightingale_ai',

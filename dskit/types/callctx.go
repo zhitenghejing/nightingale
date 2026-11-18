@@ -22,6 +22,8 @@ type CallContext struct {
 	// flag is set the query must additionally pass sqlbase.ValidateReadOnly.
 	// Leaving it false keeps the existing behaviour byte for byte.
 	EnforceReadOnly bool
+	// Q&A SQL additionally demands a database-enforced read-only transaction.
+	EnforceReadOnlyTransaction bool
 }
 
 // ReadOnlyEnforced reports whether ctx carries a call context demanding the

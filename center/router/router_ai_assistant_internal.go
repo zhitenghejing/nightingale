@@ -131,12 +131,15 @@ func (rt *Router) EnsureAssistantChat(userID int64, chatID string, page models.A
 //
 // Returns (result, httpStatus, error). The httpStatus convention:
 //   - 0       — system / infrastructure error (db, Redis, …). HTTP caller is
-//               expected to surface it via ginx.Dangerous, matching n9e's
-//               site-wide "200 + {err: ...}" envelope so the fe interceptor
-//               and 5xx alerts behave like every other endpoint.
+//     expected to surface it via ginx.Dangerous, matching n9e's
+//     site-wide "200 + {err: ...}" envelope so the fe interceptor
+//     and 5xx alerts behave like every other endpoint.
 //   - non-0   — the response carries semantic meaning (409 chat-busy, 500
-//               stream-init-fail). Caller should ginx.Bomb(status, msg).
+//     stream-init-fail). Caller should ginx.Bomb(status, msg).
 func (rt *Router) StartAssistantMessage(userID int64, chat *models.AssistantChat, query models.AssistantMessageQuery, lang string) (*MessageStartResult, int, error) {
+	if query.Mode != "" && query.Mode != "ops" && query.Mode != "knowledge_qa" {
+		return nil, http.StatusBadRequest, fmt.Errorf("invalid chat mode")
+	}
 	// Acquire per-chat Redis lock. See models.ChatLock for TTL/renewal semantics.
 	bgCtx := context.Background()
 	lock, err := models.AcquireChatLock(bgCtx, rt.Redis, chat.ChatID)

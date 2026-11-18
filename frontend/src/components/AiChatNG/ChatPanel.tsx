@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Button, Input, Spin, Tooltip } from 'antd';
+import { Button, Input, Spin, Tooltip, Dropdown, Menu } from 'antd';
 import type { TextAreaRef } from 'antd/lib/input/TextArea';
-import { LoadingOutlined, PauseCircleOutlined } from '@ant-design/icons';
+import { LoadingOutlined, PauseCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { CornerDownLeft, SendHorizontal, Square } from 'lucide-react';
 
@@ -92,6 +92,7 @@ export default function ChatPanel(props: IAiChatProps) {
   const pendingTurnRef = useRef<{ scope?: IAiChatTurnScope; locator?: IAiChatMessageLocator; content: string }>();
   const finishingTurnsRef = useRef(new Set<string>());
   const [inputValue, setInputValue] = useState('');
+  const [chatMode, setChatMode] = useState<'ops' | 'knowledge_qa'>('ops');
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [draftHint, setDraftHint] = useState(false);
@@ -360,6 +361,7 @@ export default function ChatPanel(props: IAiChatProps) {
         if (!isLatestRequest()) return;
 
         setMessages(nextMessages);
+        setChatMode(nextMessages[nextMessages.length - 1]?.query.mode || 'ops');
         const previous = activeChatRef.current;
         const nextChat =
           previous?.chat_id === targetChatId
@@ -452,6 +454,7 @@ export default function ChatPanel(props: IAiChatProps) {
       activeChatRef.current = undefined;
       setActiveChat(undefined);
       setMessages([]);
+      setChatMode('ops');
       setMessagesLoading(false);
       return;
     }
@@ -548,6 +551,7 @@ export default function ChatPanel(props: IAiChatProps) {
             ? [{ id: initialSkill, name: initialSkill, type: 'skill' as const, skill: { name: initialSkill } }]
             : undefined;
         const query = {
+          mode: chatMode,
           content: references ? `<@${references[0].id}> ${content}` : content,
           references,
           action: action || queryAction,
@@ -561,7 +565,7 @@ export default function ChatPanel(props: IAiChatProps) {
         const result = await sendMessage({
           chat_id: chat.chat_id,
           query,
-          page_actions: pageActions.length ? pageActions : undefined,
+          page_actions: chatMode === 'ops' && pageActions.length ? pageActions : undefined,
         });
         // Acceptance survives closing the dock before the response arrives.
         acceptedChatIdsRef.current.add(chat.chat_id);
@@ -625,6 +629,7 @@ export default function ChatPanel(props: IAiChatProps) {
       mergeMessage,
       onChatChange,
       queryAction,
+      chatMode,
       prepareTurn,
       scrollToBottom,
       shareReadonly,
@@ -926,7 +931,25 @@ export default function ChatPanel(props: IAiChatProps) {
               </>
             ) : (
               <div className='mt-3 flex items-center justify-between gap-2 px-2 pb-2'>
-                <div />
+                <div className='flex items-center gap-2'>
+                  <Dropdown
+                    trigger={['click']}
+                    overlay={
+                      <Menu
+                        selectedKeys={[chatMode]}
+                        onClick={({ key }) => setChatMode(key as 'ops' | 'knowledge_qa')}
+                        items={[
+                          { key: 'ops', label: '运维助手' },
+                          { key: 'knowledge_qa', label: '资料问答' },
+                        ]}
+                      />
+                    }
+                    disabled={submitting || shareReadonly}
+                  >
+                    <Button type='text' shape='circle' aria-label='选择会话模式' icon={<PlusOutlined />} />
+                  </Dropdown>
+                  {chatMode === 'knowledge_qa' && <span className='text-hint text-xs'>资料问答</span>}
+                </div>
                 <div className='flex items-center gap-2'>{sendButton}</div>
               </div>
             )}

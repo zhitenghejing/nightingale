@@ -7,6 +7,8 @@ import (
 	"github.com/ccfos/nightingale/v6/datasource"
 	"github.com/ccfos/nightingale/v6/models"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
+	"github.com/ccfos/nightingale/v6/pkg/knowledgebase"
+	"github.com/ccfos/nightingale/v6/pkg/ops"
 	"github.com/ccfos/nightingale/v6/pkg/prom"
 	"github.com/ccfos/nightingale/v6/pkg/sandbox"
 	"github.com/ccfos/nightingale/v6/storage"
@@ -62,6 +64,11 @@ type Agent struct {
 
 // AgentConfig Agent 配置（仅包含 Agent 行为相关字段，LLM 配置通过 WithLLMClient 注入）
 type AgentConfig struct {
+	// Restricted workflows enforce the visible tool set before builtin dispatch.
+	RestrictTools bool `json:"restrict_tools,omitempty"`
+	MaxToolCalls  int  `json:"max_tool_calls,omitempty"`
+	// Read-only Q&A may finalize with collected evidence when its query budget is used.
+	FinishOnToolBudget bool `json:"finish_on_tool_budget,omitempty"`
 	// Agent 行为
 	MaxIterations int    `json:"max_iterations"`
 	Timeout       int    `json:"timeout"`
@@ -191,16 +198,22 @@ type AgentTool struct {
 
 // ToolParameter 工具参数定义
 type ToolParameter struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Description string `json:"description"`
-	Required    bool   `json:"required"`
+	Enum        []string `json:"enum,omitempty"`
+	ItemType    string   `json:"item_type,omitempty"`
+	Name        string   `json:"name"`
+	Type        string   `json:"type"`
+	Description string   `json:"description"`
+	Required    bool     `json:"required"`
 }
 
 // ToolDeps 内置工具的依赖集合
 // 由宿主一次性构造并通过 WithToolDeps 注入 Agent，取代原先 builtin_tools.go 里一组包级可变变量。
 // 所有 BuiltinToolFunc 都以第一等公民方式从形参拿依赖，不再读 package global。
 type ToolDeps struct {
+	Library *knowledgebase.Store
+	// Ops is a run-scoped operations interface; it never grants human approval.
+	Ops               *ops.Service
+	OpsScope          *ops.Scope
 	DBCtx             *ctx.Context
 	SkillsPath        string
 	GetPromClient     func(dsId int64) prom.API
@@ -296,9 +309,11 @@ type ToolStep struct {
 
 // ToolLoopConfig 工具循环配置
 type ToolLoopConfig struct {
-	MaxIterations  int
-	TimeoutMessage string
-	LogPrefix      string
+	FinishOnToolBudget bool
+	MaxToolCalls       int
+	MaxIterations      int
+	TimeoutMessage     string
+	LogPrefix          string
 
 	// 本次循环可见的工具集（runCtx.tools 快照）
 	Tools []AgentTool

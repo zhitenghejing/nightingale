@@ -5,6 +5,7 @@ package sqlbase
 import (
 	"context"
 	"crypto/md5"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -59,6 +60,14 @@ func Query(ctx context.Context, db *gorm.DB, query *QueryParam) ([]map[string]in
 		}
 	}
 
+	if cc, ok := types.CallContextFromCtx(ctx); ok && cc.EnforceReadOnlyTransaction {
+		if db.Dialector.Name() != "postgres" && db.Dialector.Name() != "mysql" {
+			return nil, fmt.Errorf("database-enforced read-only transactions are not supported by this adapter")
+		}
+		var result []map[string]interface{}
+		err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error { var err error; result, err = ExecQuery(ctx, tx, query.Sql); return err }, &sql.TxOptions{ReadOnly: true})
+		return result, err
+	}
 	return ExecQuery(ctx, db, query.Sql)
 }
 

@@ -53,6 +53,8 @@ func (a *Agent) executeNative(ctx context.Context, req *AgentRequest, rc *runCtx
 
 	return a.runNativeLoop(ctx, req, messages, buildNativeToolDefs(rc.tools), &ToolLoopConfig{
 		MaxIterations:        a.maxIterationsForSkills(rc),
+		MaxToolCalls:         a.cfg.MaxToolCalls,
+		FinishOnToolBudget:   a.cfg.FinishOnToolBudget,
 		TimeoutMessage:       "agent execution timeout",
 		LogPrefix:            "AI Agent(native)",
 		Tools:                rc.tools,
@@ -123,7 +125,22 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 		messages = append(messages, asstTurn)
 		turn := []ChatMessage{asstTurn}
 
-		for _, tc := range calls {
+		for callIndex, tc := range calls {
+			if config.MaxToolCalls > 0 && len(resp.Steps) >= config.MaxToolCalls {
+				if config.FinishOnToolBudget {
+					// Pair every remaining tool_use without executing it, then finalize without tools.
+					for _, pending := range calls[callIndex:] {
+						m := ChatMessage{Role: llm.RoleTool, ToolCallID: pending.ID, ToolName: pending.Name, Content: "查询预算已用尽，此调用未执行。"}
+						messages = append(messages, m)
+						turn = append(turn, m)
+					}
+					emitTranscript(config, turn...)
+					return a.finishNativeBudget(ctx, req, messages, config, resp, iteration+1)
+				}
+				resp.Error = fmt.Sprintf("reached maximum tool calls (%d)", config.MaxToolCalls)
+				resp.Iterations = iteration + 1
+				return resp
+			}
 			step := ToolStep{Thought: content, Action: tc.Name, ActionInput: tc.Arguments}
 
 			if streaming {
@@ -204,8 +221,14 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 		// 结构化 transcript：assistant(tool_calls) + tool 结果轮成组持久化，
 		// 工具产物（如 proposal_id）下一轮直接以原生形态回放。
 		emitTranscript(config, turn...)
+		if config.FinishOnToolBudget && config.MaxToolCalls > 0 && len(resp.Steps) >= config.MaxToolCalls {
+			return a.finishNativeBudget(ctx, req, messages, config, resp, iteration+1)
+		}
 	}
 
+	if config.FinishOnToolBudget && len(resp.Steps) > 0 {
+		return a.finishNativeBudget(ctx, req, messages, config, resp, config.MaxIterations)
+	}
 	resp.Error = fmt.Sprintf("reached maximum iterations (%d)", config.MaxIterations)
 	resp.Iterations = config.MaxIterations
 	if config.ExtractPartialResult && len(resp.Steps) > 0 {
@@ -321,10 +344,21 @@ func buildNativeToolDefs(tools []AgentTool) []llm.ToolDefinition {
 		props := map[string]interface{}{}
 		var required []string
 		for _, p := range t.Parameters {
-			props[p.Name] = map[string]interface{}{
+			property := map[string]interface{}{
 				"type":        normalizeJSONSchemaType(p.Type),
 				"description": p.Description,
 			}
+			if normalizeJSONSchemaType(p.Type) == "array" {
+				items := map[string]interface{}{}
+				if p.ItemType != "" {
+					items["type"] = normalizeJSONSchemaType(p.ItemType)
+				}
+				property["items"] = items
+			}
+			if len(p.Enum) > 0 {
+				property["enum"] = p.Enum
+			}
+			props[p.Name] = property
 			if p.Required {
 				required = append(required, p.Name)
 			}
@@ -455,4 +489,24 @@ func (a *Agent) executeNativeWithDone(ctx context.Context, req *AgentRequest, rc
 		done.Metadata = map[string]interface{}{"content_streamed": true}
 	}
 	streamChan <- done
+}
+
+// Only explicitly opted-in read workflows use this path. It makes one final
+// inference with no tools and never executes an unsolicited call from that reply.
+func (a *Agent) finishNativeBudget(ctx context.Context, req *AgentRequest, messages []ChatMessage, config *ToolLoopConfig, resp *AgentResponse, iterations int) *AgentResponse {
+	messages = append(messages, ChatMessage{Role: llm.RoleUser, Content: "本轮查询额度已用尽，请停止工具调用。直接回答用户最新问题，只依据已经取得的证据；明确未完成的查询和不能判断的事项，不复述整个历史故障，不把未知状态说成正常。"})
+	content, calls, _, err := a.callLLMNative(ctx, messages, nil, config.StreamChan, config.RequestID, req.Params["lang"])
+	if err != nil {
+		resp.Error = fmt.Sprintf("final evidence summary failed: %v", err)
+		return resp
+	}
+	if len(calls) > 0 {
+		resp.Error = "final evidence summary requested unavailable tools"
+		return resp
+	}
+	resp.Content = content + "\n\n本轮查询已达到上限，未完成的检查仍待核实。"
+	resp.Success = true
+	resp.Iterations = iterations + 1
+	resp.contentStreamed = false
+	return resp
 }
