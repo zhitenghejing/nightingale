@@ -321,7 +321,7 @@ export default function Detail() {
                     <>
                       {materialRequirement}
                       <br />
-                      支持 DOCX、PDF、PNG、JPG/JPEG；单份不超过 50 MB。
+                      支持 XLSX、DOCX、PDF、PNG、JPG/JPEG；单份不超过 50 MB。旧 XLS 请另存为 XLSX；Excel 只读，自动整理为知识。
                     </>
                   }
                 >
@@ -340,7 +340,7 @@ export default function Detail() {
               <Space className='archive-upload-actions' size={8}>
                 <Select value={purpose} onChange={setPurpose} options={purposes[a.category]} style={{ width: 128 }} />
                 <Upload
-                  accept='.docx,.pdf,.png,.jpg,.jpeg'
+                  accept='.xlsx,.docx,.pdf,.png,.jpg,.jpeg'
                   multiple
                   showUploadList={false}
                   beforeUpload={(file) => {
@@ -387,7 +387,7 @@ export default function Detail() {
                     key: 'edit',
                     text: d.kind === 'docx' ? '转在线编辑' : d.kind === 'pdf' ? '批注' : d.kind === 'image' ? '查看' : '编辑',
                     icon: d.kind === 'image' ? 'open' : 'edit',
-                    visible: !a.deleted,
+                    visible: !a.deleted && d.kind !== 'xlsx',
                     onClick: () => openDoc(d, true),
                   },
                 ],
@@ -397,7 +397,7 @@ export default function Detail() {
                     visible: !a.deleted && d.kind !== 'online',
                     node: (
                       <Upload
-                        accept='.docx,.pdf,.png,.jpg,.jpeg'
+                        accept='.xlsx,.docx,.pdf,.png,.jpg,.jpeg'
                         showUploadList={false}
                         beforeUpload={(f) => {
                           perform(() => replaceFile(d, f), '已替换并保留原版本');
@@ -510,7 +510,7 @@ export default function Detail() {
                             { value: 'original', label: 'PDF 原件' },
                             { value: 'annotated_pdf', label: 'PDF（含批注）' },
                           ]
-                        : [{ value: 'original', label: d.kind === 'docx' ? 'Word 原件' : '图片原件' }]
+                        : [{ value: 'original', label: d.kind === 'docx' ? 'Word 原件' : d.kind === 'xlsx' ? 'Excel 原件' : '图片原件' }]
                     }
                   />
                 ),

@@ -55,7 +55,7 @@ func TestKnowledgeHistoryDoesNotTreatOlderToolResultsAsCurrentTurnEvidence(t *te
 func TestKnowledgeDocumentSearchCannotUseTargetCatalogAsDocumentEvidence(t *testing.T) {
 	h, _ := chat.Lookup("knowledge_qa")
 	names := h.SelectTools(&chat.AIChatRequest{UserInput: "请查找只含 ZZNOFOLLOWUP781923 的资料"})
-	require.Equal(t, []string{"search_knowledge", "read_knowledge", "query_environment"}, names)
+	require.Equal(t, []string{"search_knowledge", "read_knowledge", "query_knowledge_workbook", "query_environment"}, names)
 	require.True(t, chat.KnowledgeDocumentSearch("请查找这个编号的资料"))
 }
 
@@ -133,4 +133,24 @@ func TestEnvironmentConclusionsAreReviewedWithoutDocumentReads(t *testing.T) {
 	require.NotContains(t, payload, "private-hash")
 	require.Contains(t, model.request.Messages[0].Content, "指定选择器")
 	require.Contains(t, model.request.Messages[0].Content, "60秒步进")
+}
+
+func TestWorkbookReceiptsAreDocumentEvidence(t *testing.T) {
+	var evidence knowledgeAnswerEvidence
+	evidence.observe("query_knowledge_workbook", `{"operation":"workbook_sum","workbook_version":7,"queried_at":10,"result":{"sum":"3","complete":false}}`)
+	require.Len(t, evidence.Data, 1)
+	require.Nil(t, evidence.Data[0].Result)
+	require.True(t, knowledgeNeedsAudit("总数多少", evidence))
+	data := append(evidence.Data, aiagent.KnowledgeDataEvidence{Operation: "environment_search", QueriedAt: 10})
+	require.Len(t, documentEvidenceData(data), 1)
+	require.Empty(t, documentEvidenceData(data[1:]))
+}
+
+func TestWorkbookCitationRestoresOnlyAuthorizedLocalLinks(t *testing.T) {
+	source := "/archives/10/documents/14?version=16&sheet=test&range=A1%3AD5"
+	text := "[来源](http:/" + source + ") [未核对](http://archives/99/documents/77) [外部](https://example.com/report)"
+	normalized := normalizeKnowledgeLinks(text, []string{source})
+	require.Contains(t, normalized, "[来源]("+source+")")
+	require.Contains(t, normalized, "(http://archives/99/documents/77)")
+	require.Contains(t, normalized, "(https://example.com/report)")
 }

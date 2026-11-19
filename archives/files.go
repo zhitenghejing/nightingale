@@ -18,8 +18,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
+	"context"
 	"github.com/ccfos/nightingale/v6/models"
+	"github.com/ccfos/nightingale/v6/pkg/workbook"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -328,6 +331,23 @@ func validateFile(file *os.File, name string, asset bool) (kind, contentType str
 			return "", "", invalid("Encrypted PDFs are not supported")
 		}
 		return "pdf", "application/pdf", nil
+	case ".xlsx":
+		stat, e := file.Stat()
+		if e != nil {
+			return "", "", e
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
+		defer cancel()
+		book, e := workbook.Read(ctx, file, stat.Size())
+		if e == nil {
+			_, _, e = book.Markdown()
+		}
+		if e != nil {
+			return "", "", invalid(e.Error())
+		}
+		return "xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", nil
+	case ".xls", ".xlsm":
+		return "", "", invalid("请将旧 XLS 或启用宏的工作簿另存为不含宏、未加密的 .xlsx 后上传")
 	case ".docx":
 		stat, e := file.Stat()
 		if e != nil {

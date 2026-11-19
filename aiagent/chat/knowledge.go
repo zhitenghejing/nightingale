@@ -26,7 +26,7 @@ func containsAnyKnowledge(input string, terms ...string) bool {
 	return false
 }
 func selectKnowledgeTools(req *AIChatRequest) []string {
-	names := []string{"search_knowledge", "read_knowledge", "query_environment"}
+	names := []string{"search_knowledge", "read_knowledge", "query_knowledge_workbook", "query_environment"}
 	documentOnly := !knowledgeLiveQuestion(req.UserInput) && (KnowledgeDocumentSearch(req.UserInput) || containsAnyKnowledge(req.UserInput, "那个故障", "报告", "文档", "手册", "刚才说", "什么意思"))
 	if !documentOnly {
 		names = append(names, "resolve_knowledge_object", "query_knowledge_data")

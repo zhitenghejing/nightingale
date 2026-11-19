@@ -26,7 +26,7 @@ type knowledgeAnswerEvidence struct {
 }
 
 func (e *knowledgeAnswerEvidence) observe(tool, text string) {
-	if tool != "read_knowledge" && tool != "search_knowledge" && tool != "query_knowledge_data" && tool != "resolve_knowledge_object" && tool != "query_environment" {
+	if tool != "read_knowledge" && tool != "search_knowledge" && tool != "query_knowledge_data" && tool != "resolve_knowledge_object" && tool != "query_environment" && tool != "query_knowledge_workbook" {
 		return
 	}
 	if strings.HasPrefix(text, "Error:") {
@@ -36,7 +36,7 @@ func (e *knowledgeAnswerEvidence) observe(tool, text string) {
 		}
 		return
 	}
-	if tool == "query_knowledge_data" || tool == "resolve_knowledge_object" || tool == "query_environment" {
+	if tool == "query_knowledge_data" || tool == "resolve_knowledge_object" || tool == "query_environment" || tool == "query_knowledge_workbook" {
 		var data aiagent.KnowledgeDataEvidence
 		if json.Unmarshal([]byte(text), &data) == nil && data.Operation != "" && data.QueriedAt > 0 && len(data.Result) > 0 {
 			data.Result = nil
@@ -75,6 +75,7 @@ func safeCitationLabel(s string) string {
 func (rt *Router) groundKnowledgeAnswer(user int64, e knowledgeAnswerEvidence, text string) string {
 	text = modeloutput.Visible(text)
 	refs := []string{}
+	sourceURLs := []string{}
 	invalidReference := false
 	seen := map[string]bool{}
 	for _, id := range e.Sections {
@@ -87,6 +88,7 @@ func (rt *Router) groundKnowledgeAnswer(user int64, e knowledgeAnswerEvidence, t
 			continue
 		}
 		seen[h.URL+h.Heading] = true
+		sourceURLs = append(sourceURLs, h.URL)
 		refs = append(refs, fmt.Sprintf("[%s · V%d · %s](%s)", safeCitationLabel(h.Title), h.Sequence, safeCitationLabel(h.Heading), h.URL))
 	}
 	for _, id := range e.Procedures {
@@ -101,6 +103,7 @@ func (rt *Router) groundKnowledgeAnswer(user int64, e knowledgeAnswerEvidence, t
 			continue
 		}
 		seen[url] = true
+		sourceURLs = append(sourceURLs, url)
 		refs = append(refs, fmt.Sprintf("[%s · V%d](%s)", safeCitationLabel(v.Title), v.Sequence, url))
 	}
 	for _, data := range e.Data {
@@ -109,6 +112,10 @@ func (rt *Router) groundKnowledgeAnswer(user int64, e knowledgeAnswerEvidence, t
 			continue
 		}
 		label := fmt.Sprintf("%s，查询时间 %s", safeCitationLabel(data.Operation), time.Unix(data.QueriedAt, 0).Format("2006-01-02 15:04:05 MST"))
+		if data.WorkbookVersion > 0 {
+			sourceURLs = append(sourceURLs, data.SourceURL)
+			label = fmt.Sprintf("[%s](%s)", safeCitationLabel(data.SourceLabel), data.SourceURL)
+		}
 		if data.TimeRange != "" {
 			label += "，范围 " + safeCitationLabel(data.TimeRange)
 		}
@@ -132,6 +139,7 @@ func (rt *Router) groundKnowledgeAnswer(user int64, e knowledgeAnswerEvidence, t
 		}
 		return "尚未取得可核对的资料章节，无法给出基于资料的回答。请提供资料名称或更具体的关键词。"
 	}
+	text = normalizeKnowledgeLinks(text, sourceURLs)
 	return text + "\n\n依据来源（权限与有效性已核对；查询时间不等于采样时间）：\n\n- " + strings.Join(refs, "\n- ")
 }
 
@@ -160,4 +168,28 @@ func (rt *Router) knowledgeEvidenceValid(ctx context.Context, user int64, e know
 		}
 	}
 	return true
+}
+
+func documentEvidenceData(data []aiagent.KnowledgeDataEvidence) []aiagent.KnowledgeDataEvidence {
+	out := []aiagent.KnowledgeDataEvidence{}
+	for _, e := range data {
+		if strings.HasPrefix(e.Operation, "workbook_") && e.WorkbookVersion > 0 {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+// Some providers turn a local /archives/... citation into http://archives/...
+// Only restore exact URLs already authorized above; do not rewrite arbitrary links.
+func normalizeKnowledgeLinks(text string, authorized []string) string {
+	for _, url := range authorized {
+		if !strings.HasPrefix(url, "/") || strings.HasPrefix(url, "//") {
+			continue
+		}
+		for _, scheme := range []string{"http:/", "https:/"} {
+			text = strings.ReplaceAll(text, "("+scheme+url+")", "("+url+")")
+		}
+	}
+	return text
 }

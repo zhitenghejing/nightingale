@@ -48,4 +48,13 @@ type LibrarySection struct {
 }
 
 func (LibrarySection) TableName() string { return "knowledge_document_section" }
-func LibraryTables() []interface{}       { return []interface{}{&LibraryVersion{}, &LibrarySection{}} }
+
+type LibraryWorkbook struct {
+	VersionID int64       `json:"version_id" gorm:"primaryKey;autoIncrement:false"`
+	Data      LibraryText `json:"-"`
+}
+
+func (LibraryWorkbook) TableName() string { return "knowledge_document_workbook" }
+func LibraryTables() []interface{} {
+	return []interface{}{&LibraryVersion{}, &LibrarySection{}, &LibraryWorkbook{}}
+}

@@ -53,6 +53,16 @@ func CheckKnowledgeDataAccess(ctx context.Context, d *aiagent.ToolDeps, userID i
 	if err != nil || user.Disabled != 0 {
 		return fmt.Errorf("没有权限查阅")
 	}
+	if strings.HasPrefix(e.Operation, "workbook_") {
+		if d.Library == nil || e.WorkbookVersion <= 0 || e.WorkbookDigest == "" {
+			return fmt.Errorf("未找到相关资料")
+		}
+		k, err := d.Library.WithContext(ctx).Version(userID, e.WorkbookVersion)
+		if err != nil || k.State != "ready" || k.Digest != e.WorkbookDigest {
+			return fmt.Errorf("资料版本已变更、失效或没有权限查阅")
+		}
+		return nil
+	}
 	if strings.HasPrefix(e.Operation, "environment_") {
 		return (&environment.Store{DB: d.DBCtx.DB.WithContext(ctx)}).Validate(userID, e.EnvironmentRefs)
 	}

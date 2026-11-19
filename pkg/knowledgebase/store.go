@@ -4,8 +4,10 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/ccfos/nightingale/v6/pkg/workbook"
 	"io"
 	"os"
 	"sort"
@@ -164,13 +166,35 @@ func (s *Store) ProcessOne(ctx context.Context) (bool, error) {
 			path = p
 		}
 		extractCtx, cancel := context.WithTimeout(ctx, 40*time.Second)
-		md, e := Extract(extractCtx, d.Kind, path, v.Body)
+		var md string
+		var parts []workbook.Section
+		var structured []byte
+		var e error
+		if d.Kind == "xlsx" {
+			var book *workbook.Book
+			book, e = workbook.Parse(extractCtx, path)
+			if e == nil {
+				md, parts, e = book.Markdown()
+			}
+			if e == nil {
+				structured, e = json.Marshal(book)
+				if len(structured) > 16<<20 {
+					e = fmt.Errorf("Excel 结构化内容超过 16 MiB")
+				}
+			}
+		} else {
+			md, e = Extract(extractCtx, d.Kind, path, v.Body)
+			if e == nil {
+				for _, p := range Split(md) {
+					parts = append(parts, workbook.Section{Heading: p.Heading, Body: p.Body})
+				}
+			}
+		}
 		cancel()
 		if e != nil {
 			return true, fail(e)
 		}
 		sum := sha256.Sum256([]byte(md))
-		parts := Split(md)
 		e = s.DB.Transaction(func(tx *gorm.DB) error {
 			var held models.LibraryVersion
 			if e := tx.Clauses(clause.Locking{Strength: "UPDATE"}).First(&held, k.ID).Error; e != nil {
@@ -185,6 +209,11 @@ func (s *Store) ProcessOne(ctx context.Context) (bool, error) {
 			for i, p := range parts {
 				if e := tx.Create(&models.LibrarySection{VersionID: k.ID, Position: i + 1, Heading: p.Heading, Body: models.LibraryText(p.Body)}).Error; e != nil {
 					return e
+				}
+			}
+			if len(structured) > 0 {
+				if err := tx.Clauses(clause.OnConflict{UpdateAll: true}).Create(&models.LibraryWorkbook{VersionID: k.ID, Data: models.LibraryText(structured)}).Error; err != nil {
+					return err
 				}
 			}
 			return tx.Model(&held).Updates(map[string]interface{}{"state": "ready", "markdown": md, "digest": hex.EncodeToString(sum[:]), "error": ""}).Error

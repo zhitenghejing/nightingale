@@ -86,3 +86,19 @@ sufficient; a report search is optional only to resolve a concrete definition ga
 A range query sampled at 60-second steps proves values at those returned evaluation
 points. It does not prove that every underlying scrape succeeded between them; state
 that limitation instead of claiming the entire window had no interruption.
+
+For Excel reports, search_knowledge returns Markdown excerpts and a library version_id.
+Use query_knowledge_workbook(version_id, operation=sheets) to discover the actual
+worksheets, used dimensions, merged ranges and hidden rows/columns. Read the relevant
+header and data ranges before choosing columns; do not guess a schema or silently fill
+merged cells. Preserve formatted identifiers such as 0007. For filtered counts/sums use
+the dedicated count/sum operation over the entire explicitly selected data range,
+excluding headers and subtotals deliberately. Pagination/search snippets cannot prove a
+whole-workbook total. Explain the sheet/range and exclusions. Numeric sums use raw values;
+a percentage displayed as 12% has raw value 0.12. Mixed units require separate sums.
+Missing/error formula caches make affected statistics incomplete; never present a partial
+sum as a final total or run a formula yourself. Formulas are saved cached evidence, not
+new calculations. Hidden rows are included in the specified range and must be mentioned
+when relevant. Images/charts are not extracted. Excel reports are dated documents, not
+current device status, and do not automatically update device lists or CMDB. Cite the
+file's human version Vn, sheet and cell range returned by the tool.

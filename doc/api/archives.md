@@ -89,3 +89,9 @@ ExportTimeoutSeconds = 180
 数据库专项测试使用 `N9E_TEST_ARCHIVE_POSTGRES` 与 `N9E_TEST_ARCHIVE_MYSQL`。PostgreSQL 在指定测试数据库中创建并清理随机 `archive_test_` schema；MySQL 必须指定独立的 `archive_test_` 数据库。测试执行对应初始化 SQL、再次 AutoMigrate，并验证大正文、并发会话、保存及恢复。SQLite 通过不能替代这两项验证。
 
 正式交接包括 `make verify`、`make verify-all` 与隔离预览浏览器验证；工程记录见[实施验证](../design/unified-business-documents/implementation-verification.md)。人工验收和生产发布保持独立，Agent 不代填人工验收结论。
+
+### Excel 资料原件与只读查看
+
+上传、替换接口新增普通 `.xlsx`；原件不可变、替换租约和版本链沿用原功能。`.xls/.xlsm` 明确提示另存为无宏且未加密的 `.xlsx`。上传时校验真实 OOXML、ZIP 预算、工作表与单元格预算；拒绝宏/ActiveX/嵌入对象、损坏及超限文件。不会把上传行导入设备列表或 CMDB。
+
+`GET /api/n9e/archives/documents/:id/workbook?version_id=...` 返回工作表目录、隐藏标记、实际范围和合并范围。`operation=read&sheet=...&range=A1:F100&offset=0&limit=50` 返回指定范围内分页的非空行。当前登录鉴权及原件归属、SHA-256 校验后读取，可指定历史正式版本；已删除档案不可通过此接口阅读。原件仍可下载或打包原格式，不提供在线修改及 Excel 转 PDF。阅读页沿用现有框架，提供工作表切换、范围定位和上下页；合并格保留左上格值，隐藏数据标明后展示，公式只读缓存值。知识整理与 Agent 规则见 [资料知识 API](knowledge-documents.md#xlsx-资料)。

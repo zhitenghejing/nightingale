@@ -2282,3 +2282,6 @@ CREATE INDEX IF NOT EXISTS `idx_environment_change_object_ref` ON `environment_c
 CREATE INDEX IF NOT EXISTS `idx_environment_change_relation_id` ON `environment_change`(`relation_id`);
 CREATE TABLE IF NOT EXISTS `environment_discovery` (`version_id` integer,`actor_id` integer,`state` text,`note` text,`next_run` integer,`lease_until` integer,`updated_at` integer,PRIMARY KEY (`version_id`));
 CREATE INDEX IF NOT EXISTS `idx_environment_discovery_next_run` ON `environment_discovery`(`next_run`);
+
+-- Structured Excel knowledge, immutable source versions.
+CREATE TABLE IF NOT EXISTS `knowledge_document_workbook` (`version_id` integer,`data` TEXT,PRIMARY KEY (`version_id`));

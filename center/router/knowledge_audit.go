@@ -48,7 +48,7 @@ func (rt *Router) auditKnowledgeAnswer(ctx context.Context, client llm.LLM, user
 	live := []string{}
 	observations := []aiagent.KnowledgeDataEvidence{}
 	for _, m := range turns {
-		if m.Role != "tool" || (m.ToolName != "query_knowledge_data" && m.ToolName != "resolve_knowledge_object" && m.ToolName != "query_environment") || strings.HasPrefix(m.Content, "Error:") {
+		if m.Role != "tool" || (m.ToolName != "query_knowledge_data" && m.ToolName != "resolve_knowledge_object" && m.ToolName != "query_environment" && m.ToolName != "query_knowledge_workbook") || strings.HasPrefix(m.Content, "Error:") {
 			continue
 		}
 		var receipt aiagent.KnowledgeDataEvidence
@@ -58,7 +58,7 @@ func (rt *Router) auditKnowledgeAnswer(ctx context.Context, client llm.LLM, user
 	}
 	priority := func(op string) int {
 		switch op {
-		case "query_prometheus", "get_target_realtime_status", "environment_trace":
+		case "query_prometheus", "get_target_realtime_status", "environment_trace", "workbook_sum", "workbook_count":
 			return 0
 		case "environment_context":
 			return 1
@@ -105,6 +105,7 @@ func (rt *Router) auditKnowledgeAnswer(ctx context.Context, client llm.LLM, user
 8. 从未收到本平台心跳，只能说明该心跳链路未收到数据。几个指定选择器的空结果，只能说明该数据源和这些选择器下未查到，不能泛化为“设备没有任何真实采样”。按IP猜测instance标签不能证明标识映射正确。
 9. 指标目录截断时不能排除未展示的指标类型。60秒步进返回点全部正常，只能证明这些求值点的结果，不能断言间隔内每次采样都成功或整个窗口从未中断。
 10. 使用资料标题、Vn 版本序号与原链接；删去内部数据库 ID。原文、解释和未确认事项用自然语言区分，不套固定报告模板。
+11. Excel 计数/求和只覆盖明确工作表和范围，表头/合计/隐藏行的口径必须与工具结果一致；complete=false 或公式缓存缺失时不能称为完整总数。sum 是原始数值（百分比为比例）而非显示字符串，不能把分页行数当全量。缓存公式可能尚未重算，不能宣称计算已刷新。
 已有证据不足就如实收窄结论，不编造补齐。`},
 		{Role: llm.RoleUser, Content: string(payload)},
 	}})
@@ -130,6 +131,11 @@ func knowledgeConclusionQuestion(input string) bool {
 }
 
 func knowledgeNeedsAudit(question string, e knowledgeAnswerEvidence) bool {
+	for _, d := range e.Data {
+		if d.Operation == "workbook_sum" || d.Operation == "workbook_count" {
+			return true
+		}
+	}
 	if len(e.Sections) > 0 && knowledgeConclusionQuestion(question) {
 		return true
 	}

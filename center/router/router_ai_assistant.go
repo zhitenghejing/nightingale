@@ -843,7 +843,9 @@ func (rt *Router) processAssistantMessage(parentCtx context.Context, parentCance
 			qaEvidence = qaPriorEvidence
 		}
 		if chat.KnowledgeDocumentSearch(msg.Query.Content) && len(qaEvidence.Sections)+len(qaEvidence.Procedures) == 0 {
-			qaEvidence.Data = nil // A device/catalog lookup cannot prove a document match.
+			// Excel receipts identify an actual authorized source document;
+			// device/environment catalogs alone still cannot prove a document match.
+			qaEvidence.Data = documentEvidenceData(qaEvidence.Data)
 		}
 		if knowledgeNeedsAudit(msg.Query.Content, qaEvidence) {
 			state.Update(parentCtx, func(m *models.AssistantMessage) { m.CurStep = "核对资料与结论" })

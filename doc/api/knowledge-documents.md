@@ -61,3 +61,15 @@ python3 -B scripts/knowledge_fixtures.py /path/to/private/fixtures
 ```
 
 设置 `N9E_E2E_BASE_URL`、`N9E_E2E_BUILD_ID`、`N9E_E2E_CREDENTIALS_FILE`、`N9E_KNOWLEDGE_FIXTURE_DIR`、`N9E_KNOWLEDGE_E2E_OUTPUT`；浏览器安装在非默认位置时设置 `N9E_E2E_CHROME`，执行 `node scripts/knowledge_e2e.mjs`。脚本要求 development 身份与 build ID 一致，创建明确标注的隔离资料，校验真实模型、只读、空结果、换版、删除。`KB_RESUME=1` 只复用输出目录记录的本脚本档案，不重新上传。不得指向稳定/生产环境。脚本不替代客户资料正确性和人的体验验收。
+
+## XLSX 资料
+
+档案上传 `.xlsx` 后仍保存原件、编辑租约和不可变正式版本。后台扫描同一资料链路，生成按工作表/单元格坐标组织的 Markdown 章节及 `knowledge_document_workbook` 结构化快照，事务内随索引一起保存。摘要重试不删除确定性原文。替换、删除、停用账号后，旧索引立即失去当前可见性；历史原件在档案阅读权限内保留。
+
+`query_knowledge_workbook` 同时提供给通用会话及资料问答，按服务器当前登录账号执行。先通过 `search_knowledge` 的 `documents[].version_id` 定位知识版本，再 `operation=sheets` 查看工作表，`read` 读取指定 `range`（如 `A1:F100`），或 `count/sum` 计算指定范围内全部非空行。`sum` 要求 `column`；筛选使用 `filter_column/filter_operator(eq,contains,gt,lt)/filter_value`。分页只限制返回行，不限制统计扫描；`limit` 1–100，默认 50。结果包括 `scanned_rows/matched_rows/numeric_cells/complete/issues/has_more`。输出最多 64 KB，单行超过 48 KB 时要求缩小列范围，不能静默截断。无数据不能解释为正常。
+
+数值使用保存的原始数值精确累加，以 12 位小数展示；计数覆盖非空数据行，不自动剔除表头、合计或隐藏行。缺值、错误或无缓存公式使相关统计 `complete=false`；返回的 sum 是可计算部分，不能称为完整总数。百分比按原始比例，跨单位不能混算。合并值仅在左上格，不自动向下填充。文本型数字保留文本语义（例如 0007），不擅自转数字。日期按工作簿样式展示。
+
+工具返回服务器创建的证据回执（知识版本、摘要指纹、文件 Vn、工作表范围和来源链接）。资料问答模式发布回答与历史对话复用前重新核对源版本和账号；不把报告内容当作已验证处置规程或实时设备状态。已有环境关联器只提出候选关联，不写入设备/CMDB。
+
+限制：仅普通、未加密 `.xlsx`；`.xls/.xlsm` 要求另存为无宏 `.xlsx`。不在线编辑、不执行公式或宏、不访问外部链接；图片、图表、批注及打印排版不参与知识提取。读取并发 2、原件 50 MiB、ZIP 总解压 128 MiB/单项 32 MiB/条目 3000、工作表 32、实际范围 100000 行/256 列、单元格 XML 条目 100000（含空样式格）、非空单元格 50000、展开单元格文本 8 MiB、隐藏行列/合并元数据合计 1024 项、Markdown 2 MiB、结构化索引 16 MiB。超限拒绝并说明拆分要求，禁止伪装为已完整整理。

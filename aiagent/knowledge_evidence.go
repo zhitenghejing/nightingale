@@ -5,6 +5,10 @@ import "encoding/json"
 // KnowledgeDataEvidence is a server-created scope, not model-supplied citations.
 // Query time never substitutes for source/sample time in Result.
 type KnowledgeDataEvidence struct {
+	WorkbookVersion    int64             `json:"workbook_version,omitempty"`
+	WorkbookDigest     string            `json:"workbook_digest,omitempty"`
+	SourceLabel        string            `json:"source_label,omitempty"`
+	SourceURL          string            `json:"source_url,omitempty"`
 	EnvironmentRefs    map[string]string `json:"environment_refs,omitempty"`
 	DatasourceVersions map[int64]string  `json:"datasource_versions,omitempty"`
 	TargetVersions     map[string]string `json:"target_versions,omitempty"`

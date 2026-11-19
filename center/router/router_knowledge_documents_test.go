@@ -9,7 +9,7 @@ import (
 func TestKnowledgeQAModeReadOnlyAndFreshHistory(t *testing.T) {
 	h, ok := chat.Lookup("knowledge_qa")
 	require.True(t, ok)
-	require.Equal(t, []string{"search_knowledge", "read_knowledge", "query_environment"}, h.SelectTools(&chat.AIChatRequest{UserInput: "解释这份报告"}))
+	require.Equal(t, []string{"search_knowledge", "read_knowledge", "query_knowledge_workbook", "query_environment"}, h.SelectTools(&chat.AIChatRequest{UserInput: "解释这份报告"}))
 	require.Empty(t, h.RequiredSkills(&chat.AIChatRequest{}))
 	require.Nil(t, h.Preflight)
 
