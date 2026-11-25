@@ -49,15 +49,7 @@ func (s *Store) CreateCatalog(scope Scope, f CatalogCreateInput) (uint64, error)
 			}
 		}
 		component := models.BuiltinComponent{Ident: "template_" + strings.ReplaceAll(uuid.NewString(), "-", ""), Logo: f.Logo, Readme: definition.Pack.Readme}
-		// The native component's explicit BIGINT type is not an SQLite rowid.
-		if tx.Dialector.Name() == "sqlite" {
-			var maximum uint64
-			if err := tx.Model(&models.BuiltinComponent{}).Select("coalesce(max(id),0)").Scan(&maximum).Error; err != nil {
-				return err
-			}
-			component.ID = maximum + 1
-		}
-		if err := component.Add(&nctx.Context{DB: tx, IsCenter: true}, "collection"); err != nil {
+		if err := addCatalogComponent(tx, &component); err != nil {
 			return err
 		}
 		id = component.ID
@@ -69,6 +61,18 @@ func (s *Store) CreateCatalog(scope Scope, f CatalogCreateInput) (uint64, error)
 		return s.audit(tx, scope, 0, fmt.Sprint(component.ID), "catalog_created", "", map[string]interface{}{"cloned_from": f.BaseComponentID})
 	})
 	return id, err
+}
+
+func addCatalogComponent(tx *gorm.DB, component *models.BuiltinComponent) error {
+	// The native component's explicit BIGINT type is not an SQLite rowid.
+	if tx.Dialector.Name() == "sqlite" {
+		var maximum uint64
+		if err := tx.Model(&models.BuiltinComponent{}).Select("coalesce(max(id),0)").Scan(&maximum).Error; err != nil {
+			return err
+		}
+		component.ID = maximum + 1
+	}
+	return component.Add(&nctx.Context{DB: tx, IsCenter: true}, "collection")
 }
 
 func categoryEnabled(tx *gorm.DB, id string) error {

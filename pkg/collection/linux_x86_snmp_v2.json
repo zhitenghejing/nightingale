@@ -1,0 +1,694 @@
+{
+  "reachability": "icmp",
+  "adapter": "snmp_v2c",
+  "config": "required_metrics = [\"snmp_uptime\", \"snmp_cpu_idle_percent\", \"snmp_core_load_percent\", \"snmp_storage_size\", \"snmp_storage_used\"]\n\n[[field]]\nname = \"cpu_idle_percent\"\noid = \"1.3.6.1.4.1.2021.11.11.0\"\n\n[[field]]\nname = \"mem_available_kb\"\noid = \"1.3.6.1.4.1.2021.4.6.0\"\n\n[[table]]\nname = \"core\"\nindex_as_tag = true\nerror_policy = \"partial\"\n[[table.field]]\nname = \"load_percent\"\noid = \"1.3.6.1.2.1.25.3.3.1.2\"\n\n[[table]]\nname = \"storage\"\nindex_as_tag = true\nerror_policy = \"partial\"\n[[table.field]]\nname = \"storage_description\"\noid = \"1.3.6.1.2.1.25.2.3.1.3\"\nis_tag = true\n[[table.field]]\nname = \"allocation_units\"\noid = \"1.3.6.1.2.1.25.2.3.1.4\"\n[[table.field]]\nname = \"size\"\noid = \"1.3.6.1.2.1.25.2.3.1.5\"\n[[table.field]]\nname = \"used\"\noid = \"1.3.6.1.2.1.25.2.3.1.6\"\n\n[[table]]\nname = \"load\"\nindex_as_tag = true\nerror_policy = \"partial\"\n[[table.field]]\nname = \"average_x100\"\noid = \"1.3.6.1.4.1.2021.10.1.5\"\n\n[[table]]\nname = \"diskio\"\nindex_as_tag = true\nerror_policy = \"partial\"\n[[table.field]]\nname = \"disk_name\"\noid = \"1.3.6.1.4.1.2021.13.15.1.1.2\"\nis_tag = true\n[[table.field]]\nname = \"read_bytes_total\"\noid = \"1.3.6.1.4.1.2021.13.15.1.1.3\"\n[[table.field]]\nname = \"written_bytes_total\"\noid = \"1.3.6.1.4.1.2021.13.15.1.1.4\"\n[[table.field]]\nname = \"reads_total\"\noid = \"1.3.6.1.4.1.2021.13.15.1.1.5\"\n[[table.field]]\nname = \"writes_total\"\noid = \"1.3.6.1.4.1.2021.13.15.1.1.6\"\n",
+  "fields": [
+    {
+      "key": "protocol",
+      "label": "SNMP 版本",
+      "type": "select",
+      "required": true,
+      "default": "snmp_v2c",
+      "options": [
+        "snmp_v2c"
+      ]
+    },
+    {
+      "key": "port",
+      "label": "SNMP UDP 端口",
+      "type": "number",
+      "required": true,
+      "default": 161,
+      "min": 1,
+      "max": 65535
+    },
+    {
+      "key": "community",
+      "label": "只读团体字",
+      "type": "password",
+      "required": true,
+      "secret": true
+    }
+  ],
+  "notification": "events_only",
+  "compatibility": "依据 linux.pyc 静态分析迁移CPU、内存/Swap、平均负载、CPU核数与磁盘I/O。需目标Linux启用Net-SNMP只读v2c及相应MIB视图；依赖snmp_general的扩展功能尚未恢复；未进行目标主机实测。",
+  "execution": "collector",
+  "pack": {
+    "component_id": 0,
+    "name": "SNMP采集",
+    "readme": "# Linux X86 SNMP 采集\n\n## 来源及分析范围\n来源为用户上传 linux.pyc（6598字节，Python 3.6 字节码），SHA-256：6b81643ac9378039f1d9d3e01cef2f8d201be8d1f53496a1dff2b5db366a541b。仅静态反汇编，不运行字节码。对应模板：主机系统 / Linux / X86 / SNMP采集，组件ID 122。\n文件内部完整实现 cpu、mem、load、diskio；swap 函数只返回空列表，Swap 实际在 mem 中返回。__all__ 还引用 general、core、process、netstat、netstatcount、ports、disk，availability 也被分支引用。这些函数来自缺失的 snmp_general 模块；convert_value 等工具来自 utils.func。未提供依赖文件，不能确认其具体OID及计算规则，因此本版不声称包含网络、进程、端口、分区或可用性扩展逻辑。\n\n## 采集内容与原脚本对应\n1. CPU：ssCpuIdle .1.3.6.1.4.1.2021.11.11.0，使用率=100-空闲百分比，过去一分钟口径。\n2. 内存与Swap：HOST-RESOURCES-MIB hrStorageTable（描述.1.3.6.1.2.1.25.2.3.1.3、分配单位.4、总块数.5、已用块数.6），分别匹配 Physical memory、Memory buffers、Cached memory、Swap space。先乘 allocation_units 得到字节。有效内存使用率扣除buffers/cache，物理占用率包含buffers/cache，两者分别展示。\n3. 异常兼容：原脚本 used>size 时把memAvailReal（.1.3.6.1.4.1.2021.4.6.0）的kB值直接与块数相加，存在单位混用；本模板改用已用字节+memAvailReal×1024。缺失所需对象时不补造结果；有效已用量为负时保持无数据。\n4. 平均负载：原脚本读取laLoad .1.3.6.1.4.1.2021.10.1.3 的索引1/2/3（文本小数）；受管数值采集改为同表laLoadInt .1.3.6.1.4.1.2021.10.1.5并除以100，得到1/5/15分钟负载。核数按hrProcessorLoad .1.3.6.1.2.1.25.3.3.1.2的条目数；负载/核数×100与CPU使用率不同，可以超过100%。\n5. 磁盘I/O：UCD-DISKIO-MIB根 .1.3.6.1.4.1.2021.13.15.1.1，设备名.2、读取字节Counter32 .3、写入字节Counter32 .4、读取次数Counter32 .5、写入次数Counter32 .6；采集累计计数，图表以irate[5m]计算最近两个有效样本的IOPS和字节/秒。首批只有一个样本时显示无数据；未沿用本地日志文件缓存，也不将首次查询或计数器下降伪造为0。Counter32在高吞吐下存在回绕限制，多个回绕不能可靠重建；64位扩展不在原脚本范围，需验证后另行配置。\n6. uptime为夜莺受管采集自动加入的sysUpTime.0，用于基础健康判断。\n\n## 设备与权限\n适用方向为支持Net-SNMP、UCD-SNMP-MIB、HOST-RESOURCES-MIB、UCD-DISKIO-MIB的Linux X86。OID本身不限定CPU架构；本次只修改指定X86目录，不修改ARM和其他模板。目标系统/发行版及snmpd视图仍需实机验收，不能把模板发布视为实机采集已通过。\n只读SNMP v2c，UDP默认161。设备绑定时输入地址和团体字，模板不保存实际设备凭据。建议30秒周期、3秒超时、1次重试；原脚本使用30秒超时、1次重试，当前平台的SNMP超时范围为1～10秒。Storage描述需与Net-SNMP实际返回一致；无Swap、缺失buffers/cache或磁盘IO视图未开放时，相应图表可能无数据。CPU/物理内存和uptime列为核心采集依赖，负载与磁盘表允许部分返回。仅轮询读取，不执行SNMP SET。\n\n## 仪表盘与告警\n含CPU、两种内存口径、buffers/cache、Swap、负载及核数、磁盘IOPS/吞吐与uptime。预设CPU/有效内存/Swap超过90%、5分钟负载超过核数两倍、SNMP样本持续缺失；均为可调整初始策略，不是原脚本自带阈值。通知默认仅产生事件。新版本不会自动修改任何现有设备绑定。\n\n## 定义核对\n符号与单位依据随系统安装的Net-SNMP UCD-SNMP-MIB、UCD-DISKIO-MIB及本仓库Linux_SNMP的HOST-RESOURCES-MIB定义核对。原始分析文件与变更前快照保存在当前实例私有部署记录中。\n",
+    "metrics": [
+      {
+        "name": "CPU 使用率",
+        "expression": "100 - (snmp_cpu_idle_percent{collection_mode=\"managed\"} >= 0 and snmp_cpu_idle_percent{collection_mode=\"managed\"} <= 100)",
+        "unit": "percent",
+        "note": "原 cpu()：100-ssCpuIdle；ssCpuIdle 为过去一分钟空闲百分比，不是负载/核数。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "CPU 使用率",
+            "note": "原 cpu()：100-ssCpuIdle；ssCpuIdle 为过去一分钟空闲百分比，不是负载/核数。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "有效内存使用率（扣除 buffers/cache）",
+        "expression": "100 * (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Memory buffers\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Memory buffers\"})) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Cached memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Cached memory\"}))) >= 0) / ((((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) >= (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))) or (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) + ((sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\"managed\"}) * 1024))) and ((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) > (sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))))) > 0)",
+        "unit": "percent",
+        "note": "对应 mem.used.pct：(物理已用-buffer-cache)/总量×100；缺少 buffers/cache 时保持无数据，不补零。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "有效内存使用率（扣除 buffers/cache）",
+            "note": "对应 mem.used.pct：(物理已用-buffer-cache)/总量×100；缺少 buffers/cache 时保持无数据，不补零。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "物理内存占用率（含 buffers/cache）",
+        "expression": "100 * (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) / ((((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) >= (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))) or (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) + ((sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\"managed\"}) * 1024))) and ((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) > (sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))))) > 0)",
+        "unit": "percent",
+        "note": "对应 mem.used.physical_memory_pct：hrStorageUsed/hrStorageSize×100；与有效内存口径分开显示。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "物理内存占用率（含 buffers/cache）",
+            "note": "对应 mem.used.physical_memory_pct：hrStorageUsed/hrStorageSize×100；与有效内存口径分开显示。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "CPU 核数",
+        "expression": "count by (collection_device_id, collection_revision) (snmp_core_load_percent{collection_mode=\"managed\"})",
+        "unit": "none",
+        "note": "按 hrProcessorLoad 表的行数计数，与原 load() 一致；由 SNMP 代理展示的处理器条目决定。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "CPU 核数",
+            "note": "按 hrProcessorLoad 表的行数计数，与原 load() 一致；由 SNMP 代理展示的处理器条目决定。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "1 分钟平均负载",
+        "expression": "snmp_load_average_x100{collection_mode=\"managed\",index=\"1\"} / 100",
+        "unit": "none",
+        "note": "原 laLoad 为文本小数；改采同表数值对象 laLoadInt（OID .1.3.6.1.4.1.2021.10.1.5）并除以100，精度对应两位小数。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "1 分钟平均负载",
+            "note": "原 laLoad 为文本小数；改采同表数值对象 laLoadInt（OID .1.3.6.1.4.1.2021.10.1.5）并除以100，精度对应两位小数。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "1 分钟负载/核数",
+        "expression": "100 * (sum by (collection_device_id, collection_revision) (snmp_load_average_x100{collection_mode=\"managed\",index=\"1\"} / 100)) / ((count by (collection_device_id, collection_revision) (snmp_core_load_percent{collection_mode=\"managed\"})) > 0)",
+        "unit": "percent",
+        "note": "对应原 load1/load5/load15：平均负载/处理器条目数×100，可超过100%，不等同于CPU使用率。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "1 分钟负载/核数",
+            "note": "对应原 load1/load5/load15：平均负载/处理器条目数×100，可超过100%，不等同于CPU使用率。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "5 分钟平均负载",
+        "expression": "snmp_load_average_x100{collection_mode=\"managed\",index=\"2\"} / 100",
+        "unit": "none",
+        "note": "原 laLoad 为文本小数；改采同表数值对象 laLoadInt（OID .1.3.6.1.4.1.2021.10.1.5）并除以100，精度对应两位小数。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "5 分钟平均负载",
+            "note": "原 laLoad 为文本小数；改采同表数值对象 laLoadInt（OID .1.3.6.1.4.1.2021.10.1.5）并除以100，精度对应两位小数。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "5 分钟负载/核数",
+        "expression": "100 * (sum by (collection_device_id, collection_revision) (snmp_load_average_x100{collection_mode=\"managed\",index=\"2\"} / 100)) / ((count by (collection_device_id, collection_revision) (snmp_core_load_percent{collection_mode=\"managed\"})) > 0)",
+        "unit": "percent",
+        "note": "对应原 load1/load5/load15：平均负载/处理器条目数×100，可超过100%，不等同于CPU使用率。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "5 分钟负载/核数",
+            "note": "对应原 load1/load5/load15：平均负载/处理器条目数×100，可超过100%，不等同于CPU使用率。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "15 分钟平均负载",
+        "expression": "snmp_load_average_x100{collection_mode=\"managed\",index=\"3\"} / 100",
+        "unit": "none",
+        "note": "原 laLoad 为文本小数；改采同表数值对象 laLoadInt（OID .1.3.6.1.4.1.2021.10.1.5）并除以100，精度对应两位小数。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "15 分钟平均负载",
+            "note": "原 laLoad 为文本小数；改采同表数值对象 laLoadInt（OID .1.3.6.1.4.1.2021.10.1.5）并除以100，精度对应两位小数。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "15 分钟负载/核数",
+        "expression": "100 * (sum by (collection_device_id, collection_revision) (snmp_load_average_x100{collection_mode=\"managed\",index=\"3\"} / 100)) / ((count by (collection_device_id, collection_revision) (snmp_core_load_percent{collection_mode=\"managed\"})) > 0)",
+        "unit": "percent",
+        "note": "对应原 load1/load5/load15：平均负载/处理器条目数×100，可超过100%，不等同于CPU使用率。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "15 分钟负载/核数",
+            "note": "对应原 load1/load5/load15：平均负载/处理器条目数×100，可超过100%，不等同于CPU使用率。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "物理内存总量",
+        "expression": "((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) >= (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))) or (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) + ((sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\"managed\"}) * 1024))) and ((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) > (sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))))",
+        "unit": "bytes",
+        "note": "hrStorage 数值先乘 allocation_units 转字节；异常 used>size 时，总量改用已用字节+memAvailReal×1024，修正原脚本混合计量单位的问题。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "物理内存总量",
+            "note": "hrStorage 数值先乘 allocation_units 转字节；异常 used>size 时，总量改用已用字节+memAvailReal×1024，修正原脚本混合计量单位的问题。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "物理内存空闲量",
+        "expression": "(((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) >= (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))) or (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) + ((sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\"managed\"}) * 1024))) and ((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) > (sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))))) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))",
+        "unit": "bytes",
+        "note": "对应原 mem()；按存储表的描述与索引关联，单位统一为字节。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "物理内存空闲量",
+            "note": "对应原 mem()；按存储表的描述与索引关联，单位统一为字节。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "物理内存已用量（含 buffers/cache）",
+        "expression": "sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})",
+        "unit": "bytes",
+        "note": "对应原 mem()；按存储表的描述与索引关联，单位统一为字节。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "物理内存已用量（含 buffers/cache）",
+            "note": "对应原 mem()；按存储表的描述与索引关联，单位统一为字节。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "内存 buffers",
+        "expression": "sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Memory buffers\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Memory buffers\"})",
+        "unit": "bytes",
+        "note": "对应原 mem()；按存储表的描述与索引关联，单位统一为字节。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "内存 buffers",
+            "note": "对应原 mem()；按存储表的描述与索引关联，单位统一为字节。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "内存 cache",
+        "expression": "sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Cached memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Cached memory\"})",
+        "unit": "bytes",
+        "note": "对应原 mem()；按存储表的描述与索引关联，单位统一为字节。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "内存 cache",
+            "note": "对应原 mem()；按存储表的描述与索引关联，单位统一为字节。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "有效内存已用量",
+        "expression": "((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Memory buffers\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Memory buffers\"})) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Cached memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Cached memory\"}))) >= 0",
+        "unit": "bytes",
+        "note": "对应原 mem()；按存储表的描述与索引关联，单位统一为字节。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "有效内存已用量",
+            "note": "对应原 mem()；按存储表的描述与索引关联，单位统一为字节。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "内存 buffers 占比",
+        "expression": "100 * (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Memory buffers\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Memory buffers\"})) / ((((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) >= (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))) or (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) + ((sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\"managed\"}) * 1024))) and ((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) > (sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))))) > 0)",
+        "unit": "percent",
+        "note": "buffers/物理总量×100。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "内存 buffers 占比",
+            "note": "buffers/物理总量×100。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "内存 cache 占比",
+        "expression": "100 * (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Cached memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Cached memory\"})) / ((((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) >= (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))) or (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) + ((sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\"managed\"}) * 1024))) and ((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"})) > (sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Physical memory\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Physical memory\"}))))) > 0)",
+        "unit": "percent",
+        "note": "cache/物理总量×100。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "内存 cache 占比",
+            "note": "cache/物理总量×100。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "Swap 使用率",
+        "expression": "100 * (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Swap space\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Swap space\"})) / ((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Swap space\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Swap space\"})) > 0)",
+        "unit": "percent",
+        "note": "对应 mem() 返回的 server.swap.used.pct；总量为0时不计算百分比。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "Swap 使用率",
+            "note": "对应 mem() 返回的 server.swap.used.pct；总量为0时不计算百分比。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "Swap 总量",
+        "expression": "sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Swap space\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Swap space\"})",
+        "unit": "bytes",
+        "note": "按 Swap space 条目的分配单位计算；原 swap() 本身是空实现，Swap 实际由 mem() 采集。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "Swap 总量",
+            "note": "按 Swap space 条目的分配单位计算；原 swap() 本身是空实现，Swap 实际由 mem() 采集。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "Swap 空闲量",
+        "expression": "(sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\"managed\",storage_description=\"Swap space\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Swap space\"})) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Swap space\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Swap space\"}))",
+        "unit": "bytes",
+        "note": "按 Swap space 条目的分配单位计算；原 swap() 本身是空实现，Swap 实际由 mem() 采集。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "Swap 空闲量",
+            "note": "按 Swap space 条目的分配单位计算；原 swap() 本身是空实现，Swap 实际由 mem() 采集。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "Swap 已用量",
+        "expression": "sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\"managed\",storage_description=\"Swap space\"} * snmp_storage_allocation_units{collection_mode=\"managed\",storage_description=\"Swap space\"})",
+        "unit": "bytes",
+        "note": "按 Swap space 条目的分配单位计算；原 swap() 本身是空实现，Swap 实际由 mem() 采集。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "Swap 已用量",
+            "note": "按 Swap space 条目的分配单位计算；原 swap() 本身是空实现，Swap 实际由 mem() 采集。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "磁盘累计读取次数",
+        "expression": "snmp_diskio_reads_total{collection_mode=\"managed\"}",
+        "unit": "none",
+        "note": "原 diskio() 对应 UCD-DISKIO-MIB Counter32；按稳定 index 关联设备名，避免多次 walk 按列表位置错配。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "磁盘累计读取次数",
+            "note": "原 diskio() 对应 UCD-DISKIO-MIB Counter32；按稳定 index 关联设备名，避免多次 walk 按列表位置错配。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "counter"
+      },
+      {
+        "name": "磁盘累计写入次数",
+        "expression": "snmp_diskio_writes_total{collection_mode=\"managed\"}",
+        "unit": "none",
+        "note": "原 diskio() 对应 UCD-DISKIO-MIB Counter32；按稳定 index 关联设备名，避免多次 walk 按列表位置错配。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "磁盘累计写入次数",
+            "note": "原 diskio() 对应 UCD-DISKIO-MIB Counter32；按稳定 index 关联设备名，避免多次 walk 按列表位置错配。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "counter"
+      },
+      {
+        "name": "磁盘累计读取字节",
+        "expression": "snmp_diskio_read_bytes_total{collection_mode=\"managed\"}",
+        "unit": "bytes",
+        "note": "原 diskio() 对应 UCD-DISKIO-MIB Counter32；按稳定 index 关联设备名，避免多次 walk 按列表位置错配。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "磁盘累计读取字节",
+            "note": "原 diskio() 对应 UCD-DISKIO-MIB Counter32；按稳定 index 关联设备名，避免多次 walk 按列表位置错配。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "counter"
+      },
+      {
+        "name": "磁盘累计写入字节",
+        "expression": "snmp_diskio_written_bytes_total{collection_mode=\"managed\"}",
+        "unit": "bytes",
+        "note": "原 diskio() 对应 UCD-DISKIO-MIB Counter32；按稳定 index 关联设备名，避免多次 walk 按列表位置错配。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "磁盘累计写入字节",
+            "note": "原 diskio() 对应 UCD-DISKIO-MIB Counter32；按稳定 index 关联设备名，避免多次 walk 按列表位置错配。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "counter"
+      },
+      {
+        "name": "磁盘读取 IOPS",
+        "expression": "irate(snmp_diskio_reads_total{collection_mode=\"managed\"}[5m])",
+        "unit": "ops",
+        "note": "由最近两个有效样本计算每秒速率，至少需要两个样本；使用 Prometheus 处理计数器重置。原脚本本地缓存间隔需1秒至1小时，首次及负差返回0；模板首次保持无数据，不制造0。32位计数存在回绕限制，高吞吐可另行验证64位对象。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "磁盘读取 IOPS",
+            "note": "由最近两个有效样本计算每秒速率，至少需要两个样本；使用 Prometheus 处理计数器重置。原脚本本地缓存间隔需1秒至1小时，首次及负差返回0；模板首次保持无数据，不制造0。32位计数存在回绕限制，高吞吐可另行验证64位对象。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "磁盘写入 IOPS",
+        "expression": "irate(snmp_diskio_writes_total{collection_mode=\"managed\"}[5m])",
+        "unit": "ops",
+        "note": "由最近两个有效样本计算每秒速率，至少需要两个样本；使用 Prometheus 处理计数器重置。原脚本本地缓存间隔需1秒至1小时，首次及负差返回0；模板首次保持无数据，不制造0。32位计数存在回绕限制，高吞吐可另行验证64位对象。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "磁盘写入 IOPS",
+            "note": "由最近两个有效样本计算每秒速率，至少需要两个样本；使用 Prometheus 处理计数器重置。原脚本本地缓存间隔需1秒至1小时，首次及负差返回0；模板首次保持无数据，不制造0。32位计数存在回绕限制，高吞吐可另行验证64位对象。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "磁盘读取速率",
+        "expression": "irate(snmp_diskio_read_bytes_total{collection_mode=\"managed\"}[5m])",
+        "unit": "bytes/sec",
+        "note": "由最近两个有效样本计算每秒速率，至少需要两个样本；使用 Prometheus 处理计数器重置。原脚本本地缓存间隔需1秒至1小时，首次及负差返回0；模板首次保持无数据，不制造0。32位计数存在回绕限制，高吞吐可另行验证64位对象。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "磁盘读取速率",
+            "note": "由最近两个有效样本计算每秒速率，至少需要两个样本；使用 Prometheus 处理计数器重置。原脚本本地缓存间隔需1秒至1小时，首次及负差返回0；模板首次保持无数据，不制造0。32位计数存在回绕限制，高吞吐可另行验证64位对象。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "磁盘写入速率",
+        "expression": "irate(snmp_diskio_written_bytes_total{collection_mode=\"managed\"}[5m])",
+        "unit": "bytes/sec",
+        "note": "由最近两个有效样本计算每秒速率，至少需要两个样本；使用 Prometheus 处理计数器重置。原脚本本地缓存间隔需1秒至1小时，首次及负差返回0；模板首次保持无数据，不制造0。32位计数存在回绕限制，高吞吐可另行验证64位对象。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "磁盘写入速率",
+            "note": "由最近两个有效样本计算每秒速率，至少需要两个样本；使用 Prometheus 处理计数器重置。原脚本本地缓存间隔需1秒至1小时，首次及负差返回0；模板首次保持无数据，不制造0。32位计数存在回绕限制，高吞吐可另行验证64位对象。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "各处理器负载",
+        "expression": "snmp_core_load_percent{collection_mode=\"managed\"}",
+        "unit": "percent",
+        "note": "HOST-RESOURCES-MIB hrProcessorLoad，OID 1.3.6.1.2.1.25.3.3.1.2；也用于原 load() 的核数统计。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "各处理器负载",
+            "note": "HOST-RESOURCES-MIB hrProcessorLoad，OID 1.3.6.1.2.1.25.3.3.1.2；也用于原 load() 的核数统计。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "CPU 空闲率",
+        "expression": "snmp_cpu_idle_percent{collection_mode=\"managed\"}",
+        "unit": "percent",
+        "note": "UCD-SNMP-MIB ssCpuIdle，OID 1.3.6.1.4.1.2021.11.11.0。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "CPU 空闲率",
+            "note": "UCD-SNMP-MIB ssCpuIdle，OID 1.3.6.1.4.1.2021.11.11.0。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "memAvailReal 空闲内存",
+        "expression": "(sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\"managed\"}) * 1024)",
+        "unit": "bytes",
+        "note": "异常总量兼容分支读取 OID 1.3.6.1.4.1.2021.4.6.0；kB按1024转换为字节。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "memAvailReal 空闲内存",
+            "note": "异常总量兼容分支读取 OID 1.3.6.1.4.1.2021.4.6.0；kB按1024转换为字节。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      },
+      {
+        "name": "设备运行时间",
+        "expression": "snmp_uptime{collection_mode=\"managed\"} / 100",
+        "unit": "s",
+        "note": "sysUpTime.0 由受管采集自动加入，TimeTicks 除以100得到秒。",
+        "collector": "categraf",
+        "typ": "Linux_X86_SNMP",
+        "lang": "zh_CN",
+        "translation": [
+          {
+            "lang": "zh_CN",
+            "name": "设备运行时间",
+            "note": "sysUpTime.0 由受管采集自动加入，TimeTicks 除以100得到秒。"
+          }
+        ],
+        "expression_type": "promql",
+        "metric_type": "gauge"
+      }
+    ],
+    "dashboards": [
+      {
+        "id": -1,
+        "name": "Linux X86 SNMP 总览（linux.pyc）",
+        "content": "{\"name\": \"Linux X86 SNMP 总览（linux.pyc）\", \"tags\": \"Linux X86 SNMP\", \"configs\": {\"version\": \"3.1.0\", \"panels\": [{\"type\": \"timeseries\", \"id\": \"8f7453f0-84be-5e2a-9711-a3692bfc222d\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 0, \"i\": \"8f7453f0-84be-5e2a-9711-a3692bfc222d\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"100 - (snmp_cpu_idle_percent{collection_mode=\\\"managed\\\"} >= 0 and snmp_cpu_idle_percent{collection_mode=\\\"managed\\\"} <= 100)\", \"refId\": \"A\", \"legend\": \"CPU 使用率\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"CPU 使用率\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"percent\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"c0d4e065-e9db-5257-8c5c-0899a97e25b3\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 0, \"i\": \"c0d4e065-e9db-5257-8c5c-0899a97e25b3\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"100 * (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Memory buffers\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Memory buffers\\\"})) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Cached memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Cached memory\\\"}))) >= 0) / ((((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) >= (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"}))) or (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) + ((sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\\\"managed\\\"}) * 1024))) and ((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) > (sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"}))))) > 0)\", \"refId\": \"A\", \"legend\": \"有效内存使用率（扣除 buffers/cache）\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"有效内存使用率（扣除 buffers/cache）\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"percent\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"ba52ccdb-2446-59e2-bae3-0046be7a750c\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 8, \"i\": \"ba52ccdb-2446-59e2-bae3-0046be7a750c\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"100 * (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) / ((((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) >= (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"}))) or (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) + ((sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\\\"managed\\\"}) * 1024))) and ((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) > (sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"}))))) > 0)\", \"refId\": \"A\", \"legend\": \"物理内存占用率（含 buffers/cache）\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"物理内存占用率（含 buffers/cache）\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"percent\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"e6660523-31ea-5d73-8d61-d4b869b27548\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 8, \"i\": \"e6660523-31ea-5d73-8d61-d4b869b27548\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"count by (collection_device_id, collection_revision) (snmp_core_load_percent{collection_mode=\\\"managed\\\"})\", \"refId\": \"A\", \"legend\": \"CPU 核数\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"CPU 核数\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"none\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"c67d28a2-53d1-516f-84e0-0ba22f417e50\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 16, \"i\": \"c67d28a2-53d1-516f-84e0-0ba22f417e50\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"snmp_load_average_x100{collection_mode=\\\"managed\\\",index=\\\"1\\\"} / 100\", \"refId\": \"A\", \"legend\": \"1 分钟平均负载\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"1 分钟平均负载\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"none\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"9d1a13f2-0621-5096-9665-2bd98b07aa33\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 16, \"i\": \"9d1a13f2-0621-5096-9665-2bd98b07aa33\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"100 * (sum by (collection_device_id, collection_revision) (snmp_load_average_x100{collection_mode=\\\"managed\\\",index=\\\"1\\\"} / 100)) / ((count by (collection_device_id, collection_revision) (snmp_core_load_percent{collection_mode=\\\"managed\\\"})) > 0)\", \"refId\": \"A\", \"legend\": \"1 分钟负载/核数\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"1 分钟负载/核数\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"percent\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"9156fed6-23eb-532f-9b3c-ed85f0ad39c1\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 24, \"i\": \"9156fed6-23eb-532f-9b3c-ed85f0ad39c1\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"snmp_load_average_x100{collection_mode=\\\"managed\\\",index=\\\"2\\\"} / 100\", \"refId\": \"A\", \"legend\": \"5 分钟平均负载\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"5 分钟平均负载\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"none\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"8f097416-c6a9-5cba-b255-c172e1016f9f\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 24, \"i\": \"8f097416-c6a9-5cba-b255-c172e1016f9f\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"100 * (sum by (collection_device_id, collection_revision) (snmp_load_average_x100{collection_mode=\\\"managed\\\",index=\\\"2\\\"} / 100)) / ((count by (collection_device_id, collection_revision) (snmp_core_load_percent{collection_mode=\\\"managed\\\"})) > 0)\", \"refId\": \"A\", \"legend\": \"5 分钟负载/核数\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"5 分钟负载/核数\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"percent\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"e69c287a-cdef-5fa7-bd14-a908b278e3ba\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 32, \"i\": \"e69c287a-cdef-5fa7-bd14-a908b278e3ba\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"snmp_load_average_x100{collection_mode=\\\"managed\\\",index=\\\"3\\\"} / 100\", \"refId\": \"A\", \"legend\": \"15 分钟平均负载\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"15 分钟平均负载\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"none\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"a2c3e58b-36bd-582f-8856-1a19a920865f\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 32, \"i\": \"a2c3e58b-36bd-582f-8856-1a19a920865f\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"100 * (sum by (collection_device_id, collection_revision) (snmp_load_average_x100{collection_mode=\\\"managed\\\",index=\\\"3\\\"} / 100)) / ((count by (collection_device_id, collection_revision) (snmp_core_load_percent{collection_mode=\\\"managed\\\"})) > 0)\", \"refId\": \"A\", \"legend\": \"15 分钟负载/核数\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"15 分钟负载/核数\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"percent\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"a5174f52-2ad3-5e58-b6ab-dcb68c2aad60\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 40, \"i\": \"a5174f52-2ad3-5e58-b6ab-dcb68c2aad60\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) >= (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"}))) or (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) + ((sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\\\"managed\\\"}) * 1024))) and ((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) > (sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"}))))\", \"refId\": \"A\", \"legend\": \"物理内存总量\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"物理内存总量\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"bytes\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"08c80827-f915-5ab9-80a7-4c5e2de56983\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 40, \"i\": \"08c80827-f915-5ab9-80a7-4c5e2de56983\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"(((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) >= (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"}))) or (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) + ((sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\\\"managed\\\"}) * 1024))) and ((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) > (sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"}))))) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"}))\", \"refId\": \"A\", \"legend\": \"物理内存空闲量\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"物理内存空闲量\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"bytes\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"e6109132-0ae6-533b-92ff-08224af0e7cf\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 48, \"i\": \"e6109132-0ae6-533b-92ff-08224af0e7cf\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Memory buffers\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Memory buffers\\\"})\", \"refId\": \"A\", \"legend\": \"内存 buffers\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"内存 buffers\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"bytes\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"32529d33-c75c-5c54-96ba-233402137729\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 48, \"i\": \"32529d33-c75c-5c54-96ba-233402137729\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Cached memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Cached memory\\\"})\", \"refId\": \"A\", \"legend\": \"内存 cache\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"内存 cache\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"bytes\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"5a249599-37e5-51e5-bdfb-d47b10bc9729\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 56, \"i\": \"5a249599-37e5-51e5-bdfb-d47b10bc9729\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"100 * (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"})) / ((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"})) > 0)\", \"refId\": \"A\", \"legend\": \"Swap 使用率\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"Swap 使用率\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"percent\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"d1ef6e97-2441-59b5-a8be-362aa535ef1d\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 56, \"i\": \"d1ef6e97-2441-59b5-a8be-362aa535ef1d\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"})\", \"refId\": \"A\", \"legend\": \"Swap 总量\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"Swap 总量\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"bytes\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"3f80b553-c3a6-51de-ae77-f00bf275e2f2\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 64, \"i\": \"3f80b553-c3a6-51de-ae77-f00bf275e2f2\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"(sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"})) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"}))\", \"refId\": \"A\", \"legend\": \"Swap 空闲量\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"Swap 空闲量\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"bytes\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"66747338-5fc2-5a29-9c14-4e8313469091\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 64, \"i\": \"66747338-5fc2-5a29-9c14-4e8313469091\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"irate(snmp_diskio_reads_total{collection_mode=\\\"managed\\\"}[5m])\", \"refId\": \"A\", \"legend\": \"{{disk_name}} [{{index}}]\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"磁盘读取 IOPS\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"ops\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"55883839-d77e-50d5-b326-b2042e259a4a\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 72, \"i\": \"55883839-d77e-50d5-b326-b2042e259a4a\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"irate(snmp_diskio_writes_total{collection_mode=\\\"managed\\\"}[5m])\", \"refId\": \"A\", \"legend\": \"{{disk_name}} [{{index}}]\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"磁盘写入 IOPS\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"ops\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"7fad03e7-cad4-52d4-bef4-cd1c42620bcb\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 72, \"i\": \"7fad03e7-cad4-52d4-bef4-cd1c42620bcb\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"irate(snmp_diskio_read_bytes_total{collection_mode=\\\"managed\\\"}[5m])\", \"refId\": \"A\", \"legend\": \"{{disk_name}} [{{index}}]\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"磁盘读取速率\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"bytes/sec\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"89d9e8f6-0385-5a8c-8159-763cede94e8a\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 80, \"i\": \"89d9e8f6-0385-5a8c-8159-763cede94e8a\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"irate(snmp_diskio_written_bytes_total{collection_mode=\\\"managed\\\"}[5m])\", \"refId\": \"A\", \"legend\": \"{{disk_name}} [{{index}}]\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"磁盘写入速率\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"bytes/sec\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"acca961f-43d6-5a80-a2c7-bb104fcdbf46\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 12, \"y\": 80, \"i\": \"acca961f-43d6-5a80-a2c7-bb104fcdbf46\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"snmp_core_load_percent{collection_mode=\\\"managed\\\"}\", \"refId\": \"A\", \"legend\": \"{{index}}\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"各处理器负载\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"percent\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}, {\"type\": \"timeseries\", \"id\": \"297d7454-9727-5cd2-8bb1-cdecf0149764\", \"layout\": {\"h\": 8, \"w\": 12, \"x\": 0, \"y\": 88, \"i\": \"297d7454-9727-5cd2-8bb1-cdecf0149764\", \"isResizable\": true}, \"version\": \"3.1.0\", \"datasourceCate\": \"prometheus\", \"datasourceValue\": 0, \"targets\": [{\"expr\": \"snmp_uptime{collection_mode=\\\"managed\\\"} / 100\", \"refId\": \"A\", \"legend\": \"设备运行时间\", \"step\": 30}], \"transformations\": [{\"id\": \"organize\", \"options\": {}}], \"name\": \"设备运行时间\", \"maxPerRow\": 4, \"options\": {\"tooltip\": {\"mode\": \"all\", \"sort\": \"desc\"}, \"legend\": {\"displayMode\": \"hidden\", \"placement\": \"bottom\", \"columns\": [\"max\", \"min\", \"avg\", \"last\"], \"behaviour\": \"showItem\", \"selectMode\": \"single\"}, \"standardOptions\": {\"util\": \"s\", \"min\": null, \"max\": null, \"decimals\": 2}, \"thresholds\": {\"mode\": \"absolute\", \"steps\": [{\"color\": \"rgba(255, 101, 107, 1)\", \"value\": 80, \"type\": \"\"}, {\"color\": \"#634CD9\", \"type\": \"base\", \"value\": null}]}, \"thresholdsStyle\": {\"mode\": \"dashed\"}}, \"custom\": {\"drawStyle\": \"lines\", \"lineInterpolation\": \"smooth\", \"spanNulls\": false, \"lineWidth\": 2, \"fillOpacity\": 0.03, \"gradientMode\": \"none\", \"stack\": \"off\", \"scaleDistribution\": {\"type\": \"linear\"}, \"showPoints\": \"none\", \"pointSize\": 5}, \"overrides\": [{\"matcher\": {\"id\": \"byFrameRefID\"}, \"properties\": {\"rightYAxisDisplay\": \"off\"}}]}]}}"
+      }
+    ],
+    "alerts": [
+      {
+        "id": -1,
+        "name": "Linux CPU 使用率超过 90%",
+        "content": "{\"name\": \"Linux CPU 使用率超过 90%\", \"cate\": \"prometheus\", \"prod\": \"metric\", \"disabled\": 0, \"prom_for_duration\": 300, \"prom_eval_interval\": 15, \"rule_config\": {\"queries\": [{\"prom_ql\": \"(100 - (snmp_cpu_idle_percent{collection_mode=\\\"managed\\\"} >= 0 and snmp_cpu_idle_percent{collection_mode=\\\"managed\\\"} <= 100)) > 90\", \"severity\": 2, \"unit\": \"none\"}], \"version\": \"v1\"}, \"notify_version\": 1, \"notify_rule_ids\": [], \"notify_recovered\": 1, \"notify_repeat_step\": 60, \"annotations\": {\"action\": \"核对当前 Linux 主机、SNMP 视图与采集样本，按指标口径检查资源和业务负载。阈值为可调整的初始值。\"}, \"enable_stimes\": [\"00:00\"], \"enable_etimes\": [\"23:59\"], \"enable_days_of_weeks\": [[\"0\", \"1\", \"2\", \"3\", \"4\", \"5\", \"6\"]]}"
+      },
+      {
+        "id": -2,
+        "name": "Linux 有效内存使用率超过 90%",
+        "content": "{\"name\": \"Linux 有效内存使用率超过 90%\", \"cate\": \"prometheus\", \"prod\": \"metric\", \"disabled\": 0, \"prom_for_duration\": 300, \"prom_eval_interval\": 15, \"rule_config\": {\"queries\": [{\"prom_ql\": \"(100 * (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Memory buffers\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Memory buffers\\\"})) - (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Cached memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Cached memory\\\"}))) >= 0) / ((((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) >= (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"}))) or (((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) + ((sum by (collection_device_id, collection_revision) (snmp_mem_available_kb{collection_mode=\\\"managed\\\"}) * 1024))) and ((sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"})) > (sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Physical memory\\\"}))))) > 0)) > 90\", \"severity\": 2, \"unit\": \"none\"}], \"version\": \"v1\"}, \"notify_version\": 1, \"notify_rule_ids\": [], \"notify_recovered\": 1, \"notify_repeat_step\": 60, \"annotations\": {\"action\": \"核对当前 Linux 主机、SNMP 视图与采集样本，按指标口径检查资源和业务负载。阈值为可调整的初始值。\"}, \"enable_stimes\": [\"00:00\"], \"enable_etimes\": [\"23:59\"], \"enable_days_of_weeks\": [[\"0\", \"1\", \"2\", \"3\", \"4\", \"5\", \"6\"]]}"
+      },
+      {
+        "id": -3,
+        "name": "Linux Swap 使用率超过 90%",
+        "content": "{\"name\": \"Linux Swap 使用率超过 90%\", \"cate\": \"prometheus\", \"prod\": \"metric\", \"disabled\": 0, \"prom_for_duration\": 300, \"prom_eval_interval\": 15, \"rule_config\": {\"queries\": [{\"prom_ql\": \"(100 * (sum by (collection_device_id, collection_revision) (snmp_storage_used{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"})) / ((sum by (collection_device_id, collection_revision) (snmp_storage_size{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"} * snmp_storage_allocation_units{collection_mode=\\\"managed\\\",storage_description=\\\"Swap space\\\"})) > 0)) > 90\", \"severity\": 2, \"unit\": \"none\"}], \"version\": \"v1\"}, \"notify_version\": 1, \"notify_rule_ids\": [], \"notify_recovered\": 1, \"notify_repeat_step\": 60, \"annotations\": {\"action\": \"核对当前 Linux 主机、SNMP 视图与采集样本，按指标口径检查资源和业务负载。阈值为可调整的初始值。\"}, \"enable_stimes\": [\"00:00\"], \"enable_etimes\": [\"23:59\"], \"enable_days_of_weeks\": [[\"0\", \"1\", \"2\", \"3\", \"4\", \"5\", \"6\"]]}"
+      },
+      {
+        "id": -4,
+        "name": "Linux 5分钟负载超过核数的两倍",
+        "content": "{\"name\": \"Linux 5分钟负载超过核数的两倍\", \"cate\": \"prometheus\", \"prod\": \"metric\", \"disabled\": 0, \"prom_for_duration\": 300, \"prom_eval_interval\": 15, \"rule_config\": {\"queries\": [{\"prom_ql\": \"(100 * (sum by (collection_device_id, collection_revision) (snmp_load_average_x100{collection_mode=\\\"managed\\\",index=\\\"2\\\"} / 100)) / ((count by (collection_device_id, collection_revision) (snmp_core_load_percent{collection_mode=\\\"managed\\\"})) > 0)) > 200\", \"severity\": 2, \"unit\": \"none\"}], \"version\": \"v1\"}, \"notify_version\": 1, \"notify_rule_ids\": [], \"notify_recovered\": 1, \"notify_repeat_step\": 60, \"annotations\": {\"action\": \"核对当前 Linux 主机、SNMP 视图与采集样本，按指标口径检查资源和业务负载。阈值为可调整的初始值。\"}, \"enable_stimes\": [\"00:00\"], \"enable_etimes\": [\"23:59\"], \"enable_days_of_weeks\": [[\"0\", \"1\", \"2\", \"3\", \"4\", \"5\", \"6\"]]}"
+      },
+      {
+        "id": -5,
+        "name": "Linux SNMP 样本持续缺失",
+        "content": "{\"name\": \"Linux SNMP 样本持续缺失\", \"cate\": \"prometheus\", \"prod\": \"metric\", \"disabled\": 0, \"prom_for_duration\": 60, \"prom_eval_interval\": 15, \"rule_config\": {\"queries\": [{\"prom_ql\": \"absent_over_time(snmp_uptime{collection_mode=\\\"managed\\\"}[3m])\", \"severity\": 1, \"unit\": \"none\"}], \"version\": \"v1\"}, \"notify_version\": 1, \"notify_rule_ids\": [], \"notify_recovered\": 1, \"notify_repeat_step\": 60, \"annotations\": {\"action\": \"核对当前 Linux 主机、SNMP 视图与采集样本，按指标口径检查资源和业务负载。阈值为可调整的初始值。\"}, \"enable_stimes\": [\"00:00\"], \"enable_etimes\": [\"23:59\"], \"enable_days_of_weeks\": [[\"0\", \"1\", \"2\", \"3\", \"4\", \"5\", \"6\"]]}"
+      }
+    ]
+  },
+  "notify": {
+    "mode": "events_only",
+    "message": "{{设备名称}}：{{规则名称}}，当前值 {{当前值}}。",
+    "rule_ids": []
+  }
+}
