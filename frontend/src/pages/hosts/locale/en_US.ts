@@ -13,6 +13,7 @@ const en_US = {
     account: 'Commands run as the device’s saved SSH account.',
   },
   inventory: {
+    owner: 'Owner',
     model: 'Device model',
     name: 'Device name', type: 'Device type', ip: 'IP address', method: 'Collection method', reachability: 'Reachability', alerts: 'Current alerts', groups: 'Business groups', tags: 'Device tags', actions: 'Actions',
     edit: 'Edit', delete: 'Delete', cancel: 'Cancel', delete_confirm: 'Delete this device?', delete_failed: 'Could not delete device', load_failed: 'Could not load device configuration',

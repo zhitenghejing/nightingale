@@ -120,7 +120,7 @@ export default function CatalogEditor({ componentId }: { componentId: number }) 
       </div>
       {error && <Alert className='mb-3' type='error' message={error} showIcon />}
       <div className='template-package-layout'>
-        <Menu selectedKeys={[String(section)]} onClick={({ key }) => setSection(Number(key))} items={sections.map((label, key) => ({ key: String(key), label }))} />
+        <Menu mode='horizontal' selectedKeys={[String(section)]} onClick={({ key }) => setSection(Number(key))} items={sections.map((label, key) => ({ key: String(key), label }))} />
         <div className='template-package-content'>
           <h3>{sections[section]}</h3>
           {section === 0 && (

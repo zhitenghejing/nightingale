@@ -1,4 +1,5 @@
 const zh_HK = {
+  inventory: { owner: '責任人' },
   title: '機器列表',
   default_filter: '預置篩選',
   ungrouped_targets: '未分組機器',

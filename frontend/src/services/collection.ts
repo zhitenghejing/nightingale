@@ -71,6 +71,8 @@ export const collectionRequest = (path: string, method = RequestMethod.Get, data
   request(`/api/n9e/collection/${path}`, { method, data, headers, silence: true }).then((res) => res.dat);
 export const collectionEnabled = (): Promise<boolean> => collectionRequest('features').then((r) => r.enabled);
 export const getCollectors = (): Promise<Collector[]> => collectionRequest('collectors');
+export type CollectorOption = Pick<Collector, 'id' | 'name' | 'agent_ident' | 'datasource_id'> & { enabled: boolean };
+export const getCollectorOptions = (): Promise<CollectorOption[]> => collectionRequest('collector-options');
 export const getCredentials = (): Promise<Credential[]> => collectionRequest('credentials');
 export const getDevice = (id: string): Promise<Device> => collectionRequest(`devices/${id}`);
 export const saveDevice = (id: string | undefined, values: any, key: string): Promise<Device> =>
@@ -135,5 +137,6 @@ export interface DeviceAlert {
 const deviceDetailRequest = (path: string, params: DeviceSubject & { p?: number; limit?: number }) =>
   request(`/api/n9e/targets/${path}`, { method: RequestMethod.Get, params, silence: true }).then((res) => res.dat);
 export const getDeviceDetail = (subject: DeviceSubject): Promise<DeviceDetailData> => deviceDetailRequest('device-detail', subject);
-export const getDeviceAlerts = (subject: DeviceSubject, page: number): Promise<{ list: DeviceAlert[]; total: number }> => deviceDetailRequest('device-alerts', { ...subject, p: page, limit: 20 });
+export const getDeviceAlerts = (subject: DeviceSubject, page: number, history = false): Promise<{ list: DeviceAlert[]; total: number }> =>
+  request('/api/n9e/targets/device-alerts', { method: RequestMethod.Get, params: { ...subject, p: page, limit: 20, ...(history ? { history: '1' } : {}) }, silence: true }).then((res) => res.dat);
 export const getAgentDeviceMetrics = (subject: DeviceSubject): Promise<{ metrics: Record<string, any[]>; metric_errors?: Record<string, boolean> }> => deviceDetailRequest('device-metrics', subject);

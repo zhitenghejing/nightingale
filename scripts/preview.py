@@ -351,6 +351,15 @@ def app_config(binding, backend_port):
     resource = json.loads((directory / "postgres.json").read_text())
     collector_file = directory / "collector.json"
     collector = json.loads(collector_file.read_text()) if collector_file.exists() else None
+    additional_file = directory / "collector-additional.json"
+    additional = []
+    if additional_file.exists():
+        if (collector is None or binding.get("role", "development") != "development"
+                or additional_file.stat().st_mode & 0o077):
+            raise ValueError("additional collectors require private development collector configuration")
+        additional = json.loads(additional_file.read_text())
+        if not isinstance(additional, list) or not 1 <= len(additional) <= 16:
+            raise ValueError("invalid additional development collectors")
     agent_auth = ""
     collector_writer = ""
     if collector is not None:
@@ -358,7 +367,17 @@ def app_config(binding, backend_port):
                 or set(collector) != {"username", "password"}
                 or not all(isinstance(v, str) and len(v) >= 8 for v in collector.values())):
             raise ValueError("invalid private development collector configuration")
-        agent_auth = "BasicAuth = {" + json.dumps(collector["username"]) + " = " + json.dumps(collector["password"]) + "}"
+        accounts = [collector] + additional
+        seen = set()
+        for account in accounts:
+            if (not isinstance(account, dict) or set(account) != {"username", "password"}
+                    or not all(isinstance(v, str) and len(v) >= 8 for v in account.values())
+                    or account["username"] in seen):
+                raise ValueError("invalid or duplicate private development collector account")
+            seen.add(account["username"])
+        agent_auth = "BasicAuth = {" + ", ".join(
+            json.dumps(account["username"]) + " = " + json.dumps(account["password"])
+            for account in accounts) + "}"
         if not preview_services.prometheus_write_flags(STATE / "shared"):
             raise ValueError("collector requires the host-owned shared Prometheus remote-write opt-in")
         collector_writer = "[[Pushgw.Writers]]\nUrl = " + json.dumps(resource["prometheusURL"].rstrip("/") + "/api/v1/write")

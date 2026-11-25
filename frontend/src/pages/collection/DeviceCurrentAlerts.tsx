@@ -9,27 +9,27 @@ export function DeviceSeverity({ severity }: { severity: number }) {
   const { t } = useTranslation('collection');
   return severity >= 1 && severity <= 3 ? <Tag color={severity === 1 ? 'red' : severity === 2 ? 'orange' : 'blue'}>{t(`device_severity_${severity}`)}</Tag> : <span>{t('device_rule_severity')}</span>;
 }
-export default function DeviceCurrentAlerts({ subject, active, refresh }: { subject: DeviceSubject; active: boolean; refresh: number }) {
+export default function DeviceCurrentAlerts({ subject, active, refresh, history = false }: { subject: DeviceSubject; active: boolean; refresh: number; history?: boolean }) {
   const { t } = useTranslation('collection');
   const [page, setPage] = useState(1);
   const [result, setResult] = useState<{ list: DeviceAlert[]; total: number }>({ list: [], total: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  useEffect(() => { setPage(1); setResult({ list: [], total: 0 }); setError(''); }, [subject.device_id, subject.ident]);
+  useEffect(() => { setPage(1); setResult({ list: [], total: 0 }); setError(''); }, [subject.device_id, subject.ident, history]);
   useEffect(() => {
     if (!active) return;
     let mounted = true;
-    const load = () => { setLoading(true); getDeviceAlerts(subject, page)
+    const load = () => { setLoading(true); (history ? getDeviceAlerts(subject, page, true) : getDeviceAlerts(subject, page))
       .then((data) => { if (mounted) { setResult(data); setError(''); if ((page - 1) * 20 >= data.total && page > 1) setPage(Math.max(1, Math.ceil(data.total / 20))); } })
       .catch((e) => { if (mounted) setError(errorText(e, t('query_failed'))); })
       .finally(() => { if (mounted) setLoading(false); }); };
     load(); const timer = window.setInterval(load, 10000);
     return () => { mounted = false; window.clearInterval(timer); };
-  }, [subject.device_id, subject.ident, active, page, refresh]);
+  }, [subject.device_id, subject.ident, active, page, refresh, history]);
   return <>
     {error && <Alert type='error' showIcon message={error} />}
     <Table<DeviceAlert> className='device-current-alerts' rowKey='id' size='small' loading={loading} dataSource={error ? [] : result.list}
-      locale={{ emptyText: <Empty description={error ? t('query_failed') : t('device_no_current_alerts')} /> }}
+      locale={{ emptyText: <Empty description={error ? t('query_failed') : history ? '暂无历史告警' : t('device_no_current_alerts')} /> }}
       pagination={{ current: page, pageSize: 20, total: error ? 0 : result.total, onChange: setPage, showSizeChanger: false }}
       columns={[
         { title: t('device_alert_severity'), dataIndex: 'severity', width: 100, render: (severity) => <DeviceSeverity severity={severity} /> },

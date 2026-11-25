@@ -20,7 +20,7 @@ const DeviceEditor = lazy(() => import('@/pages/collection/DeviceEditor'));
 const DeviceDetail = lazy(() => import('@/pages/collection/DeviceDetail'));
 const DeviceConsole = lazy(() => import('@/pages/remoteAccess/DeviceConsole'));
 export const COLUMN_WIDTHS_KEY = 'hosts-device-inventory-columns-v1';
-const defaultWidths = { name: 210, type: 135, model: 210, ip: 170, method: 145, reachability: 135, alerts: 210, groups: 170, tags: 250 };
+const defaultWidths = { name: 210, type: 135, model: 210, ip: 170, owner: 145, method: 145, reachability: 135, alerts: 210, groups: 170, tags: 250 };
 type ColumnKey = keyof typeof defaultWidths;
 function readWidths() {
   try {
@@ -123,6 +123,10 @@ export default function DeviceInventoryTable({ tableProps, selectedRows, setSele
     column('type', t('inventory.type'), (_, row) => <span>{row.inventory?.device_type || t('inventory.unclassified')}</span>),
     column('model', t('inventory.model'), (_, row) => <span>{row.inventory?.device_model || row.os || '—'}</span>),
     column('ip', t('inventory.ip'), (_, row) => <span className='device-inventory-ip'>{row.host_ip || '—'}</span>),
+    column('owner', t('inventory.owner'), (_, row) => {
+      const tag = [...(row.tags || []), ...(row.host_tags || [])].find((value) => value.startsWith('owner=') && value.slice(6).trim());
+      return <span className='device-inventory-owner'>{row.inventory?.owner || tag?.slice(6).trim() || '—'}</span>;
+    }),
     column('method', t('inventory.method'), (_, row) => {
       const method = row.inventory?.method || row.collection?.kind || 'agent';
       return <Tag color={row.inventory?.collection_ok ? 'green' : 'default'} className={`device-inventory-method${row.inventory?.collection_ok ? ' is-success' : ''}`}>{method}</Tag>;
