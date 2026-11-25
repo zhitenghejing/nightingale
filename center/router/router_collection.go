@@ -17,6 +17,7 @@ import (
 	"github.com/ccfos/nightingale/v6/pkg/collection"
 	"github.com/ccfos/nightingale/v6/pkg/ginx"
 	"github.com/ccfos/nightingale/v6/pkg/i18nx"
+	"github.com/ccfos/nightingale/v6/pkg/remoteaccess"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -56,6 +57,11 @@ func collectionReply(c *gin.Context, data interface{}, err error) {
 	if err != nil {
 		status = 503
 		message = "collection operation failed"
+		var remoteErr *remoteaccess.Error
+		if errors.As(err, &remoteErr) {
+			status = remoteErr.Code
+			message = remoteErr.Message
+		}
 		var e *collection.Error
 		if errors.As(err, &e) {
 			status = e.Code
@@ -392,6 +398,8 @@ func (rt *Router) collectionProbeCreate(c *gin.Context) {
 		collectionReply(c, nil, e)
 		return
 	}
+	// SSH settings are never sent to a collector or persisted with probes.
+	f.RemoteAccess = nil
 	s, e := rt.collectionScope(c)
 	if e != nil {
 		collectionReply(c, nil, e)

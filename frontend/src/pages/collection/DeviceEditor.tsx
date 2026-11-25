@@ -1,4 +1,6 @@
 import './style.less';
+import { HostKeyConfirmationCancelled } from '@/pages/remoteAccess/hostKeys';
+import SSHSettings, { SSHSettingsHandle } from '@/pages/remoteAccess/SSHSettings';
 import { formError, errorText } from './errors';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Button, Checkbox, Collapse, Form, Input, InputNumber, Modal, Select, Space, Switch, Steps, Descriptions, Divider, Table, Tag } from 'antd';
@@ -44,11 +46,14 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
   const [credentialBusy, setCredentialBusy] = useState(false);
   const [customize, setCustomize] = useState(false);
   const key = useRef(requestKey());
+  const consoleSettings = useRef<SSHSettingsHandle>(null);
   const group = Form.useWatch('group_id', form);
+  const deviceAddress = Form.useWatch('address', form);
   const collectorId = Form.useWatch('collector_id', form);
   const selectedVersion = Form.useWatch('template_version_id', form);
   const selection = Form.useWatch('template_selection', form);
   const chosen = catalog?.entries.find((e) => selection === `catalog:${e.component_id}`);
+  const windows = /windows/i.test([chosen?.ident, chosen?.name, ...(chosen?.published?.category_path || []), device?.profile?.name].join(' '));
   useEffect(() => {
     let active = true;
     setFullEntry(undefined);
@@ -166,10 +171,12 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
     setBusy(true);
     setError('');
     try {
-      const d = await saveDevice(device?.id, await input(), key.current);
+      const values = await input();
+      const remote_access = await consoleSettings.current?.value(true);
+      const d = await saveDevice(device?.id, { ...values, remote_access }, key.current);
       onSaved(d);
     } catch (e) {
-      if (!formError(e)) setError(errorText(e, t('query_failed')));
+      if (!(e instanceof HostKeyConfirmationCancelled) && !formError(e)) setError(errorText(e, t('query_failed')));
     } finally {
       setBusy(false);
     }
@@ -178,7 +185,8 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
     setBusy(true);
     setError('');
     try {
-      const p = await collectionRequest('probes', RequestMethod.Post, { ...(await input()), probe_device_id: device?.id });
+      const values = await input();
+      const p = await collectionRequest('probes', RequestMethod.Post, { ...values, probe_device_id: device?.id });
       setProbe(p);
     } catch (e) {
       if (!formError(e)) setError(errorText(e, t('query_failed')));
@@ -209,6 +217,7 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
               onClick={async () => {
                 try {
                   const values = await input();
+                  if (step === 0) await consoleSettings.current?.value();
                   setSummary({ ...values, notify: values.notify || device?.notify });
                   setError('');
                   setStep(step + 1);
@@ -374,6 +383,13 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
                   {t('new_credential')}
                 </Button>
               )}
+              <SSHSettings
+                ref={consoleSettings}
+                ident={device?.ident}
+                group={group}
+                host={deviceAddress || device?.address}
+                defaultProtocol={selectedDefinition?.console_protocol || (windows ? 'rdp' : 'ssh')}
+              />
               {device && selectedVersion !== device.template_version_id && (
                 <Form.Item name='reset_resources' valuePropName='checked'>
                   <Checkbox>重建仪表盘和告警规则，重置该设备的资源自定义（默认保留）</Checkbox>

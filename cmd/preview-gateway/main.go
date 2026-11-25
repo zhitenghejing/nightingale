@@ -245,9 +245,14 @@ func handler(m manifest, base string, ready *atomic.Bool) http.Handler {
 			return
 		}
 		// Forwarded origin is needed for OAuth callbacks and generated links.
-		if r.Header.Get("X-Forwarded-Proto") == "" {
-			r.Header.Set("X-Forwarded-Proto", "http")
+		peer, _, _ := net.SplitHostPort(r.RemoteAddr)
+		ip := net.ParseIP(peer)
+		trustedHTTPS := ip != nil && ip.IsLoopback() && r.Header.Get("X-Forwarded-Proto") == "https"
+		scheme := "http"
+		if r.TLS != nil || trustedHTTPS {
+			scheme = "https"
 		}
+		r.Header.Set("X-Forwarded-Proto", scheme)
 		// ReverseProxy appends backend headers; avoid retaining a second no-store
 		// value that would override the fingerprinted asset cache policy.
 		w.Header().Del("Cache-Control")

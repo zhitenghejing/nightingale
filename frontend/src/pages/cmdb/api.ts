@@ -24,6 +24,12 @@ export interface Permissions {
   import: boolean;
   export: boolean;
 }
+export interface RackAlert {
+  id: string;
+  rule_name: string;
+  severity: 1 | 2 | 3;
+  trigger_time: number;
+}
 export const api = async <T>(path: string, method = 'GET', data?: unknown): Promise<T> => {
   let result;
   try {

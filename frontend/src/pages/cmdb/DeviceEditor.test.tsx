@@ -54,6 +54,27 @@ it('confirms a versioned device deletion and refreshes the inventory', async () 
   expect(onClose).toHaveBeenCalledTimes(1);
   expect(onSaved).toHaveBeenCalledTimes(1);
 });
+
+it('saves an imported device without changing its recorded U height to match artwork', async () => {
+  const device = {
+    ...blankDevice,
+    id: 'imported',
+    serial: 'IMPORTED-2U',
+    room: '北院7号楼11F',
+    rack: '5号柜',
+    rackId: 'rack',
+    vendor: 'Dell',
+    model: 'R650',
+    uStart: 9,
+    uEnd: 10,
+  };
+  render(<DeviceEditor editor={{ mode: 'edit', device }} devices={[device]} catalog={catalog} onClose={jest.fn()} onSaved={async () => {}} />);
+  const dialog = screen.getByRole('dialog');
+  expect(within(dialog).getByLabelText('序列号')).toHaveValue(device.serial);
+  fireEvent.change(within(dialog).getByLabelText('备注'), { target: { value: '已核对原 U 位' } });
+  fireEvent.click(within(dialog).getByRole('button', { name: '保存设备' }));
+  await waitFor(() => expect(saveAsset).toHaveBeenCalledWith(expect.objectContaining({ uStart: 9, uEnd: 10, note: '已核对原 U 位' }), false));
+});
 it('keeps the device open and shows a stale-version rejection', async () => {
   const onClose = jest.fn();
   render(

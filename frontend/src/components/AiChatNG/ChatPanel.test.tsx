@@ -83,6 +83,96 @@ const pageActionDone: IAiChatMessage = {
   ],
 };
 
+describe('ChatPanel input method composition', () => {
+  beforeEach(() => {
+    const services = jest.requireMock('./services');
+    services.createChat.mockReset().mockResolvedValue({ chat_id: 'ime-chat', title: '', last_update: 0 });
+    services.getMessageHistory.mockReset().mockResolvedValue([]);
+    services.sendMessage.mockReset().mockResolvedValue({ chat_id: 'ime-chat', seq_id: 1 });
+    getMessageDetail.mockReset().mockResolvedValue({ ...inProgress, chat_id: 'ime-chat', is_finish: true, response: [] });
+    manifest.mockReturnValue([]);
+  });
+
+  afterEach(() => {
+    jest.requireMock('./services').getMessageHistory.mockReset().mockResolvedValue([inProgress]);
+  });
+
+  it.each(['full', 'slim'] as const)('does not send %s chat when the native keyboard event is composing', async (variant) => {
+    const services = jest.requireMock('./services');
+    render(<ChatPanel variant={variant} queryPageFrom={{ url: '/alert-rules' }} />);
+    const box = screen.getByRole('textbox');
+    fireEvent.change(box, { target: { value: 'nginx error' } });
+    fireEvent.keyDown(box, { key: 'Enter', code: 'Enter', isComposing: true });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(services.createChat).not.toHaveBeenCalled();
+    expect(services.sendMessage).not.toHaveBeenCalled();
+    expect(box).toHaveValue('nginx error');
+    fireEvent.keyDown(box, { key: 'Enter', code: 'Enter', keyCode: 13 });
+    await waitFor(() => expect(services.sendMessage).toHaveBeenCalledTimes(1));
+  });
+
+  it('keeps the draft when compositionend precedes the IME confirmation Enter', async () => {
+    const services = jest.requireMock('./services');
+    render(<ChatPanel queryPageFrom={{ url: '/alert-rules' }} />);
+    const box = screen.getByRole('textbox');
+    fireEvent.compositionStart(box);
+    fireEvent.change(box, { target: { value: 'nginx' } });
+    fireEvent.compositionEnd(box, { data: 'nginx' });
+    // Some IMEs report isComposing=false on confirmation but retain code 229.
+    fireEvent.keyDown(box, { key: 'Enter', code: 'Enter', keyCode: 229, which: 229, isComposing: false });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(services.createChat).not.toHaveBeenCalled();
+    expect(services.sendMessage).not.toHaveBeenCalled();
+    expect(box).toHaveValue('nginx');
+    fireEvent.keyDown(box, { key: 'Enter', code: 'Enter', keyCode: 13 });
+    await waitFor(() => expect(services.sendMessage).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not choose a suggestion while the IME consumes Enter, arrows or Tab', async () => {
+    const services = jest.requireMock('./services');
+    render(
+      <ChatPanel
+        variant='slim'
+        queryPageFrom={{ url: '/alert-rules' }}
+        promptList={[
+          { label: 'CPU', value: 'Show CPU usage' },
+          { label: 'Memory', value: 'Show memory usage' },
+        ]}
+      />,
+    );
+    const box = screen.getByRole('textbox');
+    fireEvent.keyDown(box, { key: 'ArrowDown', isComposing: true });
+    expect(screen.getByRole('option', { name: 'CPU' })).toHaveAttribute('aria-selected', 'true');
+    fireEvent.keyDown(box, { key: 'Tab', isComposing: true });
+    expect(box).toHaveValue('');
+    fireEvent.keyDown(box, { key: 'Enter', isComposing: true });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(services.sendMessage).not.toHaveBeenCalled();
+    expect(services.createChat).not.toHaveBeenCalled();
+  });
+
+  it('preserves Shift+Enter and only sends the committed text on a later plain Enter', async () => {
+    const services = jest.requireMock('./services');
+    render(<ChatPanel queryPageFrom={{ url: '/alert-rules' }} />);
+    const box = screen.getByRole('textbox');
+    fireEvent.compositionStart(box);
+    fireEvent.change(box, { target: { value: '检查 nginx' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(services.createChat).not.toHaveBeenCalled();
+    fireEvent.compositionEnd(box, { data: 'nginx' });
+    fireEvent.keyDown(box, { key: 'Enter', shiftKey: true });
+    expect(services.createChat).not.toHaveBeenCalled();
+    fireEvent.keyDown(box, { key: 'Enter' });
+    await waitFor(() => expect(services.sendMessage).toHaveBeenCalledWith(expect.objectContaining({ query: expect.objectContaining({ content: '检查 nginx' }) })));
+  });
+});
+
 describe('ChatPanel 页面动作', () => {
   beforeEach(() => {
     execute.mockReset();
@@ -513,5 +603,75 @@ describe('ChatPanel initial skill reference', () => {
     await send('show memory usage', 1);
     expect(services.sendMessage.mock.calls[0][0].query.content).toBe('show memory usage');
     expect(services.sendMessage.mock.calls[0][0].query.references).toBeUndefined();
+  });
+});
+
+describe('ChatPanel conversation switching', () => {
+  const services = jest.requireMock('./services');
+  const pageFrom = { url: '/nightingale-ai' };
+
+  beforeEach(() => {
+    services.getMessageHistory.mockReset().mockResolvedValue([]);
+    services.createChat
+      .mockReset()
+      .mockResolvedValueOnce({ chat_id: 'first-chat', title: '', last_update: 0 })
+      .mockResolvedValueOnce({ chat_id: 'second-chat', title: '', last_update: 0 });
+    services.sendMessage.mockReset().mockImplementation(({ chat_id }) => Promise.resolve({ chat_id, seq_id: 1 }));
+    getMessageDetail
+      .mockReset()
+      .mockImplementation((locator) =>
+        Promise.resolve({ ...inProgress, ...locator, is_finish: true, response: [{ content_type: 'markdown', content: `Answer for ${locator.chat_id}`, is_finish: true }] }),
+      );
+    manifest.mockReturnValue([]);
+  });
+
+  it('clears a locally created chat when the parent starts a new conversation', async () => {
+    function ControlledChat() {
+      const [chatId, setChatId] = React.useState<string>();
+      const onChatChange = React.useCallback((chat?: { chat_id: string }) => setChatId(chat?.chat_id), []);
+      return (
+        <>
+          <button type='button' onClick={() => setChatId(undefined)}>
+            New chat
+          </button>
+          <ChatPanel chatId={chatId} queryPageFrom={pageFrom} onChatChange={onChatChange} />
+        </>
+      );
+    }
+
+    render(<ControlledChat />);
+    const box = screen.getByRole('textbox');
+    fireEvent.change(box, { target: { value: 'First question' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    expect(await screen.findByText('Answer for first-chat')).toBeInTheDocument();
+    expect(services.getMessageHistory).not.toHaveBeenCalled();
+    fireEvent.change(box, { target: { value: 'Old draft' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'New chat' }));
+    expect(screen.queryByText('Answer for first-chat')).toBeNull();
+    expect(screen.getByRole('textbox')).toHaveValue('');
+
+    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Second question' } });
+    fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter' });
+    expect(await screen.findByText('Answer for second-chat')).toBeInTheDocument();
+    expect(services.sendMessage).toHaveBeenLastCalledWith(expect.objectContaining({ chat_id: 'second-chat' }));
+  });
+
+  it('ignores a history response that arrives after starting a new conversation', async () => {
+    let finishLoad!: (messages: IAiChatMessage[]) => void;
+    services.getMessageHistory.mockReturnValueOnce(
+      new Promise<IAiChatMessage[]>((resolve) => {
+        finishLoad = resolve;
+      }),
+    );
+    const onChatChange = jest.fn();
+    const { rerender } = render(<ChatPanel chatId='chat-1' queryPageFrom={pageFrom} onChatChange={onChatChange} />);
+    expect(services.getMessageHistory).toHaveBeenCalledWith({ chat_id: 'chat-1' });
+    rerender(<ChatPanel queryPageFrom={pageFrom} onChatChange={onChatChange} />);
+    await act(async () => {
+      finishLoad([pageActionDone]);
+    });
+    expect(screen.queryByTestId('message')).toBeNull();
+    expect(onChatChange).not.toHaveBeenCalled();
   });
 });

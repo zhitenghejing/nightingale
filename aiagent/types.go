@@ -6,8 +6,10 @@ import (
 	"github.com/ccfos/nightingale/v6/aiagent/llm"
 	"github.com/ccfos/nightingale/v6/datasource"
 	"github.com/ccfos/nightingale/v6/models"
+	"github.com/ccfos/nightingale/v6/pkg/cmdb"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
 	"github.com/ccfos/nightingale/v6/pkg/prom"
+	"github.com/ccfos/nightingale/v6/pkg/remotediag"
 	"github.com/ccfos/nightingale/v6/pkg/sandbox"
 	"github.com/ccfos/nightingale/v6/storage"
 )
@@ -228,6 +230,12 @@ type ToolDeps struct {
 	// Sandbox 是 Skill Python/Bash 脚本执行的隔离控制器（pkg/sandbox）。run_skill_script
 	// 工具据此执行某 skill 的入口脚本。nil 或未启用时，工具回报「执行未开启」而非报错。
 	Sandbox *sandbox.Sandbox
+
+	// RemoteDiagnostics runs predefined SSH checks under the initiating user's
+	// target and business-group execution permissions. Credentials stay server-side.
+	RemoteDiagnostics *remotediag.Runner
+	// CMDB provides inventory reads with the same ACL as the inventory page.
+	CMDB *cmdb.Store
 
 	// N9eAPIBaseURL 是 Skill Gateway 回环自调 n9e 自身 API 的基址（如
 	// "http://127.0.0.1:17000"）。空则 Gateway 不启用。

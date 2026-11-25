@@ -31,6 +31,8 @@ import (
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
 	"github.com/ccfos/nightingale/v6/pkg/ginx"
 	"github.com/ccfos/nightingale/v6/pkg/httpx"
+	"github.com/ccfos/nightingale/v6/pkg/remoteaccess"
+	"github.com/ccfos/nightingale/v6/pkg/remotediag"
 	"github.com/ccfos/nightingale/v6/pkg/sandbox"
 	"github.com/ccfos/nightingale/v6/pkg/version"
 	"github.com/ccfos/nightingale/v6/prom"
@@ -81,7 +83,10 @@ type Router struct {
 	// Sandbox is the Skill script-execution isolation controller (pkg/sandbox).
 	// Built once at New() from the configured capabilities; nil-safe (a disabled
 	// sandbox simply makes run_skill_script report "execution unavailable").
-	Sandbox *sandbox.Sandbox
+	Sandbox           *sandbox.Sandbox
+	RemoteDiagnostics *remotediag.Runner
+	RemoteAccess      *remoteaccess.Store
+	terminalSlots     terminalSlots
 
 	HeartbeatHook         HeartbeatHookFunc
 	streamBus             aiagent.StreamBus
@@ -164,6 +169,7 @@ func New(httpConfig httpx.Config, center cconf.Center, alert aconf.Alert, ibex c
 	// Skill 脚本执行的隔离 sandbox：启动期探测宿主能力、选定引擎（或在能力不足/
 	// 非 Linux 时禁用），全程只构建一次。run_skill_script 工具经 ToolDeps.Sandbox 用它。
 	rt.Sandbox = sandbox.New(rt.Center.Sandbox)
+	rt.RemoteDiagnostics = remotediag.New(rt.Center.RemoteDiagnostics)
 
 	// 内置 skill 的磁盘解压只在进程启动时做一次——之前是在每条 assistant
 	// 消息的 InitSkills 里 destructive re-extract，多 chat 并发时 Step 1 删目录
@@ -290,6 +296,7 @@ func (rt *Router) Config(r *gin.Engine) {
 	pages := r.Group(pagesPrefix)
 	rt.configArchiveRoutes(pages)
 	rt.configCollection(r, pages)
+	rt.configRemoteAccess(pages)
 	{
 
 		pages.DELETE("/datasource/series", rt.auth(), rt.admin(), rt.deleteDatasourceSeries)

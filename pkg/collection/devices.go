@@ -43,6 +43,7 @@ func (s *Store) validateDevice(tx *gorm.DB, scope Scope, f DeviceInput, c models
 	return nil
 }
 func configFingerprint(f DeviceInput) string {
+	f.RemoteAccess = nil
 	f.Name = ""
 	f.CMDBID = ""
 	f.RecordVersion = 0
@@ -63,6 +64,16 @@ func (s *Store) SaveDevice(scope Scope, id, key string, f DeviceInput) (models.M
 		return out, err
 	}
 	requestHash := digest(canonical(f))
+	if f.RemoteAccess != nil {
+		if s.RemoteAccess == nil {
+			return out, bad("SSH credential storage is not configured")
+		}
+		var err error
+		requestHash, err = s.RemoteAccess.RequestDigest(canonical(f))
+		if err != nil {
+			return out, err
+		}
+	}
 	requestKey := ""
 	if id == "" {
 		if len(key) < 8 || len(key) > 128 {
@@ -244,6 +255,17 @@ func (s *Store) SaveDevice(scope Scope, id, key string, f DeviceInput) (models.M
 		}
 		if err := tx.Create(&models.TargetBusiGroup{TargetIdent: f.Ident, GroupId: f.GroupID, UpdateAt: out.UpdatedAt}).Error; err != nil {
 			return err
+		}
+		if f.RemoteAccess != nil {
+			if s.RemoteAccess == nil {
+				return bad("SSH credential storage is not configured")
+			}
+			if f.RemoteAccess.GroupID != f.GroupID {
+				return denied()
+			}
+			if _, err := s.RemoteAccess.SaveConnectionInTransaction(tx, scope.ActorID, f.Ident, f.RemoteAccess.ForDevice()); err != nil {
+				return err
+			}
 		}
 		for _, cid := range sortedUnique(ids) {
 			current := collectors[cid]
