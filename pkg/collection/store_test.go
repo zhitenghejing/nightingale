@@ -397,7 +397,7 @@ func TestCMDBAssociationChecksReadAccessAndSurvivesAssetDeletion(t *testing.T) {
 	_, err = s.SetDeviceState(writer, d.ID, d.RecordVersion, true, false)
 	require.NoError(t, err)
 }
-func TestCollectorGroupsRemainAuthorizedWithoutAddressRestrictions(t *testing.T) {
+func TestCollectorGroupMetadataDoesNotRestrictAssignedDevices(t *testing.T) {
 	s, scope, c, cred, _ := testStore(t)
 	_, err := s.SaveDevice(scope, "", "collector-policy", deviceInput(c, cred, "192.0.2.60"))
 	require.NoError(t, err)
@@ -411,7 +411,7 @@ func TestCollectorGroupsRemainAuthorizedWithoutAddressRestrictions(t *testing.T)
 	input.RecordVersion = c.RecordVersion
 	input.GroupIDs = []int64{2}
 	_, err = s.UpdateCollector(scope, c.ID, input)
-	require.Equal(t, 409, err.(*Error).Code)
+	require.NoError(t, err)
 }
 func TestRevisionChangesResetClockErrorsAndInitialWait(t *testing.T) {
 	s, scope, c, cred, _ := testStore(t)
@@ -457,4 +457,69 @@ func TestDisabledParameterEditsRetainTheRetiredTaskObservationWindow(t *testing.
 	require.NoError(t, s.DB.First(&c, "id = ?", c.ID).Error)
 	require.False(t, withdrawn(d, c, time.Now().Add(91*time.Second).Unix()))
 	require.True(t, withdrawn(d, c, time.Now().Add(361*time.Second).Unix()))
+}
+
+func TestDeviceCanUseCollectorRegisteredInAnotherGroup(t *testing.T) {
+	s, admin, c, groupOneCredential, secret := testStore(t)
+	cred, err := s.SaveCredential(admin, "", CredentialInput{Name: "group2 credential", GroupID: 2, Community: "test-community"})
+	require.NoError(t, err)
+	writer := Scope{ActorID: 1, ReadGroups: []int64{2}, WriteGroups: []int64{2}}
+	input := deviceInput(c, cred, "192.0.2.71")
+	input.GroupID = 2
+	d, err := s.SaveDevice(writer, "", "cross-group-collector", input)
+	require.NoError(t, err)
+	require.Equal(t, c.ID, d.CollectorID)
+	publication, _, err := s.Provider(c.ID, secret, "")
+	require.NoError(t, err)
+	require.Len(t, publication.Configs["snmp"], 1)
+
+	other, otherSecret, err := s.CreateCollector(admin, CollectorInput{Name: "another group1 collector", AgentIdent: "other-agent", DatasourceID: 1, GroupIDs: []int64{1}, WriterUser: "other-writer"})
+	require.NoError(t, err)
+
+	d, err = s.SetDeviceState(writer, d.ID, d.RecordVersion, false, false)
+	require.NoError(t, err)
+	withdrawal, _, err := s.Provider(c.ID, secret, "")
+	require.NoError(t, err)
+	require.Empty(t, withdrawal.Configs["snmp"])
+	_, _, err = s.Provider(c.ID, secret, withdrawal.Version)
+	require.NoError(t, err)
+	// Advance the persisted acknowledgement/observation timestamps without sleeping.
+	past := time.Now().Add(-10 * time.Minute).Unix()
+	require.NoError(t, s.DB.Model(&models.MonitorDevice{}).Where("id = ?", d.ID).Update("withdraw_at", past).Error)
+	require.NoError(t, s.DB.Model(&models.MonitorCollector{}).Where("id = ?", c.ID).Update("client_seen_at", past).Error)
+	require.NoError(t, s.DB.First(&d, "id = ?", d.ID).Error)
+	edit := inputFromDevice(d)
+	edit.Enabled = true
+	edit.CollectorID = other.ID
+	moved, err := s.SaveDevice(writer, d.ID, "", edit)
+	require.NoError(t, err)
+	require.Equal(t, other.ID, moved.CollectorID)
+	require.NotEqual(t, d.DesiredRevision, moved.DesiredRevision)
+	oldPublication, _, err := s.Provider(c.ID, secret, publication.Version)
+	require.NoError(t, err)
+	require.Empty(t, oldPublication.Configs["snmp"])
+	newPublication, _, err := s.Provider(other.ID, otherSecret, "")
+	require.NoError(t, err)
+	require.Len(t, newPublication.Configs["snmp"], 1)
+	input.CollectorID = other.ID
+	probe, err := s.CreateProbe(writer, input)
+	require.NoError(t, err)
+	require.Equal(t, other.ID, probe.CollectorID)
+	_, err = s.SaveDevice(Scope{ActorID: 2, ReadGroups: []int64{2}}, "", "cross-group-readonly", input)
+	require.Error(t, err)
+	require.Equal(t, 403, err.(*Error).Code)
+	input.GroupID = 1
+	_, err = s.SaveDevice(writer, "", "unauthorized-group", input)
+	require.Error(t, err)
+
+	input.GroupID = 2
+	input.CredentialID = groupOneCredential.ID
+	_, err = s.SaveDevice(writer, "", "foreign-credential-denied", input)
+	require.Error(t, err)
+	require.Equal(t, 403, err.(*Error).Code)
+	input.CredentialID = cred.ID
+	require.NoError(t, s.DB.Model(&models.MonitorCollector{}).Where("id = ?", other.ID).Update("enabled", false).Error)
+	_, err = s.SaveDevice(writer, "", "disabled-collector", input)
+	require.Error(t, err)
+	require.Equal(t, 409, err.(*Error).Code)
 }

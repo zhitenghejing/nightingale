@@ -23,7 +23,7 @@ export default function CatalogCategoryMenu({
 }) {
   const categories = catalog?.categories || [];
   const [expanded, setExpanded] = useState<string[]>([]),
-    [expandAll, setExpandAll] = useState(true);
+    [expandAll, setExpandAll] = useState(false);
   const [editing, setEditing] = useState<Partial<Category>>(),
     [form] = Form.useForm();
   const [busy, setBusy] = useState(false),

@@ -1,5 +1,6 @@
 const zh_CN = {
   inventory: {
+    owner: '责任人',
     model: '设备型号',
     name: '设备名称', type: '设备类型', ip: 'IP 地址', method: '采集方式', reachability: '可达性', alerts: '当前告警', groups: '业务组', tags: '设备标签', actions: '操作',
     edit: '编辑', delete: '删除', cancel: '取消', delete_confirm: '确认删除此设备？', delete_failed: '删除失败，请重试', load_failed: '无法加载设备配置',

@@ -264,22 +264,19 @@
   border-bottom: 1px solid var(--fc-border-color);
 }
 .template-package-layout {
-  display: grid;
-  grid-template-columns: 210px minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 24px;
   padding-top: 20px;
 }
 .template-package-layout > .ant-menu {
-  border-right: 1px solid var(--fc-border-color);
+  min-width: 0;
 }
 .template-package-content {
   min-width: 0;
   padding-right: 12px;
 }
 @media (max-width: 900px) {
-  .template-package-layout {
-    grid-template-columns: 1fr;
-  }
   .template-package-toolbar {
     flex-wrap: wrap;
   }

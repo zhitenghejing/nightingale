@@ -171,3 +171,27 @@ func TestCollectionTemplateManagementPermissionsAndValidation(t *testing.T) {
 	input.Config = "community=\"forbidden\""
 	require.Equal(t, 400, collectionCall(r, "POST", "/api/n9e/collection/templates", input, "collection-admin").Code)
 }
+
+func TestCollectorOptionsAreSharedAndDoNotExposeAdministrativeFields(t *testing.T) {
+	r, rt, original, _ := collectionRouterFixture(t)
+	require.NoError(t, rt.Ctx.DB.Create(&models.BusiGroup{Id: 2, Name: "other group"}).Error)
+	rt.Collection.Writers["other-writer"] = true
+	other, _, err := rt.Collection.CreateCollector(collection.Scope{Admin: true, ActorID: 1}, collection.CollectorInput{Name: "other collector", AgentIdent: "other-agent", DatasourceID: 1, GroupIDs: []int64{2}, WriterUser: "other-writer"})
+	require.NoError(t, err)
+	path := "/api/n9e/collection/collector-options"
+	require.Equal(t, 401, collectionCall(r, "GET", path, nil, "").Code)
+	w := collectionCall(r, "GET", path, nil, "collection-reader")
+	require.Equal(t, 200, w.Code, w.Body.String())
+	var result struct {
+		Dat []collection.CollectorOption `json:"dat"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &result))
+	require.Len(t, result.Dat, 2)
+	require.Contains(t, w.Body.String(), original.ID)
+	require.Contains(t, w.Body.String(), other.ID)
+	for _, field := range []string{"writer_user", "token", "networks", "ports", "group_ids", "desired_version"} {
+		require.NotContains(t, w.Body.String(), field)
+	}
+	restricted := collectionCall(r, "GET", "/api/n9e/collection/collectors", nil, "collection-reader")
+	require.NotContains(t, restricted.Body.String(), other.ID)
+}

@@ -119,6 +119,10 @@ func (rt *Router) targetInventory(c *gin.Context, targets []*models.Target) erro
 			owners[device.Ident] = inventoryPingOwner{Device: device, DatasourceID: byCollector[device.CollectorID].DatasourceID}
 
 			item.Name = device.Name
+			var labels map[string]string
+			if err := json.Unmarshal([]byte(device.Labels), &labels); err == nil {
+				item.Owner = strings.TrimSpace(labels["owner"])
+			}
 			item.TemplatePath = append([]string{}, paths[device.TemplateVersionID]...)
 			if len(item.TemplatePath) > 0 {
 				item.DeviceType, item.DeviceModel = inventoryClassification(item.TemplatePath)

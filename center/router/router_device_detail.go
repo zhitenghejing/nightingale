@@ -280,6 +280,10 @@ func (rt *Router) targetDeviceAlerts(c *gin.Context) {
 		collectionReply(c, nil, err)
 		return
 	}
+	if c.Query("history") == "1" {
+		// Preserve the device, group and datasource predicates from the current-event query.
+		query = query.Model(&models.AlertHisEvent{})
+	}
 	var total int64
 	if err = query.Count(&total).Error; err != nil {
 		collectionReply(c, nil, err)
@@ -295,7 +299,11 @@ func (rt *Router) targetDeviceAlerts(c *gin.Context) {
 		TriggerValue string `json:"trigger_value"`
 		TargetIdent  string `json:"target_ident"`
 	}{}
-	err = query.Select("id,rule_id,rule_name,severity,trigger_time,trigger_value,target_ident").Order("severity,id DESC").Limit(limit).Offset((page - 1) * limit).Find(&events).Error
+	order := "severity,id DESC"
+	if c.Query("history") == "1" {
+		order = "trigger_time DESC,id DESC"
+	}
+	err = query.Select("id,rule_id,rule_name,severity,trigger_time,trigger_value,target_ident").Order(order).Limit(limit).Offset((page - 1) * limit).Find(&events).Error
 	collectionReply(c, gin.H{"list": events, "total": total}, err)
 }
 func nativeDeviceQueries(ident string) map[string]string {

@@ -32,13 +32,6 @@ func (s *Store) validateDevice(tx *gorm.DB, scope Scope, f DeviceInput, c models
 	if !c.Enabled {
 		return conflict("collector is disabled")
 	}
-	var n int64
-	if err := tx.Model(&models.MonitorCollectorGroup{}).Where("collector_id = ? AND group_id = ?", c.ID, f.GroupID).Count(&n).Error; err != nil {
-		return err
-	}
-	if n != 1 {
-		return denied()
-	}
 	cred, err := s.credential(tx, f.CredentialID, scope, f.GroupID)
 	if err != nil {
 		return err

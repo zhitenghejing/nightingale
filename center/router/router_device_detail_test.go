@@ -184,3 +184,24 @@ func TestNativeDeviceMetricsUseExactIdentAuthorizedSourcesAndRealSamples(t *test
 	}
 	require.Equal(t, 400, collectionCall(r, "GET", "/api/n9e/targets/device-metrics?device_id="+d.ID, nil, "collection-reader").Code)
 }
+
+func TestDeviceAlertHistoryPreservesIdentityAndGroupScope(t *testing.T) {
+	r, rt, d := detailFixture(t)
+	require.NoError(t, rt.Ctx.DB.AutoMigrate(&models.AlertHisEvent{}))
+	for _, event := range []models.AlertHisEvent{
+		{TargetIdent: d.Ident, GroupId: 1, RuleName: "owned history", Severity: 2},
+		{TargetIdent: "native-agent", GroupId: 1, RuleName: "other identity history"},
+		{TargetIdent: d.Ident, GroupId: 2, RuleName: "hidden group history"},
+	} {
+		require.NoError(t, rt.Ctx.DB.Create(&event).Error)
+	}
+	endpoint := "/api/n9e/targets/device-alerts?device_id=" + d.ID
+	w := collectionCall(r, "GET", endpoint+"&history=1", nil, "collection-reader")
+	require.Equal(t, 200, w.Code, w.Body.String())
+	require.Contains(t, w.Body.String(), "owned history")
+	require.NotContains(t, w.Body.String(), "other identity history")
+	require.NotContains(t, w.Body.String(), "hidden group history")
+	w = collectionCall(r, "GET", endpoint, nil, "collection-reader")
+	require.NotContains(t, w.Body.String(), "owned history")
+	require.Equal(t, 401, collectionCall(r, "GET", endpoint+"&history=1", nil, "").Code)
+}

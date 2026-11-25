@@ -123,6 +123,7 @@ func (rt *Router) configCollection(r *gin.Engine, pages *gin.RouterGroup) {
 	write := rt.perm("/collection/write")
 	remove := rt.perm("/collection/delete")
 	group.GET("/collectors", read, rt.collectionCollectors)
+	group.GET("/collector-options", read, rt.collectionCollectorOptions)
 	group.POST("/collectors", write, rt.collectionCollectorCreate)
 	group.PUT("/collectors/:id", write, rt.collectionCollectorUpdate)
 	group.POST("/collectors/:id/rotate", write, rt.collectionCollectorRotate)
@@ -213,6 +214,10 @@ func (rt *Router) collectionCollectors(c *gin.Context) {
 	}
 	out, e := rt.Collection.Collectors(s)
 	collectionReply(c, out, e)
+}
+func (rt *Router) collectionCollectorOptions(c *gin.Context) {
+	out, err := rt.Collection.CollectorOptions()
+	collectionReply(c, out, err)
 }
 func (rt *Router) collectionCollectorCreate(c *gin.Context) {
 	var f collection.CollectorInput
@@ -541,19 +546,37 @@ func (rt *Router) collectionMetrics(c *gin.Context) {
 		return
 	}
 	queries := collection.MetricQueries(cfg, selector)
-	now := time.Now()
+	if names := c.QueryArray("profile_metric"); len(names) > 0 {
+		queries, err = rt.Collection.ProfileMetricQueries(d, names)
+		if err != nil {
+			collectionReply(c, nil, err)
+			return
+		}
+	}
+	stepSeconds := max(d.IntervalSeconds, 15)
+	if raw, supplied := c.GetQuery("step_seconds"); supplied {
+		step, parseErr := strconv.Atoi(raw)
+		if parseErr != nil || (step != 15 && step != 30 && step != 60 && step != 120) {
+			collectionReply(c, nil, &collection.Error{Code: 400, Message: "invalid chart step"})
+			return
+		}
+		stepSeconds = step
+	}
+	// Match dashboard query-batch's integer-second evaluation window. Chart
+	// cadence is independent of collection cadence; Prometheus supplies values.
+	now := time.Now().Truncate(time.Second)
 	results := map[string]model.Value{}
 	timeout, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
 	for key, query := range queries {
-		value, _, e := client.QueryRange(timeout, query, prompkg.Range{Start: now.Add(-time.Hour), End: now, Step: time.Duration(max(d.IntervalSeconds, 15)) * time.Second})
+		value, _, e := client.QueryRange(timeout, query, prompkg.Range{Start: now.Add(-time.Hour), End: now, Step: time.Duration(stepSeconds) * time.Second})
 		if e != nil {
 			collectionReply(c, nil, errors.New("datasource query failed"))
 			return
 		}
 		results[key] = value
 	}
-	collectionReply(c, gin.H{"checked_at": now.Unix(), "metrics": results}, nil)
+	collectionReply(c, gin.H{"checked_at": now.Unix(), "step_seconds": stepSeconds, "metrics": results}, nil)
 }
 
 func (rt *Router) collectionStatistics(c *gin.Context, bgids []int64) (map[string]bool, map[string]collection.State) {
