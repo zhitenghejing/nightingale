@@ -18,7 +18,7 @@ jest.mock('./Tags', () => ({ data }) => <span>{data.join(', ')}</span>);
 jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string, args?: { column?: string }) => args?.column ? `${key} ${args.column}` : key }) }));
 
 const row = {
-  id: 1, ident: 'windows-ident', note: 'dev01', host_ip: '192.0.2.1', host_tags: ['os=windows'], tags: ['env=test'], group_objs: [{ id: 1, name: '业务组一' }],
+  id: 1, ident: 'windows-ident', note: 'dev01', host_ip: '192.0.2.1', host_tags: ['os=windows'], tags: ['env=test', 'owner=张三'], group_objs: [{ id: 1, name: '业务组一' }],
   collection: { device_id: 'device-one', kind: 'snmp', health: 'healthy' },
   inventory: { name: 'dev01', device_type: '操作系统', device_model: 'Windows Server 2019', collection_ok: true, template_path: ['操作系统', 'Windows', '通用 SNMP'], method: 'snmp', reachability: 'unknown', reachability_at: 0, current_alerts: { critical: 2, warning: 1, info: 0 } },
 } as Item;
@@ -28,8 +28,11 @@ beforeEach(() => { localStorage.clear(); jest.clearAllMocks(); });
 
 test('inventory has the requested fields, real alert counts, and a fixed pair of persistent actions', () => {
   const { container } = render(<DeviceInventoryTable {...props} />);
-  for (const key of ['name', 'type', 'model', 'ip', 'method', 'reachability', 'alerts', 'groups', 'tags']) expect(screen.getByText(`inventory.${key}`)).toBeTruthy();
+  for (const key of ['name', 'type', 'model', 'ip', 'owner', 'method', 'reachability', 'alerts', 'groups', 'tags']) expect(screen.getByText(`inventory.${key}`)).toBeTruthy();
   expect(screen.getByText('Windows Server 2019')).toBeTruthy();
+  expect(container.querySelector('.device-inventory-owner')?.textContent).toBe('张三');
+  const headers = [...container.querySelectorAll('thead th')].map((el) => el.textContent);
+  expect(headers.indexOf('inventory.owner')).toBe(headers.indexOf('inventory.ip') + 1);
   expect(container.querySelector('.device-inventory-method.is-success')?.textContent).toBe('snmp');
   expect(container.querySelector('.device-inventory-method.ant-tag-green')).toBeTruthy();
   expect(screen.queryByText(/Agent \/|操作系统 \/|inventory.critical 0|inventory.warning 0/)).toBeNull();
@@ -40,7 +43,7 @@ test('inventory has the requested fields, real alert counts, and a fixed pair of
   expect(container.querySelector('td.device-inventory-actions.ant-table-cell-fix-right')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'inventory.edit dev01' })).toBeTruthy();
   expect(screen.getByRole('button', { name: 'inventory.delete dev01' })).toBeTruthy();
-  expect(screen.getByText('env=test, os=windows')).toBeTruthy();
+  expect(screen.getByText('env=test, owner=张三, os=windows')).toBeTruthy();
 });
 
 test('name opens details while the persistent Edit opens the existing editor, and widths persist', async () => {
@@ -63,8 +66,9 @@ test('name opens details while the persistent Edit opens the existing editor, an
 
 
 test('zero alert severities stay blank and unsuccessful collection is black', () => {
-  const inactive = { ...row, inventory: { ...row.inventory!, method: 'mysql', collection_ok: false, current_alerts: { critical: 0, warning: 2, info: 0 } } };
+  const inactive = { ...row, tags: [], inventory: { ...row.inventory!, method: 'mysql', collection_ok: false, current_alerts: { critical: 0, warning: 2, info: 0 } } };
   const { container } = render(<DeviceInventoryTable {...props} tableProps={{ dataSource: [inactive], pagination: false }} />);
+  expect(container.querySelector('.device-inventory-owner')?.textContent).toBe('—');
   expect(screen.queryByText('inventory.critical 0')).toBeNull();
   expect(screen.getByText('inventory.warning 2')).toBeTruthy();
   expect(container.querySelector('.device-inventory-method')?.textContent).toBe('mysql');

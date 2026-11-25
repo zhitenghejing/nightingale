@@ -221,3 +221,25 @@ func verifyNativeProfileSQL(t *testing.T, s *Store, scope Scope, c models.Monito
 	require.NoError(t, s.DB.First(&rule, "id = ?", rule.Id).Error)
 	require.Equal(t, 1, rule.Disabled)
 }
+
+func TestProfileMetricQueriesOnlyUsesSavedDeviceScopedExpressions(t *testing.T) {
+	s, scope, c, cred, _ := testStore(t)
+	component := profileFixture(t, s, "Linux_SNMP")
+	input := deviceInput(c, cred, "192.0.2.20")
+	input.TemplateComponentID = component
+	d, err := s.SaveDevice(scope, "", "linux-dashboard", input)
+	require.NoError(t, err)
+	profile, err := s.DeviceProfile(d)
+	require.NoError(t, err)
+	name := profile.Metrics[0].Name
+	queries, err := s.ProfileMetricQueries(d, []string{name})
+	require.NoError(t, err)
+	require.Len(t, queries, 1)
+	require.Contains(t, queries[name], d.ID)
+	require.Contains(t, queries[name], d.CollectorID)
+	require.Contains(t, queries[name], d.DesiredRevision)
+	_, err = s.ProfileMetricQueries(d, []string{`snmp_uptime{collection_device_id="other"}`})
+	require.Error(t, err)
+	_, err = s.ProfileMetricQueries(d, make([]string, 17))
+	require.Error(t, err)
+}

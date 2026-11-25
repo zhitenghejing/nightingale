@@ -1,5 +1,7 @@
 package collection
 
+import "github.com/ccfos/nightingale/v6/models"
+
 // MetricQueries keeps every graph scoped to the selected device and revision.
 func MetricQueries(config TemplateConfig, selector string) map[string]string {
 	queries := map[string]string{
@@ -75,4 +77,34 @@ func MetricQueries(config TemplateConfig, selector string) map[string]string {
 		}
 	}
 	return queries
+}
+
+// ProfileMetricQueries accepts only names saved in this device's profile and
+// rebinds every vector selector to its current collector and revision.
+func (s *Store) ProfileMetricQueries(d models.MonitorDevice, names []string) (map[string]string, error) {
+	if len(names) > 16 {
+		return nil, bad("too many profile metrics")
+	}
+	profile, err := s.DeviceProfile(d)
+	if err != nil {
+		return nil, err
+	}
+	available := map[string]string{}
+	if profile != nil {
+		for _, metric := range profile.Metrics {
+			available[metric.Name] = metric.Expression
+		}
+	}
+	queries := map[string]string{}
+	for _, name := range names {
+		if available[name] == "" {
+			return nil, bad("unknown profile metric")
+		}
+		query, err := scopeExpression(available[name], d)
+		if err != nil {
+			return nil, bad("invalid profile metric expression")
+		}
+		queries[name] = query
+	}
+	return queries, nil
 }

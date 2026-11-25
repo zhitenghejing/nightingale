@@ -58,6 +58,7 @@ type Target struct {
 // used by the native edge/alert target read paths.
 type TargetInventory struct {
 	Name           string             `json:"name"`
+	Owner          string             `json:"owner,omitempty"`
 	DeviceModel    string             `json:"device_model"`
 	CollectionOK   bool               `json:"collection_ok"`
 	LastSampleAt   int64              `json:"last_sample_at"`
