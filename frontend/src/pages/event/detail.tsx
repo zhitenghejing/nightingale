@@ -15,36 +15,51 @@
  *
  */
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router';
+import { useParams, useRouteMatch } from 'react-router';
 import _ from 'lodash';
-import { Card, Affix } from 'antd';
+import { Alert, Card, Affix } from 'antd';
 import { useTranslation } from 'react-i18next';
 import PageLayout from '@/components/pageLayout';
-import { getHistoryEventsById } from '@/services/warning';
+import { getAlertEventsById, getHistoryEventsById } from '@/services/warning';
 import DetailNG from './DetailNG';
 import getActions from './DetailNG/Actions';
 
 const EventDetailPage = () => {
   const { t } = useTranslation('AlertCurEvents');
   const { eventId } = useParams<{ eventId: string }>();
+  const current = !!useRouteMatch('/alert-cur-events/:eventId');
   const [eventDetail, setEventDetail] = useState<any>();
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
-    if (eventId) {
-      getHistoryEventsById(eventId).then((res) => {
-        setEventDetail(res.dat);
+    if (!eventId) return;
+    let active = true;
+    setEventDetail(undefined);
+    setLoadFailed(false);
+    const load = current ? getAlertEventsById : getHistoryEventsById;
+    load(eventId)
+      .then((res) => {
+        if (!active) return;
+        if (res.dat) setEventDetail(res.dat);
+        else setLoadFailed(true);
+      })
+      .catch(() => {
+        if (active) setLoadFailed(true);
       });
-    }
-  }, [eventId]);
+    return () => {
+      active = false;
+    };
+  }, [eventId, current]);
 
   return (
     <PageLayout
       title={t('detail.title')}
       showBack
-      backPath='/alert-his-events'
+      backPath={current ? undefined : '/alert-his-events'}
       doc='https://flashcat.cloud/docs/content/flashcat-monitor/nightingale-v9/usage/alert-notify/events/alert-history/'
     >
       <div className='n9e'>
+        {loadFailed && <Alert className='mb-2' type='error' showIcon message={t('detail.load_failed', { defaultValue: '告警事件加载失败' })} />}
         <Card size='small' className='mb-2'>
           <DetailNG data={eventDetail} showGraph />
         </Card>

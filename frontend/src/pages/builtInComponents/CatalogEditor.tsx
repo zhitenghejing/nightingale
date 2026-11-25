@@ -152,6 +152,20 @@ export default function CatalogEditor({ componentId }: { componentId: number }) 
           {section === 1 && (
             <>
               <p>新增设备按照本表生成控件、条件字段和校验。密码加密保存；隐藏字段不会参与校验或下发。</p>
+              <Form layout='vertical'>
+                <Form.Item label='设备控制台默认协议' extra='新增设备时可选填该设备的账号和密码。'>
+                  <Select
+                    value={draft.console_protocol || 'auto'}
+                    style={{ width: 240 }}
+                    onChange={(value: 'auto' | 'ssh' | 'rdp') => patch({ console_protocol: value === 'auto' ? undefined : value })}
+                    options={[
+                      { value: 'auto', label: '按设备类型推荐' },
+                      { value: 'ssh', label: 'SSH' },
+                      { value: 'rdp', label: 'RDP' },
+                    ]}
+                  />
+                </Form.Item>
+              </Form>
               <Space className='mb-3'>
                 <Button onClick={() => editField(draft.fields.length)}>添加字段</Button>
                 <Button onClick={() => Modal.confirm({ title: '替换为此采集方式的连接字段？', onOk: () => patch({ fields: connectionFields(draft.adapter) }) })}>

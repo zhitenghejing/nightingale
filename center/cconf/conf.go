@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ccfos/nightingale/v6/pkg/httpx"
+	remotediag "github.com/ccfos/nightingale/v6/pkg/remotediag/config"
 	"github.com/ccfos/nightingale/v6/pkg/sandbox"
 )
 
@@ -35,6 +36,7 @@ type Center struct {
 	AIAgent               AIAgent
 	Archives              ArchiveConfig
 	Collection            CollectionConfig
+	RemoteDiagnostics     remotediag.Config
 
 	// Sandbox isolates execution of user-uploaded Skill Python/Bash scripts
 	// (pkg/sandbox). Fail-open: non-Linux / insufficient kernel capabilities
@@ -134,11 +136,13 @@ type ArchiveConfig struct {
 
 // CollectionConfig gates center-owned SNMP management and its dedicated provider route.
 type CollectionConfig struct {
-	Enable         bool
-	ProviderEnable bool
-	KeyFile        string
-	MaxDevices     int
-	MaxConfigBytes int
-	StaleSeconds   int
-	FutureSeconds  int
+	// BackgroundDisabled serves APIs on a secondary Center without duplicate collection workers.
+	BackgroundDisabled bool
+	Enable             bool
+	ProviderEnable     bool
+	KeyFile            string
+	MaxDevices         int
+	MaxConfigBytes     int
+	StaleSeconds       int
+	FutureSeconds      int
 }

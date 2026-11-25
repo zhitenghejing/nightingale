@@ -102,14 +102,10 @@ func (a *API) ServeUser(w http.ResponseWriter, r *http.Request, u User) {
 		}
 		return
 	}
-	access := Access{UserID: u.ID}
-	if u.Admin {
-		access = Access{UserID: u.ID, Read: true, Create: true, Edit: true, Delete: true, Import: true, Export: true}
-	} else {
-		if err := a.Store.DB.First(&access, "user_id = ?", u.ID).Error; err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			respond(w, r, 503, nil, errors.New("CMDB 权限暂不可用"))
-			return
-		}
+	access, err := a.Store.accessFor(r.Context(), u)
+	if err != nil {
+		respond(w, r, 503, nil, errors.New("CMDB 权限暂不可用"))
+		return
 	}
 	if path == "access" {
 		if r.Method == "GET" {
@@ -124,7 +120,7 @@ func (a *API) ServeUser(w http.ResponseWriter, r *http.Request, u User) {
 			permission = access.Create
 		}
 		if path == "import" {
-			permission = access.Import
+			permission = access.Import && (r.URL.Query().Get("mode") != "placement" || access.Edit)
 		}
 		if path == "delete" || path == "purge" || r.Method == http.MethodDelete {
 			permission = access.Delete
@@ -216,7 +212,7 @@ func (a *API) route(w http.ResponseWriter, r *http.Request, u User, path string)
 			return nil, err
 		}
 		rack.Name = strings.TrimSpace(rack.Name)
-		if rack.Name == "" || len(rack.Name) > 160 || rack.Units < 1 || rack.Units > 60 {
+		if rack.Name == "" || len(rack.Name) > 160 || rack.Units < 1 || rack.Units > maxRackUnits {
 			return nil, errors.New("机柜名称必填，容量范围为 1–60U")
 		}
 		err := a.Store.Write(func(tx *gorm.DB) error {
@@ -320,18 +316,11 @@ func (a *API) route(w http.ResponseWriter, r *http.Request, u User, path string)
 		if len(docs) < 1 || len(docs) > 1000 {
 			return nil, errors.New("每次导入 1–1000 台设备")
 		}
-		out := []Document{}
-		err := a.Store.Write(func(tx *gorm.DB) error {
-			for _, d := range docs {
-				saved, err := a.Store.Save(tx, d, u.ID, true)
-				if err != nil {
-					return err
-				}
-				out = append(out, saved)
-			}
-			return nil
-		})
-		return out, err
+		mode := r.URL.Query().Get("mode")
+		if mode != "" && mode != "placement" {
+			return nil, errors.New("无效的导入模式")
+		}
+		return a.Store.importAssets(docs, u.ID, mode == "placement")
 	case path == "purge" && r.Method == http.MethodPost:
 		var targets []purgeTarget
 		if err := body(w, r, &targets); err != nil {

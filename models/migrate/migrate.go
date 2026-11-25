@@ -286,6 +286,7 @@ func MigrateTables(db *gorm.DB) error {
 
 	dts = append(dts, models.ArchiveTables()...)
 	dts = append(dts, models.MonitorTables()...)
+	dts = append(dts, models.OpsAccessTables()...)
 
 	if isPostgres(db) {
 		dts = append(dts, &models.AssistantMessageRow{}) // PostgreSQL: text is unlimited
@@ -377,7 +378,7 @@ func MigrateTables(db *gorm.DB) error {
 			// Preserve historical best-effort migrations for unrelated modules.
 			// The new delivery ledger, like event identity, is a startup requirement.
 			switch dt.(type) {
-			case *models.ExternalPushTask, *models.ExternalPushStream, *models.ExternalPushAttempt, *models.ExternalPushOperation:
+			case *models.OpsCredential, *models.OpsSSHConnection, *models.OpsAccessAudit, *models.ExternalPushTask, *models.ExternalPushStream, *models.ExternalPushAttempt, *models.ExternalPushOperation:
 				migrationErrors = append(migrationErrors, fmt.Errorf("migrate %T: %w", dt, err))
 			}
 		}

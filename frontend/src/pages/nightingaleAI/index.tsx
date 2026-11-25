@@ -98,6 +98,7 @@ export default function NightingaleAIPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(getInitialSidebarWidth);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [newChatRevision, setNewChatRevision] = useState(0);
   const [historyItems, setHistoryItems] = useState<IAiChatHistoryItem[]>([]);
   const [selectedChat, setSelectedChat] = useState<IAiChatHistoryItem>();
   const sidebarResizingRef = useRef(false);
@@ -154,6 +155,7 @@ export default function NightingaleAIPage() {
 
   const goToChat = useCallback(() => {
     setSelectedChat(undefined);
+    setNewChatRevision((revision) => revision + 1);
     history.push(PAGE_PATH, { newChat: true });
   }, [history]);
 
@@ -315,6 +317,7 @@ export default function NightingaleAIPage() {
             {isShareFallback && <div className='shrink-0 border-b border-fc-300 bg-fc-50 px-4 py-2 text-base text-hint'>{t('nightingale.share_fallback_notice')}</div>}
             <div className='min-h-0 flex-1 p-4'>
               <ChatPanel
+                key={newChatRevision}
                 chatId={chatId}
                 queryPageFrom={chatPageFrom}
                 onChatChange={handleChatChange}

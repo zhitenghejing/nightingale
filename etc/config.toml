@@ -172,6 +172,19 @@ I18NHeaderKey = "X-Language"
 PromQuerier = true
 AlertDetail = true
 
+# Read-only Linux SSH diagnostics for the built-in AI agent. Passwords and
+# pinned host fingerprints belong in the private (0600) connection file only.
+# See doc/api/remote-diagnostics.md for direct and one-hop SSH examples.
+[Center.RemoteDiagnostics]
+Enable = false
+# Interactive SSH for authorized operators.
+EnableTerminal = false
+RDPGatewayAddress = ""
+# KeyFile = "/etc/n9e/private/ops-ssh-keys.json" # persistent private AES-256 keyring
+TimeoutSeconds = 30
+MaxOutputBytes = 32768
+MaxConcurrent = 4
+
 [EmbeddedTSDB]
 # built-in time series database. When enabled, metrics pushed by categraf are
 # stored locally, no external TSDB (Prometheus/VictoriaMetrics) is needed to

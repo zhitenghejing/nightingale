@@ -12,6 +12,7 @@ import "strings"
 // Note the trailing slash on "/user/" — it blocks "/user/:id" without catching
 // the safe "/user-groups" (teams).
 var defaultDenyN9eAPIPaths = []string{
+	"/remote-access",  // operations credentials and connection administration
 	"/datasource",     // datasource configs carry Settings/Auth (DB passwords, API keys)
 	"/notify-channel", // notify-channel configs carry app secrets / SMTP passwords / tokens
 	"/notify-config",  // global notify config (notifyConfigGet): SMTP host/user/PASS, IM tokens

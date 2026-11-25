@@ -42,6 +42,11 @@ func definitionFromReadme(readme string) (CatalogDefinition, bool) {
 }
 
 func validateDefinition(d CatalogDefinition, publishing bool) error {
+	switch d.ConsoleProtocol {
+	case "", "ssh", "rdp":
+	default:
+		return bad("invalid device console protocol")
+	}
 	if d.Reachability != "" && d.Reachability != DefaultReachability {
 		return bad("device templates require ICMP reachability")
 	}

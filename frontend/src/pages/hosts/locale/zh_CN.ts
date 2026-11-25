@@ -1,4 +1,17 @@
 const zh_CN = {
+  terminal: {
+    console: '控制台',
+    configure: '配置设备控制台',
+    connecting: '正在连接 SSH…',
+    connected: '已连接',
+    disconnected: '连接已断开',
+    connection_required: '请先在设备编辑表单里填写账号密码并启用控制台连接。',
+    failed: '无法打开 SSH 终端',
+    input_limit: '本次粘贴过大，未发送到设备。',
+    reconnect: '重新连接',
+    close: '关闭终端',
+    account: '命令以设备已保存的 SSH 账号执行。',
+  },
   inventory: {
     model: '设备型号',
     name: '设备名称', type: '设备类型', ip: 'IP 地址', method: '采集方式', reachability: '可达性', alerts: '当前告警', groups: '业务组', tags: '设备标签', actions: '操作',
