@@ -10,7 +10,7 @@ const id_ID = {
   "feishu_setting": {
     "app_id_tip": "Identitas unik aplikasi pada platform terbuka Feishu, dibuat otomatis saat aplikasi dibuat dan tidak dapat diubah. app_id bisa dilihat di halaman Kredensial dan informasi dasar pada <1>konsol pengembang</1>",
     "app_secret_tip": "Kunci rahasia aplikasi, dibuat otomatis saat aplikasi dibuat",
-    "cover_attributes_tip": "Setiap kali pengguna masuk, bila datanya berubah, informasi dari Feishu menimpa data pengguna di Nightingale, yaitu nomor telepon dan email"
+    "cover_attributes_tip": "Setiap kali pengguna masuk, bila datanya berubah, informasi dari Feishu menimpa data pengguna di 致腾慧运维, yaitu nomor telepon dan email"
   },
   "dingtalk_setting": {
     "enable": "Aktifkan",
@@ -20,7 +20,7 @@ const id_ID = {
     "client_id": "Client ID",
     "client_secret": "Client secret",
     "cover_attributes": "Perbarui data pengguna",
-    "cover_attributes_tip": "Setiap kali pengguna masuk, bila datanya berubah, informasi dari DingTalk menimpa data pengguna di Nightingale, yaitu nomor telepon dan email",
+    "cover_attributes_tip": "Setiap kali pengguna masuk, bila datanya berubah, informasi dari DingTalk menimpa data pengguna di 致腾慧运维, yaitu nomor telepon dan email",
     "username_field": "Field nama pengguna",
     "default_team": "Tim bawaan",
     "username_field_map": {

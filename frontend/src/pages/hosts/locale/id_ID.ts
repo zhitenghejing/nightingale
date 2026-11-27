@@ -63,7 +63,7 @@ const id_ID = {
   "beat_time_hours_ago_other": "{{count}} hours ago",
   "mem_util": "Memori",
   "offset": "Penyimpangan waktu",
-  "offset_tip": "Dihitung dengan mengurangkan waktu mesin categraf dari waktu mesin tempat Nightingale terpasang",
+  "offset_tip": "Dihitung dengan mengurangkan waktu mesin categraf dari waktu mesin tempat 致腾慧运维 terpasang",
   "remote_addr": "IP asal",
   "remote_addr_tip": "IP asal diambil dari header HTTP, jadi bila permintaan melewati proksi, ia belum tentu IP yang sebenarnya",
   "note": "Catatan",
@@ -139,7 +139,7 @@ const id_ID = {
   "install": {
     "entry": "Pasang Categraf sekali klik",
     "title": "Pasang pengumpul Categraf",
-    "addr_label": "Alamat server Nightingale",
+    "addr_label": "Alamat server 致腾慧运维",
     "addr_tip": "Mesin yang dipantau harus bisa menjangkau alamat ini. Secara bawaan diambil dari alamat yang dikenali server sendiri, dan boleh diubah",
     "addr_invalid": "Masukkan alamat yang valid, misalnya http://10.1.1.1:17000",
     "step_run": "Jalankan sebagai root di mesin tujuan",

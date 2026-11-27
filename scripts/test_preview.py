@@ -132,6 +132,37 @@ class PreviewTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             preview.app_config(binding, 30310)
 
+    def test_additional_collectors_keep_separate_accounts_across_refresh(self):
+        binding = {"instance": "additional-collectors", "role": "development"}
+        directory = preview.instance(binding)
+        directory.mkdir(parents=True)
+        (directory / "postgres.json").write_text(json.dumps({"dsn": "isolated-preview", "prometheusURL": "http://127.0.0.1:39090"}))
+        primary = {"username": "primary-writer", "password": "primary-secret"}
+        extra = {"username": "snmp-only-writer", "password": 'separate-secret-"\\'}
+        (directory / "collector.json").write_text(json.dumps(primary))
+        additional = directory / "collector-additional.json"
+        preview.write_json(additional, [extra])
+        shared = self.state / "shared"
+        shared.mkdir()
+        (shared / "prometheus-remote-write.enabled").touch()
+        for port in (30310, 30312):
+            config = tomllib.loads(preview.app_config(binding, port))
+            self.assertEqual(config["HTTP"]["APIForAgent"]["BasicAuth"], {a["username"]: a["password"] for a in (primary, extra)})
+            self.assertFalse(config["HTTP"]["APIForService"]["Enable"])
+            self.assertFalse(config["HTTP"]["ProxyAuth"]["Enable"])
+        for invalid in ([primary], [{"username": "short", "password": "bad"}], {"accounts": [extra]}, []):
+            preview.write_json(additional, invalid)
+            with self.assertRaises(ValueError):
+                preview.app_config(binding, 30310)
+        preview.write_json(additional, [extra])
+        additional.chmod(0o644)
+        with self.assertRaisesRegex(ValueError, "private development collector"):
+            preview.app_config(binding, 30310)
+        additional.chmod(0o600)
+        (directory / "collector.json").unlink()
+        with self.assertRaisesRegex(ValueError, "private development collector"):
+            preview.app_config(binding, 30310)
+
     def test_in_tree_preview_detects_ignored_frontend_configuration_changes(self):
         root = self.state / "repo"
         (root / "scripts").mkdir(parents=True)

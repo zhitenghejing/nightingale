@@ -1,0 +1,35 @@
+{
+  "retrievedAt": "2026-11-02",
+  "size": "64x64",
+  "presentation": "Vendor artwork fitted proportionally into circular tiles. Brand marks remain the property of their respective owners.",
+  "logos": {
+    "dell": {
+      "source": "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/dell.svg",
+      "brandReference": "https://www.dell.com/en-us/legal/lp/trademarks",
+      "sourceSha256": "be787bc8a294cecf64f7197b36f3f095583b2274f13ab336e7dabfe582353c45",
+      "asset": "dell.svg"
+    },
+    "hpe": {
+      "source": "https://raw.githubusercontent.com/hpe-design/logos/master/HPE%20Primary%20Logo%20-%20SVG/hpe-logo-color.svg",
+      "sourceSha256": "98b8b6d36c2b681435f2d6b90ab2396f19d588df0625886d964c1a0b56b0f56b",
+      "asset": "hpe.svg"
+    },
+    "inspur": {
+      "source": "https://www.inspur.com/uiFramework/commonResource/image/logo.png",
+      "sourceSha256": "384558d9d18584f23c0fff70487c4bdae7623f3ffa31605f1c9890996e59d898",
+      "asset": "inspur.svg"
+    },
+    "ruijie": {
+      "source": "https://www-file.ruijie.com.cn/chineseResources/UIA/news/images/logo.svg",
+      "sourceSha256": "56bbca0a0b41f9d8ff4e6bd856622186f6e818d2cfcb496990667865715f2f70",
+      "asset": "ruijie.svg"
+    },
+    "kylin": {
+      "source": "https://www.kylinos.cn/upload/1/kycms/20250617/1934912227602698240.pdf",
+      "page": 1,
+      "description": "Kylinsoft mark from the official Galaxy Kylin server V10 white paper cover.",
+      "sourceSha256": "9e173e9b4af9664a6c7494545e92327426591769d52637ea3966a9f1ccb63781",
+      "asset": "kylin.svg"
+    }
+  }
+}

@@ -119,6 +119,10 @@ func (rt *Router) targetInventory(c *gin.Context, targets []*models.Target) erro
 			owners[device.Ident] = inventoryPingOwner{Device: device, DatasourceID: byCollector[device.CollectorID].DatasourceID}
 
 			item.Name = device.Name
+			var labels map[string]string
+			if err := json.Unmarshal([]byte(device.Labels), &labels); err == nil {
+				item.Owner = strings.TrimSpace(labels["owner"])
+			}
 			item.TemplatePath = append([]string{}, paths[device.TemplateVersionID]...)
 			if len(item.TemplatePath) > 0 {
 				item.DeviceType, item.DeviceModel = inventoryClassification(item.TemplatePath)
@@ -407,8 +411,12 @@ func (rt *Router) deviceEventsQuery(c *gin.Context, idents []string, ruleIDs []i
 	if len(groups) > 0 {
 		query = query.Where("group_id IN ?", groups)
 	}
+	return rt.scopeDeviceEventDatasources(c, query)
+}
+
+func (rt *Router) scopeDeviceEventDatasources(c *gin.Context, query *gorm.DB) (*gorm.DB, error) {
 	if ids := queryDatasourceIds(c); len(ids) > 0 {
-		query = query.Where("datasource_id IN ?", ids)
+		query = query.Where("alert_cur_event.datasource_id IN ?", ids)
 	}
 	if rt.DatasourceCache != nil && rt.DatasourceCache.DatasourceFilter != nil {
 		var sources []*models.Datasource
@@ -419,7 +427,7 @@ func (rt *Router) deviceEventsQuery(c *gin.Context, idents []string, ruleIDs []i
 		for _, source := range rt.DatasourceCache.DatasourceFilter(sources, c.MustGet("user").(*models.User)) {
 			ids = append(ids, source.Id)
 		}
-		query = query.Where("datasource_id IN ?", ids)
+		query = query.Where("alert_cur_event.datasource_id IN ?", ids)
 	}
 	return query, nil
 }

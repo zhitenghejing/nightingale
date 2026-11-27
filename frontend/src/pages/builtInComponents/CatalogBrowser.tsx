@@ -1,13 +1,14 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { Button, Empty, Input, message, Modal, Select, Space, Table, Tag, Form, TreeSelect } from 'antd';
+import { Button, Empty, Input, message, Modal, Select, Space, Table, Tag, Form } from 'antd';
 import { AppstoreOutlined, UnorderedListOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import AuthorizationWrapper from '@/components/AuthorizationWrapper';
 import { Component } from './types';
 import TemplateLogo from './TemplateLogo';
 import ComponentFormModal from './components/ComponentFormModal';
-import { Catalog, CatalogEntry, categoryPath, categoryTree, getCatalog, matchingEntries, removeCatalog, createCatalog } from './catalog';
+import { Catalog, CatalogEntry, categoryPath, getCatalog, matchingEntries, removeCatalog, createCatalog } from './catalog';
 import { CommonStateContext } from '@/App';
 import CatalogCategoryMenu from './CatalogCategoryMenu';
+import CategorySelect from './CategorySelect';
 import { TEMPLATE_DRAG_TYPE } from './catalogDrag';
 import { errorText } from '@/pages/collection/errors';
 
@@ -216,7 +217,7 @@ export default function CatalogBrowser({ components, onOpen, reload }: { compone
             <Input />
           </Form.Item>
           <Form.Item name='category_id' label='设备分类（第三级）' rules={[{ required: true }]}>
-            <TreeSelect treeData={categoryTree(catalog?.categories || [])} treeDefaultExpandAll />
+            <CategorySelect categories={catalog?.categories || []} />
           </Form.Item>
           <Form.Item name='base_component_id' label='基于已有模板新建（可选；复制完整草稿）'>
             <Select allowClear showSearch optionFilterProp='label' options={catalog?.entries.map((e) => ({ value: e.component_id, label: e.name }))} />

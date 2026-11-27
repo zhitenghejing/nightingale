@@ -1,5 +1,19 @@
 const en_US = {
+  terminal: {
+    console: 'Console',
+    configure: 'Configure device console',
+    connecting: 'Connecting to SSH…',
+    connected: 'Connected',
+    disconnected: 'Disconnected',
+    connection_required: 'Save and enable the console connection in the device form first.',
+    failed: 'Unable to open the SSH terminal',
+    input_limit: 'This paste was too large to send to the device.',
+    reconnect: 'Reconnect',
+    close: 'Close terminal',
+    account: 'Commands run as the device’s saved SSH account.',
+  },
   inventory: {
+    owner: 'Owner',
     model: 'Device model',
     name: 'Device name', type: 'Device type', ip: 'IP address', method: 'Collection method', reachability: 'Reachability', alerts: 'Current alerts', groups: 'Business groups', tags: 'Device tags', actions: 'Actions',
     edit: 'Edit', delete: 'Delete', cancel: 'Cancel', delete_confirm: 'Delete this device?', delete_failed: 'Could not delete device', load_failed: 'Could not load device configuration',
@@ -81,7 +95,7 @@ const en_US = {
   beat_time_hours_ago_other: '{{count}} hours ago',
   mem_util: 'Memory',
   offset: 'Time offset',
-  offset_tip: 'The offset is the clock time of the Nightingale server minus the clock time of the host running Categraf',
+  offset_tip: 'The offset is the clock time of the 致腾慧运维 server minus the clock time of the host running Categraf',
   remote_addr: 'Source IP',
   remote_addr_tip: 'Source IP is obtained from the HTTP Header. If a proxy is used, it may not be the real source IP',
   note: 'Note',
@@ -158,7 +172,7 @@ const en_US = {
   install: {
     entry: 'Install Categraf',
     title: 'Install the Categraf collector',
-    addr_label: 'Nightingale address',
+    addr_label: '致腾慧运维 address',
     addr_tip: 'The monitored host must be able to reach this address. Defaults to the address the server detected for itself.',
     addr_invalid: 'Enter a valid address, e.g. http://10.1.1.1:17000',
     step_run: 'Run this on the target host as root',

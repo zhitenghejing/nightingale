@@ -27,6 +27,7 @@ test.each([
   ['添加同级型号 Windows Server 2019', '型号名称', 'Windows Server 2025', 'ms'],
 ])('the contextual plus %s creates at the correct level', async (button, label, name, parent_id) => {
   render(<Menu {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: '全部展开' }));
   fireEvent.click(screen.getByRole('button', { name: button }));
   fireEvent.change(screen.getByLabelText(label), { target: { value: name } });
   fireEvent.click(screen.getByRole('button', { name: /^保\s*存$/ }));
@@ -35,6 +36,7 @@ test.each([
 });
 test('template drop persists only its location and version, and type/brand are not valid targets', async () => {
   const view = render(<Menu {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: '全部展开' }));
   const transfer = { types: [TEMPLATE_DRAG_TYPE], getData: () => JSON.stringify({ component_id: 1, record_version: 5 }) };
   fireEvent.drop(view.container.querySelector('[data-category-id="ms"]')!, { dataTransfer: transfer });
   expect(moveTemplate).not.toHaveBeenCalled();
@@ -47,6 +49,7 @@ test('read-only menus retain selection without add/edit/delete or draggable node
   expect(screen.queryByRole('button', { name: '编辑目录 微软' })).toBeNull();
   expect(screen.queryByRole('button', { name: '删除目录 微软' })).toBeNull();
   expect(view.container.querySelector('[draggable="true"]')).toBeNull();
+  fireEvent.click(screen.getByRole('button', { name: '全部展开' }));
   fireEvent.click(screen.getByText('Windows Server 2019'));
   expect(props.onSelect).toHaveBeenCalledWith('windows');
 });
@@ -65,6 +68,7 @@ test('pending directory save retains native dragend cleanup without the window f
   };
   window.addEventListener('error', onError);
   const view = render(<Menu {...props} />);
+  fireEvent.click(screen.getByRole('button', { name: '全部展开' }));
   const source = view.container.querySelector('[data-category-id="windows"]')!.closest('.ant-tree-treenode')!;
   const target = view.container.querySelector('[data-category-id="ms"]')!.closest('.ant-tree-treenode')!;
   const dataTransfer = { types: ['text/plain'], setData: jest.fn() };

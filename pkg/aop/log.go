@@ -53,7 +53,7 @@ type LoggerConfig struct {
 
 func (c *LoggerConfig) ContainsPath(path string) bool {
 	path = strings.Split(path, "?")[0]
-	if strings.HasPrefix(path, "/api/n9e/collection/") || path == "/v1/n9e/collection/configs" {
+	if strings.HasPrefix(path, "/api/n9e/remote-access/") || strings.HasPrefix(path, "/api/n9e/collection/") || path == "/v1/n9e/collection/configs" {
 		return false
 	}
 	_, exist := c.PrintBodyPaths()[path]

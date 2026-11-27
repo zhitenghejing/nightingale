@@ -20,7 +20,7 @@ export default function MattermostWebhook() {
     <div style={{ display: active ? 'block' : 'none' }}>
       <Alert className='mb-4' type='info' showIcon message={t('mattermostwebhook_request_config.top_tip')} />
       <Form.Item label={t('mattermostwebhook_request_config.username')} tooltip={t('mattermostwebhook_request_config.username_tip')} name={[...names, 'username']}>
-        <Input placeholder='Nightingale' />
+        <Input placeholder='致腾慧运维' />
       </Form.Item>
       <Form.Item
         label={t('mattermostwebhook_request_config.icon')}

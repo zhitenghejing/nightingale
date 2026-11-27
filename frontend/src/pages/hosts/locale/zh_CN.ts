@@ -1,5 +1,19 @@
 const zh_CN = {
+  terminal: {
+    console: '控制台',
+    configure: '配置设备控制台',
+    connecting: '正在连接 SSH…',
+    connected: '已连接',
+    disconnected: '连接已断开',
+    connection_required: '请先在设备编辑表单里填写账号密码并启用控制台连接。',
+    failed: '无法打开 SSH 终端',
+    input_limit: '本次粘贴过大，未发送到设备。',
+    reconnect: '重新连接',
+    close: '关闭终端',
+    account: '命令以设备已保存的 SSH 账号执行。',
+  },
   inventory: {
+    owner: '责任人',
     model: '设备型号',
     name: '设备名称', type: '设备类型', ip: 'IP 地址', method: '采集方式', reachability: '可达性', alerts: '当前告警', groups: '业务组', tags: '设备标签', actions: '操作',
     edit: '编辑', delete: '删除', cancel: '取消', delete_confirm: '确认删除此设备？', delete_failed: '删除失败，请重试', load_failed: '无法加载设备配置',
@@ -82,7 +96,7 @@ const zh_CN = {
   beat_time_hours_ago_other: '{{count}} hours ago',
   mem_util: '内存',
   offset: '时间偏移',
-  offset_tip: '计算逻辑为用 夜莺部署机器的时间减去categraf部署机器的时间',
+  offset_tip: '计算逻辑为用 致腾慧运维部署机器的时间减去categraf部署机器的时间',
   remote_addr: '来源 IP',
   remote_addr_tip: '来源 IP 是从 HTTP Header 中获取的，如果经过了代理，不一定是真实的来源IP',
   note: '备注',
@@ -159,7 +173,7 @@ const zh_CN = {
   install: {
     entry: '一键安装 Categraf',
     title: '安装 Categraf 采集器',
-    addr_label: '夜莺服务端地址',
+    addr_label: '致腾慧运维服务端地址',
     addr_tip: '被监控机器需要能访问到该地址；默认取服务端自身识别到的地址，可修改',
     addr_invalid: '请填写合法地址，例如 http://10.1.1.1:17000',
     step_run: '在目标机器上以 root 权限执行',

@@ -1,6 +1,6 @@
 const es_ES = {
   "title": "Solicitud de autorización",
-  "intro": "La aplicación siguiente solicita acceder a las API MCP / A2A de Nightingale en tu nombre:",
+  "intro": "La aplicación siguiente solicita acceder a las API MCP / A2A de 致腾慧运维 en tu nombre:",
   "asUser": "Sesión iniciada como:",
   "redirectTo": "URL de callback:",
   "scope": "Permisos solicitados:",

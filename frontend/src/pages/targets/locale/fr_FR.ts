@@ -21,7 +21,7 @@ const fr_FR = {
   "cpu_util": "CPU",
   "cpu_num": "Nombre de cœurs",
   "offset": "Décalage horaire",
-  "offset_tip": "Calculé en soustrayant l'heure de la machine categraf à celle de la machine où Nightingale est installé",
+  "offset_tip": "Calculé en soustrayant l'heure de la machine categraf à celle de la machine où 致腾慧运维 est installé",
   "os": "Système d'exploitation",
   "arch": "Architecture du processeur",
   "update_at": "Modifié le",

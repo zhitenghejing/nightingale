@@ -10,7 +10,7 @@ const ko_KR = {
   "feishu_setting": {
     "app_id_tip": "Feishu 개방 플랫폼 앱의 고유 식별자로, 앱을 만들 때 자동으로 만들어지며 직접 바꿀 수 없습니다. app_id는 <1>개발자 콘솔</1>의 자격 증명 및 기본 정보 페이지에서 볼 수 있습니다",
     "app_secret_tip": "앱의 비밀 키이며 앱을 만들 때 자동으로 만들어집니다",
-    "cover_attributes_tip": "로그인할 때마다 사용자 정보가 바뀌었으면 Feishu의 정보로 Nightingale의 사용자 정보, 즉 휴대전화 번호와 이메일을 덮어씁니다"
+    "cover_attributes_tip": "로그인할 때마다 사용자 정보가 바뀌었으면 Feishu의 정보로 致腾慧运维의 사용자 정보, 즉 휴대전화 번호와 이메일을 덮어씁니다"
   },
   "dingtalk_setting": {
     "enable": "사용",
@@ -20,7 +20,7 @@ const ko_KR = {
     "client_id": "Client ID",
     "client_secret": "Client secret",
     "cover_attributes": "사용자 정보 갱신",
-    "cover_attributes_tip": "로그인할 때마다 사용자 정보가 바뀌었으면 DingTalk의 정보로 Nightingale의 사용자 정보, 즉 휴대전화 번호와 이메일을 덮어씁니다",
+    "cover_attributes_tip": "로그인할 때마다 사용자 정보가 바뀌었으면 DingTalk의 정보로 致腾慧运维의 사용자 정보, 즉 휴대전화 번호와 이메일을 덮어씁니다",
     "username_field": "사용자 이름 필드",
     "default_team": "기본 팀",
     "username_field_map": {

@@ -1,15 +1,15 @@
 ---
 name: notify-channel-copilot
-description: Helps users modify, create, or troubleshoot Nightingale (n9e) notify channels (notify_channel). Use it when the user asks to change the URL, request body, signature, headers, proxy, TLS, @-mentions, or recipient fields of channels such as DingTalk/Feishu/WeCom/email/SMS/voice/Webhook, or asks "how do I integrate platform X" or "why can't it send / why am I getting 9499 / Bad Request". This skill focuses on **the channel-layer configuration**—if the user is changing "message content/fields/rendering", switch to generate-message-template instead.
+description: Helps users modify, create, or troubleshoot 致腾慧运维 notify channels (notify_channel). Use it when the user asks to change the URL, request body, signature, headers, proxy, TLS, @-mentions, or recipient fields of channels such as DingTalk/Feishu/WeCom/email/SMS/voice/Webhook, or asks "how do I integrate platform X" or "why can't it send / why am I getting 9499 / Bad Request". This skill focuses on **the channel-layer configuration**—if the user is changing "message content/fields/rendering", switch to generate-message-template instead.
 tags:
   - internal
 ---
 
-# Nightingale (n9e) Notify Channel Modification
+# 致腾慧运维 Notify Channel Modification
 
 ## Scope (first determine which layer the user is changing)
 
-The Nightingale notification pipeline has three layers, each with different pain points:
+The 致腾慧运维 notification pipeline has three layers, each with different pain points:
 
 | Layer | Entity | Key files | Does this skill cover it |
 |---|---|---|---|
@@ -167,7 +167,7 @@ Below is the minimal usable configuration for each channel—when the user asks 
   - `Method`: `POST`
   - `Headers`: `Content-Type: application/json`
   - `Body`: JSON markdown, see `provider/dingtalk_provider.go`. The `text` field must contain a **keyword** (DingTalk group robot allowlist check: the keyword you set when creating the robot in DingTalk must appear in the message text).
-- **Signing vs keyword**: the built-in DingTalk provider in n9e **only supports keyword validation**. The signing mechanism requires appending `&timestamp=&sign=` to the URL query, and there is currently no native toggle for it. If the user must use signing:
+- **Signing vs keyword**: the built-in DingTalk provider in 致腾慧运维 **only supports keyword validation**. The signing mechanism requires appending `&timestamp=&sign=` to the URL query, and there is currently no native toggle for it. If the user must use signing:
   1. Use the `callback` channel and assemble the signed URL yourself (writing it in `URL` for render-time is awkward and needs a pre-script), or
   2. Switch to the `script` channel to call a script.
   3. **Recommended wording**: "For the DingTalk robot, please switch to keyword validation; the signing mechanism is not natively supported in the open-source version."
@@ -190,7 +190,7 @@ Below is the minimal usable configuration for each channel—when the user asks 
 ### 4) Feishu group robot (markdown) `feishu`
 
 - Uses `simpleHTTPProvider`, template-driven. Set `HTTPRequestConfig.URL` to the group robot webhook, and `Body` to a JSON template.
-- **Signature validation**: a Feishu group robot secret, like DingTalk signing, falls under "timestamp + signature embedded in the message body". **The built-in feishu provider in n9e likewise has no automatic signing.** Solutions:
+- **Signature validation**: a Feishu group robot secret, like DingTalk signing, falls under "timestamp + signature embedded in the message body". **The built-in feishu provider in 致腾慧运维 likewise has no automatic signing.** Solutions:
   1. When creating the group robot, **do not check "Signature validation"**, and use "Custom keyword" or "IP allowlist" instead.
   2. If signing is mandatory → use a custom `script` channel.
 - **Backslash Bad Request 9499**: the Feishu webhook receives JSON, and a backslash `\` is a JSON escape character. Label values like the Windows path `D:\foo` or `device="D:"` will break the JSON if they go directly into the body. **In the template use `{{$labels.path | jsonMarshal}}` to convert the string into a valid JSON string** (with quotes), or use `label_replace` at the PromQL/rule source to strip out the `\`.
@@ -222,8 +222,8 @@ Below is the minimal usable configuration for each channel—when the user asks 
 
 - Common structure: uses `HTTPRequestConfig`, but **the real credentials are filled via the custom parameters in `ParamConfig.Custom.Params`** (SecretId / SecretKey / SDKAppId / TemplateId / SignName, etc.).
 - **Template-variable-missing error**: "test notification shows the template variable is missing a corresponding parameter value"—the order/count of SMS template parameters must be **strictly consistent** with the template approved in the provider's console.
-  - Investigation path: ① provider console → find the TemplateId → see how many `${1}` `${2}` the template content has; ② the `params` array in the n9e template must be filled according to this count; ③ the field names/order must align.
-- **Chinese garbled text (voice/callback)**: n9e encodes the body as UTF-8 by default, but some voice provider interfaces require GBK or url-encoded Chinese—try `{{$event.RuleName | escape}}` in the parameters, or transcode in the script channel.
+  - Investigation path: ① provider console → find the TemplateId → see how many `${1}` `${2}` the template content has; ② the `params` array in the 致腾慧运维 template must be filled according to this count; ③ the field names/order must align.
+- **Chinese garbled text (voice/callback)**: 致腾慧运维 encodes the body as UTF-8 by default, but some voice provider interfaces require GBK or url-encoded Chinese—try `{{$event.RuleName | escape}}` in the parameters, or transcode in the script channel.
 
 ### 9) PagerDuty `pagerduty`
 
@@ -259,7 +259,7 @@ Below is the minimal usable configuration for each channel—when the user asks 
 ### 10) Flashduty `flashduty`
 
 - `FlashDutyRequestConfig`: `IntegrationUrl` (one URL per integration), `Proxy`, `Timeout`, `RetryTimes`, `RetrySleep`.
-- The integration entry point provided by Flashduty; the template is handled by the Flashduty backend, so on the n9e side it is almost a "pass-through of the events array".
+- The integration entry point provided by Flashduty; the template is handled by the Flashduty backend, so on the 致腾慧运维 side it is almost a "pass-through of the events array".
 
 ### 11) Script `script`
 
@@ -323,7 +323,7 @@ WHERE channel = '<channel ident>'
 ORDER BY id DESC LIMIT 20;
 ```
 
-- `status=success`: it was sent; how the peer handles it is unrelated to n9e.
+- `status=success`: it was sent; how the peer handles it is unrelated to 致腾慧运维.
 - `status=failure`: `error_message` usually carries the peer's HTTP status code or an error description.
 - **The `details` field is `varchar(2048)`** (`models/notification_record.go:22`), so a long body gets truncated—at that point go to layer 2.
 
@@ -347,10 +347,10 @@ Steps:
 |---|---|---|
 | Feishu `{"code":9499,"msg":"Bad Request"}` | the body JSON is invalid, most likely a backslash/unescaped quote | use `{{... \| jsonMarshal}}` for all label values in the template, or confirm all quotes are escaped |
 | DingTalk "keyword does not match" | the DingTalk robot has keyword validation enabled, but the keyword doesn't appear in the text | always include the keyword in the rule name/alert title, or add the robot to the allowlist |
-| DingTalk/Feishu "timestamp is invalid" / "sign not match" | signature validation is enabled but n9e didn't sign automatically | switch to keyword/IP allowlist, or use the script channel |
+| DingTalk/Feishu "timestamp is invalid" / "sign not match" | signature validation is enabled but 致腾慧运维 didn't sign automatically | switch to keyword/IP allowlist, or use the script channel |
 | Email `tls: handshake failure` | the SMTP server certificate verification failed | `InsecureSkipVerify: true` or change the port (587 STARTTLS / 465 SSL) |
 | `connect: i/o timeout` | the network is unreachable or a proxy is needed | fill `HTTPRequestConfig.Proxy` with the proxy address, and confirm the machine can resolve the webhook domain |
-| SMS "template variable is missing a corresponding parameter value" | the count of `${1}` in the Alibaba Cloud/Tencent Cloud SMS template doesn't match the params array in n9e | compare against the template content in the provider console and fill in the missing ones in order |
+| SMS "template variable is missing a corresponding parameter value" | the count of `${1}` in the Alibaba Cloud/Tencent Cloud SMS template doesn't match the params array in 致腾慧运维 | compare against the template content in the provider console and fill in the missing ones in order |
 | Saving a custom ident shows `unsupported channel` | the ident is not registered and request_type is not in the fallback table | `RequestType` must be one of `http/script/smtp/flashduty/pagerduty`; native types such as `jira` require the ident to equal the request_type |
 | A channel tests OK but real alerts don't go out | sendtos is empty for real alerts (the recipient's contact_info is missing the field) / the notify_rule didn't select this channel | see the dedicated "Test works but real alerts don't go out" section below |
 

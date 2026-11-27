@@ -116,7 +116,7 @@ const pt_BR = {
       "url_tip": "Exemplos de configuração das bases de séries temporais mais comuns (compatíveis com a API de consulta do Prometheus):",
       "help_content": "Ainda não tem uma base de séries temporais? Siga o <a>manual de instalação</a>",
       "prom_installation_title": "Manual de instalação",
-      "prom_installation": "Na máquina em que o Nightingale está instalado, execute o comando abaixo para instalar o Prometheus. Em produção, recomendamos o VictoriaMetrics em cluster; consulte a <a>documentação oficial</a>",
+      "prom_installation": "Na máquina em que o 致腾慧运维 está instalado, execute o comando abaixo para instalar o Prometheus. Em produção, recomendamos o VictoriaMetrics em cluster; consulte a <a>documentação oficial</a>",
       "tsdb_type": "Tipo da base de séries temporais"
     },
     "es": {

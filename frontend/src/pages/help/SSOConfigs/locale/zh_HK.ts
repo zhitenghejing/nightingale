@@ -10,7 +10,7 @@ const zh_HK = {
   feishu_setting: {
     app_id_tip: '飛書開放平台應用唯一識別碼, 在創建應用時，由系統自動生成，用戶不能自行修改。可以在<1>開發者後台</1>的憑證與基本信息頁面查看app_id',
     app_secret_tip: '應用密碼。在創建應用時，由系統自動生成',
-    cover_attributes_tip: '每次登入後，如果用戶信息有變化，會使用飛書中用戶的信息覆蓋夜鶯中用戶的信息(手機號、郵箱)',
+    cover_attributes_tip: '每次登入後，如果用戶信息有變化，會使用飛書中用戶的信息覆蓋致腾慧运维中用戶的信息(手機號、郵箱)',
   },
   dingtalk_setting: {
     enable: '啟用',
@@ -20,7 +20,7 @@ const zh_HK = {
     client_id: 'Client ID',
     client_secret: 'Client secret',
     cover_attributes: '更新用戶信息',
-    cover_attributes_tip: '每次登入後，如果用戶信息有變化，會使用釘釘中用戶的信息覆蓋夜鶯中用戶的信息(手機號、郵箱)',
+    cover_attributes_tip: '每次登入後，如果用戶信息有變化，會使用釘釘中用戶的信息覆蓋致腾慧运维中用戶的信息(手機號、郵箱)',
     username_field: '用戶名字段',
     default_team: '默認團隊',
     username_field_map: {

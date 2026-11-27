@@ -1,5 +1,5 @@
 const fr_FR = {
-  "pageTitle": "Bienvenue dans Nightingale",
+  "pageTitle": "Bienvenue dans 致腾慧运维",
   "onboarding": {
     "dismiss": "Ne plus afficher",
     "title": "Guide de démarrage",
@@ -178,13 +178,13 @@ const fr_FR = {
       "title": "Intelligence artificielle",
       "description": "Grands modèles et agents",
       "links": [
-        "Quels skills Nightingale propose-t-il ?",
+        "Quels skills 致腾慧运维 propose-t-il ?",
         "Comment faire analyser les alertes automatiquement par un agent ?"
       ]
     }
   },
   "aiAssistant": {
-    "title": "Assistant intelligent Nightingale AI",
+    "title": "Assistant intelligent 致慧AI",
     "description": "Porté par les grands modèles de langage, il permet de piloter la plateforme, d'interroger les données et d'analyser la cause racine des alertes en langage naturel.",
     "capabilities": [
       "Requête en langage naturel",

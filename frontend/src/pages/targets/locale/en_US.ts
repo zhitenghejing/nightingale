@@ -21,7 +21,7 @@ const en_US = {
   cpu_util: 'CPU',
   cpu_num: 'Cores',
   offset: 'Offset',
-  offset_tip: 'The offset is the clock time of the Nightingale server minus the clock time of the host running Categraf',
+  offset_tip: 'The offset is the clock time of the 致腾慧运维 server minus the clock time of the host running Categraf',
   os: 'OS',
   arch: 'CPU Arch',
   update_at: 'Updated at',

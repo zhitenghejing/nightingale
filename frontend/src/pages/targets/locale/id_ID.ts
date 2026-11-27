@@ -21,7 +21,7 @@ const id_ID = {
   "cpu_util": "CPU",
   "cpu_num": "Jumlah inti",
   "offset": "Penyimpangan waktu",
-  "offset_tip": "Dihitung dengan mengurangkan waktu mesin categraf dari waktu mesin tempat Nightingale terpasang",
+  "offset_tip": "Dihitung dengan mengurangkan waktu mesin categraf dari waktu mesin tempat 致腾慧运维 terpasang",
   "os": "Sistem operasi",
   "arch": "Arsitektur CPU",
   "update_at": "Diperbarui pada",

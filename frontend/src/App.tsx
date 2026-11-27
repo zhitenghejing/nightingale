@@ -33,6 +33,7 @@ import { IRawTimeRange } from '@/components/TimeRangePicker';
 import { getN9eConfig } from '@/pages/siteSettings/services';
 import { getDarkMode, updateDarkMode } from '@/utils/darkMode';
 import { getAntdLocale } from '@/utils/antdLocale';
+import { BRAND_ASSETS, PRODUCT_NAME } from '@/utils/branding';
 import { AlertSeverityNames, normalizeAlertSeverityNames, setAlertSeverityNames } from '@/utils/alertSeverity';
 import { AiChatProvider, AiChatContainer } from '@/components/AiChatNG';
 import { OnboardingActionsProvider, OnboardingActionModals } from '@/components/OnboardingActions';
@@ -285,9 +286,9 @@ function App() {
         }
         const alertSeverityNames = normalizeAlertSeverityNames(siteInfo?.alert_severity_names);
         setAlertSeverityNames(alertSeverityNames);
-        document.title = siteInfo?.page_title || 'Nightingale';
+        document.title = siteInfo?.page_title || PRODUCT_NAME;
         if (iconLink) {
-          iconLink.href = siteInfo?.favicon_url || '/image/favicon.ico';
+          iconLink.href = siteInfo?.favicon_url || BRAND_ASSETS.mark;
         }
         if (siteInfo?.font_family) {
           document.body.style.fontFamily = siteInfo.font_family;

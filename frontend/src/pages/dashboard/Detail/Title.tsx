@@ -17,6 +17,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useHistory, useLocation, Link } from 'react-router-dom';
 import { getPageFromSearch } from '@/utils/urlPage';
+import { PRODUCT_NAME } from '@/utils/branding';
 import querystring from 'query-string';
 import _ from 'lodash';
 import moment from 'moment';
@@ -79,7 +80,7 @@ interface IProps {
   onToggleFullscreen: () => void;
 }
 
-const cachePageTitle = document.title || 'Nightingale';
+const cachePageTitle = document.title || PRODUCT_NAME;
 
 export default function Title(props: IProps) {
   const { t, i18n } = useTranslation('dashboard');

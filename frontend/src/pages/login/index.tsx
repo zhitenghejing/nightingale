@@ -37,6 +37,7 @@ import {
 import { RsaEncry } from '@/utils/rsa';
 import { CommonStateContext } from '@/App';
 import { AccessTokenKey } from '@/utils/constant';
+import { BRAND_ASSETS, PRODUCT_NAME } from '@/utils/branding';
 
 // @ts-ignore
 import useSsoWay from 'plus:/parcels/SSOConfigs/useSsoWay';
@@ -212,7 +213,12 @@ export default function Login() {
       <div className='login-panel'>
         <div className='login-main  integration'>
           <div className='login-title'>
-            <img src={siteInfo?.login_page_logo_url || '/image/login-logo.png'} style={{ width: '120px' }} />
+            <img
+              src={siteInfo?.login_page_logo_url || (document.body.classList.contains('theme-dark') ? BRAND_ASSETS.dark : BRAND_ASSETS.light)}
+              alt={PRODUCT_NAME}
+              style={{ width: '120px' }}
+            />
+            {!siteInfo?.login_page_logo_url && <div className='mt-3 text-[18px] font-semibold'>{PRODUCT_NAME}</div>}
           </div>
           <Form form={form} layout='vertical' requiredMark={true}>
             <Form.Item

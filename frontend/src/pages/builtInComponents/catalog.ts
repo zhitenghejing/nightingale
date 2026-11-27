@@ -51,6 +51,7 @@ export interface Definition {
   notification: 'events_only' | 'inherit' | 'rules';
   compatibility?: string;
   execution?: string;
+  console_protocol?: 'ssh' | 'rdp';
   pack?: TemplatePack;
   notify?: NotificationPreset;
 }

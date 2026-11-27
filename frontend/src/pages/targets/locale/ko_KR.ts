@@ -21,7 +21,7 @@ const ko_KR = {
   "cpu_util": "CPU",
   "cpu_num": "코어 수",
   "offset": "시각 차이",
-  "offset_tip": "Nightingale이 설치된 머신의 시각에서 categraf가 설치된 머신의 시각을 뺀 값입니다",
+  "offset_tip": "致腾慧运维이 설치된 머신의 시각에서 categraf가 설치된 머신의 시각을 뺀 값입니다",
   "os": "운영체제",
   "arch": "CPU 아키텍처",
   "update_at": "수정 시각",

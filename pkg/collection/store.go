@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ccfos/nightingale/v6/models"
+	"github.com/ccfos/nightingale/v6/pkg/remoteaccess"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -59,6 +60,7 @@ func (s Scope) Check(group int64, write bool) error {
 }
 
 type Store struct {
+	RemoteAccess  *remoteaccess.Store
 	DB            *gorm.DB
 	Keys          *Keyring
 	Writers       map[string]bool
@@ -134,6 +136,22 @@ type CollectorView struct {
 	GroupIDs []int64  `json:"group_ids"`
 	Networks []string `json:"networks"`
 	Ports    []int    `json:"ports"`
+}
+
+// CollectorOption is the shared execution inventory, independent of device groups.
+// Administrative policy, writer identities and provider credentials stay private.
+type CollectorOption struct {
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	AgentIdent   string `json:"agent_ident"`
+	DatasourceID int64  `json:"datasource_id"`
+	Enabled      bool   `json:"enabled"`
+}
+
+func (s *Store) CollectorOptions() ([]CollectorOption, error) {
+	out := []CollectorOption{}
+	err := s.DB.Model(&models.MonitorCollector{}).Select("id,name,agent_ident,datasource_id,enabled").Order("name,id").Find(&out).Error
+	return out, err
 }
 
 func (s *Store) CreateCollector(scope Scope, f CollectorInput) (models.MonitorCollector, string, error) {
@@ -883,11 +901,6 @@ func (s *Store) UpdateCollector(scope Scope, id string, f CollectorInput) (model
 		c.Networks = models.MonitorText(canonical(f.Networks))
 		c.Ports = models.MonitorText(canonical(f.Ports))
 		c.RecordVersion++
-		for _, d := range devices {
-			if !groups[d.GroupID] {
-				return conflict("collector group is still referenced")
-			}
-		}
 		var probes []models.MonitorProbe
 		if err = tx.Where("collector_id = ? AND state <> ?", id, "cleaned").Find(&probes).Error; err != nil {
 			return err

@@ -11,6 +11,7 @@ import (
 )
 
 func (s *Store) CreateProbe(scope Scope, f DeviceInput) (models.MonitorProbe, error) {
+	f.RemoteAccess = nil
 	var out models.MonitorProbe
 	f.Name = "Connection probe"
 	f.IntervalSeconds = 15

@@ -2,9 +2,10 @@
 import React from 'react';
 jest.mock('@/utils/request', () => ({ __esModule: true, default: jest.fn() }));
 import { createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import Racks, { placement } from './Racks';
 import { blankDevice } from './model';
-import { api, catalog, saveAsset, resetMock } from './testApi';
+import { api, catalog, saveAsset, resetMock, setMockDevices, setMockRackAlerts } from './testApi';
 jest.mock('./api', () => require('./testApi'));
 jest.mock('@/components/pageLayout', () => ({ __esModule: true, default: ({ children }: any) => <div>{children}</div> }));
 jest.mock('@/pages/rackViews/RackViewport', () => ({ __esModule: true, default: ({ children }: any) => <div>{children}</div> }));
@@ -95,6 +96,54 @@ it('starts with collapsed rooms and expands matching racks when searching', asyn
   expect(room).toHaveAttribute('open');
   expect(room.querySelectorAll('.rack-list-item')).toHaveLength(1);
   expect(room).toHaveTextContent('6号柜');
+});
+
+it('filters to affected cabinets, switches off the lights independently and links each current event', async () => {
+  setMockDevices(
+    ['严重设备', '告警设备', '提示设备'].map((hostname, index) => ({
+      ...blankDevice,
+      id: `asset-${index}`,
+      hostname,
+      serial: `test-${index}`,
+      rackId: 'rack2',
+      room: catalog.rooms[0].name,
+      rack: '6号柜',
+      uStart: index + 2,
+      uEnd: index + 2,
+    })),
+  );
+  setMockRackAlerts({
+    'asset-0': [
+      { id: '123', severity: 1, rule_name: '设备不可达', trigger_time: 1800000000 },
+      { id: '124', severity: 3, rule_name: '磁盘使用率偏高', trigger_time: 1800000001 },
+    ],
+    'asset-1': [{ id: '125', severity: 2, rule_name: '端口错误率升高', trigger_time: 1800000002 }],
+    'asset-2': [{ id: '126', severity: 3, rule_name: '监控采样偏低', trigger_time: 1800000003 }],
+  });
+  render(
+    <MemoryRouter>
+      <Racks />
+    </MemoryRouter>,
+  );
+  await screen.findByTitle('3 台设备有当前告警');
+  fireEvent.click(screen.getByRole('checkbox', { name: '仅告警机柜' }));
+  expect(screen.queryByTitle(`5号柜 · ${catalog.rooms[0].name}`)).not.toBeInTheDocument();
+  const critical = await screen.findByTitle(/严重设备.*一级告警 · 2 条当前告警/);
+  expect(critical).toHaveAttribute('data-rack-alert-level', '1');
+  expect(screen.getByTitle(/告警设备.*二级告警/)).toHaveAttribute('data-rack-alert-level', '2');
+  expect(screen.getByTitle(/提示设备.*三级告警/)).toHaveAttribute('data-rack-alert-level', '3');
+  fireEvent.click(screen.getByRole('switch', { name: '告警亮灯' }));
+  expect(critical).not.toHaveAttribute('data-rack-alert-level');
+  expect(document.querySelectorAll('.rack-device-alert-light')).toHaveLength(0);
+  fireEvent.click(critical);
+  const dialog = screen.getByRole('dialog');
+  expect(within(dialog).getByRole('link', { name: '设备不可达' })).toHaveAttribute('href', '/alert-cur-events/123');
+  expect(within(dialog).getByRole('link', { name: '磁盘使用率偏高' })).toHaveAttribute('href', '/alert-cur-events/124');
+
+  setMockRackAlerts({});
+  fireEvent.click(screen.getByRole('button', { name: /刷\s*新/ }));
+  await within(dialog).findByText('暂无当前告警');
+  expect(screen.queryByTitle(/严重设备.*一级告警/)).not.toBeInTheDocument();
 });
 
 it('requires confirmation for room deletion and displays a server rejection', async () => {

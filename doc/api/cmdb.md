@@ -36,11 +36,13 @@ rows. Rack changes and restoration use edit permission.
 | GET | export | exportable active documents | export |
 | POST | devices | complete asset, server allocates ID | create |
 | PUT | devices/:id | complete asset including version | edit |
-| POST | import | array of 1–1000 new assets, atomic | import |
+| POST | import | array of 1–1000 new assets and missing named cabinets, atomic | import |
+| POST | import?mode=placement | fills cabinet and U positions on existing active assets by serial, atomic | import and edit |
 | POST | delete | array of id/version documents, atomic soft deletion | delete |
 | POST | restore | array of id/version documents, rechecks placement | edit |
 | POST | purge | nonempty array of id/version snapshots; permanent removal from recycle bin, atomic | delete |
 | GET | catalog | rooms and racks | read |
+| GET | rack-alerts | active event summaries keyed by CMDB device ID | read and event visibility |
 | POST | rooms | name | edit |
 | PUT | rooms | id, name, previousName (optimistic rename check) | edit |
 | POST | racks | roomId, name, units | edit |
@@ -50,11 +52,35 @@ rows. Rack changes and restoration use edit permission.
 | GET | changes[?assetId=...] | latest 200 audit records | read |
 | GET / PUT | acl | list / userId + boolean permissions | Nightingale admin |
 
-Device fields are defined in `frontend/src/pages/cmdb/model.ts`. RackId is authoritative;
-CSV room/rack text names resolve to an existing canonical rack when no ID is
-provided. U positions must be paired integers within capacity; leaving both empty
-keeps a device waiting for installation. Dragging is a normal versioned PUT that
-preserves the existing U height. No data is written to Nightingale Target records.
+Device fields are defined in `frontend/src/pages/cmdb/model.ts`. `rackId` is authoritative.
+During import, a named rack without an ID requires a room name. The import reuses
+existing room/rack names and creates missing rooms and cabinets in the same transaction
+as the devices. New cabinets start at 42U or the highest ending U in the batch for that
+cabinet, whichever is larger, up to 60U. Existing cabinet capacity stays fixed.
+The import permission covers this catalog creation, and catalog changes are audited
+against the importing user. Manual device creation and editing resolve existing racks.
+
+Use the CMDB **补充机柜位置** upload for devices already in inventory. It matches
+active devices by serial number and applies only the location fields. Rows without a
+cabinet and devices already occupying U positions are skipped. Devices missing from
+active inventory and conflicting U positions reject the batch.
+
+U positions must be paired integers within capacity. Leaving both empty keeps a device
+waiting for installation, with its cabinet binding if specified. Successful placements
+appear in Rack Views. CSV imports keep the recorded U height and use a generic panel
+when an automatically matched product image has a different height. Dragging is a
+versioned PUT that preserves the existing U height. Nightingale Target records are
+independent of CMDB assets.
+
+Rack Views refreshes active alerts with the inventory. It associates exact IP addresses
+from the business and out-of-band management fields. Device endpoint labels such as
+`snmp_target` take priority over the collector IP. Target identifiers can resolve through
+the monitoring object's host IP, and address labels also support IPs with ports. Alert
+summaries honor business-group access to event details and datasource visibility.
+The most severe active event determines a placed device's light. Severity 1 is red,
+severity 2 orange and severity 3 yellow. The affected-cabinet filter stays available
+with lights switched off. The device dialog lists current events and links to their
+active event detail pages. Lights clear after recovery on the next successful refresh.
 
 
 ## Persistence and migration
@@ -122,3 +148,15 @@ Filtering updates immediately, resets pagination and clears selected rows so bat
 actions cannot retain hidden selections. Export continues to use the filtered rows.
 All filtering still consumes the existing ACL-protected inventory read, without
 new server endpoints or database changes.
+
+The built-in `search_cmdb_devices` agent tool applies the same CMDB read ACL
+to the current chat user. It searches active assets by keyword, room, device
+type, warranty type and inclusive `expire_from` / `expire_to` bounds on the
+`expire` field. Results are ordered by expiry date then asset ID, with undated
+records last for searches without a date range. Responses contain a device
+summary, total matches, a count of assets with missing or invalid expiry dates
+under the other filters, and a `next_page` when further matches are available.
+Bound cabinets include their current `rack_units` capacity. Installed devices
+include the recorded `u_start`, `u_end` and `occupied_units`, with a display-ready
+`u_range` such as `29U-30U` or `29U`. A device waiting
+for installation can have a cabinet capacity without an assigned U range.

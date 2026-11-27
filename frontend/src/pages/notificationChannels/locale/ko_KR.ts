@@ -117,7 +117,7 @@ const ko_KR = {
       '권장: admin.atlassian.com → 디렉터리 → 서비스 계정에서 서비스 계정을 만들고 Jira의 User 역할을 부여한 뒤 API 토큰을 발급하세요. 이슈 보고자는 이 계정으로 표시됩니다. Jira Cloud API 토큰의 유효기간은 최대 1년이며, 만료되면 알림이 실패합니다.',
     site_url: '사이트 URL',
     site_url_tip:
-      '브라우저에서 Jira를 여는 주소(예: https://your-domain.atlassian.net)이며 /rest/api는 포함하지 마세요. 범위 지정 토큰을 쓸 때도 사이트 URL을 입력하면 Nightingale이 Atlassian 게이트웨이 주소로 자동 변환합니다.',
+      '브라우저에서 Jira를 여는 주소(예: https://your-domain.atlassian.net)이며 /rest/api는 포함하지 마세요. 범위 지정 토큰을 쓸 때도 사이트 URL을 입력하면 致腾慧运维이 Atlassian 게이트웨이 주소로 자동 변환합니다.',
     site_url_invalid: 'http:// 또는 https://로 시작해야 합니다(예: https://your-domain.atlassian.net)',
     token_type: '토큰 유형',
     token_type_tip:
@@ -178,7 +178,7 @@ const ko_KR = {
     api_url_invalid: 'http:// 또는 https://로 시작해야 합니다',
     priority_map: '심각도와 우선순위',
     priority_map_tip:
-      'Nightingale 심각도별 JSM 알림 우선순위. JSM 우선순위는 사이트 전체에서 동일하므로 여기서 한 번 설정하면 모든 규칙에 적용됩니다. 기본값은 S1→P1, S2→P2, S3→P3',
+      '致腾慧运维 심각도별 JSM 알림 우선순위. JSM 우선순위는 사이트 전체에서 동일하므로 여기서 한 번 설정하면 모든 규칙에 적용됩니다. 기본값은 S1→P1, S2→P2, S3→P3',
     proxy_tip: 'api.atlassian.com에 프록시를 거쳐야만 접속할 수 있을 때 입력합니다(예: http://127.0.0.1:7890)',
   },
   pagerduty_request_config: {

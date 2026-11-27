@@ -676,7 +676,7 @@ export function ArchiveManagementPrototype() {
         <div className='archive-header-actions'>
           <Tag>界面原型 · 模拟数据</Tag>
           <Button size='small' icon={icon(Sparkles, 13)} onClick={() => demo()}>
-            Nightingale AI
+            致慧AI
           </Button>
           <Button size='small' icon={icon(BookOpen, 13)} onClick={() => demo('当前仅用于确认档案页面样式')}>
             产品文档
@@ -998,7 +998,7 @@ export function ArchiveManagementPrototype() {
             </span>
           </div>
           <article className={`archive-paper ${highlight && isPdf ? 'show-highlight' : ''}`} style={{ zoom: zoom / 100 }}>
-            <div className='paper-page-header'>NIGHTINGALE　/　{categoryLabels[current.category]}</div>
+            <div className='paper-page-header'>致腾慧运维　/　{categoryLabels[current.category]}</div>
             <div
               className='paper-content'
               dangerouslySetInnerHTML={{
@@ -1202,7 +1202,7 @@ export function ArchiveManagementPrototype() {
             <span>16</span>
           </div>
           <article className='archive-paper editor-paper'>
-            <div className='paper-page-header'>NIGHTINGALE　/　{categoryLabels[current.category]}</div>
+            <div className='paper-page-header'>致腾慧运维　/　{categoryLabels[current.category]}</div>
             <div
               ref={paperRef}
               className='paper-content'
@@ -1232,7 +1232,7 @@ export function ArchiveManagementPrototype() {
       <div id='#tailwind' className={`archive-prototype-shell ${focusMode && view === 'read' ? 'focus-reading' : ''}`}>
         <aside className='archive-app-sidebar'>
           <div className='archive-sidebar-brand'>
-            <img src='/image/logo-light-l.png' alt='Nightingale' />
+            <img src='/image/logo-light-l.png' alt='致腾慧运维' />
             <button aria-label='收起菜单示意' onClick={() => demo('当前原型保持 main 默认侧栏宽度')}>
               {icon(PanelLeftClose, 14)}
             </button>
@@ -1245,7 +1245,7 @@ export function ArchiveManagementPrototype() {
             {[
               [House, '首页'],
               [Search, '快捷跳转'],
-              [Sparkles, 'Nightingale AI'],
+              [Sparkles, '致慧AI'],
               [LayoutGrid, '数据查询'],
               [Bell, '告警通知'],
               [FolderClosed, '基础设施'],

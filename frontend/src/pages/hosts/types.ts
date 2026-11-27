@@ -30,6 +30,7 @@ export interface Item {
   collection?: CollectionState;
   inventory?: {
     name: string;
+    owner?: string;
     device_type: string;
     device_model: string;
     collection_ok: boolean;

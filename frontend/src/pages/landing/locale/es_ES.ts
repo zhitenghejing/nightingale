@@ -1,5 +1,5 @@
 const es_ES = {
-  "pageTitle": "Te damos la bienvenida a Nightingale",
+  "pageTitle": "Te damos la bienvenida a 致腾慧运维",
   "onboarding": {
     "dismiss": "No volver a mostrar",
     "title": "Primeros pasos",
@@ -178,13 +178,13 @@ const es_ES = {
       "title": "Inteligencia artificial",
       "description": "Modelos de lenguaje y agentes",
       "links": [
-        "¿Qué skills trae Nightingale?",
+        "¿Qué skills trae 致腾慧运维?",
         "¿Cómo se usa un agente para analizar alertas automáticamente?"
       ]
     }
   },
   "aiAssistant": {
-    "title": "Asistente de IA de Nightingale",
+    "title": "Asistente de IA de 致慧AI",
     "description": "Con modelos de lenguaje, opera la plataforma, consulta datos y analiza la causa raíz de las alertas en lenguaje natural.",
     "capabilities": [
       "Consulta en lenguaje natural",

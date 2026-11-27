@@ -1,7 +1,7 @@
 ---
 name: host-onboard-diagnose
 description: >-
-  Diagnose onboarding failures where "categraf is installed/running but the host does not show up in the Nightingale host list, or shows unknown / has no metrics". Triggers when the user asks "why doesn't my newly installed host appear", "all the OS values in the host list are unknown", "I installed 3 collectors via Helm but only see 1", "the agent won't register", or "categraf is installed but the host doesn't show". **Mutually exclusive** with host-health-diagnose: that one handles "was onboarded before, now lost contact", while this skill handles "never got onboarded at all". Core stance: **a missing host is not a single cause, but rather one segment of the onboarding pipeline being broken**. Looking only at heartbeat.enable and telling the user to change categraf is a common pitfall (many users change it and still can't see the host, because the problem is in omit_hostname / ident shell / TLS / token / edge redis / multi-cluster routing).
+  Diagnose onboarding failures where "categraf is installed/running but the host does not show up in the 致腾慧运维 host list, or shows unknown / has no metrics". Triggers when the user asks "why doesn't my newly installed host appear", "all the OS values in the host list are unknown", "I installed 3 collectors via Helm but only see 1", "the agent won't register", or "categraf is installed but the host doesn't show". **Mutually exclusive** with host-health-diagnose: that one handles "was onboarded before, now lost contact", while this skill handles "never got onboarded at all". Core stance: **a missing host is not a single cause, but rather one segment of the onboarding pipeline being broken**. Looking only at heartbeat.enable and telling the user to change categraf is a common pitfall (many users change it and still can't see the host, because the problem is in omit_hostname / ident shell / TLS / token / edge redis / multi-cluster routing).
 max_iterations: 18
 builtin_tools:
   - probe_target_onboard_status
@@ -19,7 +19,7 @@ tags:
 ## Scope
 
 **Enter this skill**:
-- "My newly installed categraf host doesn't show up in Nightingale"
+- "My newly installed categraf host doesn't show up in 致腾慧运维"
 - "The agent is installed and running, but the host doesn't appear in the host list"
 - "For this host in the list, the OS / CPU / version are all unknown"
 - "I deployed 3 categraf hosts via Helm, but the platform only sees 1"

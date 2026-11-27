@@ -119,7 +119,7 @@ const pt_BR = {
       'Recomendado: crie uma conta de serviço em admin.atlassian.com → Diretório → Contas de serviço, atribua a ela a função User do Jira e crie um token de API. As issues serão reportadas por essa conta. Tokens de API do Jira Cloud expiram em no máximo 1 ano; depois disso as notificações falham.',
     site_url: 'URL do site',
     site_url_tip:
-      'O endereço usado para abrir o Jira no navegador, por exemplo https://your-domain.atlassian.net, sem /rest/api. Com um token com escopos, informe também o URL do site; o Nightingale o converte automaticamente para o gateway da Atlassian.',
+      'O endereço usado para abrir o Jira no navegador, por exemplo https://your-domain.atlassian.net, sem /rest/api. Com um token com escopos, informe também o URL do site; o 致腾慧运维 o converte automaticamente para o gateway da Atlassian.',
     site_url_invalid: 'Deve começar com http:// ou https://, por exemplo https://your-domain.atlassian.net',
     token_type: 'Tipo de token',
     token_type_tip:
@@ -181,7 +181,7 @@ const pt_BR = {
     api_url_invalid: 'Deve começar com http:// ou https://',
     priority_map: 'Severidade e prioridade',
     priority_map_tip:
-      'Prioridade do alerta no JSM para cada severidade do Nightingale. As prioridades do JSM são as mesmas em todo o site, então isto é definido uma vez aqui para todas as regras; padrão S1→P1, S2→P2, S3→P3',
+      'Prioridade do alerta no JSM para cada severidade do 致腾慧运维. As prioridades do JSM são as mesmas em todo o site, então isto é definido uma vez aqui para todas as regras; padrão S1→P1, S2→P2, S3→P3',
     proxy_tip: 'Preencha quando api.atlassian.com só for acessível por proxy, por exemplo http://127.0.0.1:7890',
   },
   pagerduty_request_config: {

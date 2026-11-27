@@ -1,5 +1,5 @@
 const pt_BR = {
-  "pageTitle": "Bem-vindo ao Nightingale",
+  "pageTitle": "Bem-vindo ao 致腾慧运维",
   "onboarding": {
     "dismiss": "Não mostrar novamente",
     "title": "Primeiros passos",
@@ -178,13 +178,13 @@ const pt_BR = {
       "title": "Inteligência artificial",
       "description": "Modelos de linguagem e agentes",
       "links": [
-        "Quais skills o Nightingale já traz?",
+        "Quais skills o 致腾慧运维 já traz?",
         "Como usar um agente para analisar alertas automaticamente?"
       ]
     }
   },
   "aiAssistant": {
-    "title": "Assistente de IA do Nightingale",
+    "title": "Assistente de IA do 致慧AI",
     "description": "Com modelos de linguagem, opere a plataforma, consulte dados e investigue a causa raiz dos alertas em linguagem natural.",
     "capabilities": [
       "Consulta em linguagem natural",

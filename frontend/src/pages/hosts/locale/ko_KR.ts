@@ -63,7 +63,7 @@ const ko_KR = {
   "beat_time_hours_ago_other": "{{count}} hours ago",
   "mem_util": "메모리",
   "offset": "시각 차이",
-  "offset_tip": "Nightingale이 설치된 머신의 시각에서 categraf가 설치된 머신의 시각을 뺀 값입니다",
+  "offset_tip": "致腾慧运维이 설치된 머신의 시각에서 categraf가 설치된 머신의 시각을 뺀 값입니다",
   "remote_addr": "출처 IP",
   "remote_addr_tip": "출처 IP는 HTTP 헤더에서 가져오므로 프록시를 거쳤다면 실제 IP가 아닐 수 있습니다",
   "note": "메모",
@@ -139,7 +139,7 @@ const ko_KR = {
   "install": {
     "entry": "Categraf 한 번에 설치",
     "title": "Categraf 수집기 설치",
-    "addr_label": "Nightingale 서버 주소",
+    "addr_label": "致腾慧运维 서버 주소",
     "addr_tip": "모니터링 대상 머신이 이 주소에 닿을 수 있어야 합니다. 기본값은 서버가 스스로 인식한 주소이며 바꿀 수 있습니다",
     "addr_invalid": "올바른 주소를 입력하세요. 예: http://10.1.1.1:17000",
     "step_run": "대상 머신에서 root 권한으로 실행하세요",

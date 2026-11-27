@@ -96,10 +96,10 @@ const zh_CN = {
   exit_full_screen: '退出全屏',
   copyPanelTip: '图表配置已复制。单击 "添加图表" > "粘贴图表" 粘贴配置 JSON 来创建图表',
   batch: {
-    import: '导入夜莺仪表盘 JSON',
+    import: '导入致腾慧运维仪表盘 JSON',
     label: '仪表盘 JSON',
     import_grafana: '导入 Grafana 仪表盘（不推荐）',
-    import_grafana_tip: '只支持导入 Prometheus 类型数据源的仪表盘，以及夜莺支持的图表类型和功能 <a>问题反馈</a>',
+    import_grafana_tip: '只支持导入 Prometheus 类型数据源的仪表盘，以及致腾慧运维支持的图表类型和功能 <a>问题反馈</a>',
     import_grafana_url: 'Grafana 仪表盘链接（推荐）',
     import_grafana_url_label: 'Grafana 仪表盘链接',
     show_time_picker: '展示时间选择器',

@@ -12,36 +12,38 @@ import (
 	"unicode/utf8"
 
 	"github.com/ccfos/nightingale/v6/models"
+	"github.com/ccfos/nightingale/v6/pkg/remoteaccess"
 	"github.com/pelletier/go-toml/v2"
 )
 
 const WindowsTemplate = "windows_basic_v1"
 
 type DeviceInput struct {
-	ProbeDeviceID       string                 `json:"probe_device_id,omitempty"`
-	Parameters          map[string]interface{} `json:"parameters,omitempty"`
-	Notify              *NotificationPreset    `json:"notify,omitempty"`
-	TemplateComponentID uint64                 `json:"template_component_id"`
-	ResetResources      bool                   `json:"reset_resources"`
-	UpgradeResolution   string                 `json:"upgrade_resolution,omitempty"`
-	RefreshTemplate     bool                   `json:"refresh_template"`
-	Customization       *ProfileCustomization  `json:"customization"`
-	Name                string                 `json:"name"`
-	Address             string                 `json:"address"`
-	Port                int                    `json:"port"`
-	Ident               string                 `json:"ident"`
-	GroupID             int64                  `json:"group_id"`
-	CollectorID         string                 `json:"collector_id"`
-	CredentialID        string                 `json:"credential_id"`
-	TemplateVersionID   string                 `json:"template_version_id"`
-	Protocol            string                 `json:"protocol"`
-	IntervalSeconds     int                    `json:"interval_seconds"`
-	TimeoutSeconds      int                    `json:"timeout_seconds"`
-	Retries             int                    `json:"retries"`
-	Labels              map[string]string      `json:"labels"`
-	CMDBID              string                 `json:"cmdb_id"`
-	Enabled             bool                   `json:"enabled"`
-	RecordVersion       int64                  `json:"record_version"`
+	RemoteAccess        *remoteaccess.ConnectionInput `json:"remote_access,omitempty"`
+	ProbeDeviceID       string                        `json:"probe_device_id,omitempty"`
+	Parameters          map[string]interface{}        `json:"parameters,omitempty"`
+	Notify              *NotificationPreset           `json:"notify,omitempty"`
+	TemplateComponentID uint64                        `json:"template_component_id"`
+	ResetResources      bool                          `json:"reset_resources"`
+	UpgradeResolution   string                        `json:"upgrade_resolution,omitempty"`
+	RefreshTemplate     bool                          `json:"refresh_template"`
+	Customization       *ProfileCustomization         `json:"customization"`
+	Name                string                        `json:"name"`
+	Address             string                        `json:"address"`
+	Port                int                           `json:"port"`
+	Ident               string                        `json:"ident"`
+	GroupID             int64                         `json:"group_id"`
+	CollectorID         string                        `json:"collector_id"`
+	CredentialID        string                        `json:"credential_id"`
+	TemplateVersionID   string                        `json:"template_version_id"`
+	Protocol            string                        `json:"protocol"`
+	IntervalSeconds     int                           `json:"interval_seconds"`
+	TimeoutSeconds      int                           `json:"timeout_seconds"`
+	Retries             int                           `json:"retries"`
+	Labels              map[string]string             `json:"labels"`
+	CMDBID              string                        `json:"cmdb_id"`
+	Enabled             bool                          `json:"enabled"`
+	RecordVersion       int64                         `json:"record_version"`
 }
 
 var labelName = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)

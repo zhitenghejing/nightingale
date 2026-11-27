@@ -10,7 +10,7 @@ const fr_FR = {
   "feishu_setting": {
     "app_id_tip": "Identifiant unique de l'application sur la plateforme ouverte Feishu, généré automatiquement à sa création et non modifiable. L'app_id se consulte sur la page Identifiants et informations générales de la <1>console développeur</1>",
     "app_secret_tip": "Clé secrète de l'application, générée automatiquement à sa création",
-    "cover_attributes_tip": "À chaque connexion, si les informations de l'utilisateur ont changé, celles de Feishu remplacent celles de Nightingale, à savoir le numéro de téléphone et l'adresse e-mail"
+    "cover_attributes_tip": "À chaque connexion, si les informations de l'utilisateur ont changé, celles de Feishu remplacent celles de 致腾慧运维, à savoir le numéro de téléphone et l'adresse e-mail"
   },
   "dingtalk_setting": {
     "enable": "Activer",
@@ -20,7 +20,7 @@ const fr_FR = {
     "client_id": "Client ID",
     "client_secret": "Client secret",
     "cover_attributes": "Mettre à jour les informations utilisateur",
-    "cover_attributes_tip": "À chaque connexion, si les informations de l'utilisateur ont changé, celles de DingTalk remplacent celles de Nightingale, à savoir le numéro de téléphone et l'adresse e-mail",
+    "cover_attributes_tip": "À chaque connexion, si les informations de l'utilisateur ont changé, celles de DingTalk remplacent celles de 致腾慧运维, à savoir le numéro de téléphone et l'adresse e-mail",
     "username_field": "Champ du nom d'utilisateur",
     "default_team": "Équipe par défaut",
     "username_field_map": {

@@ -180,7 +180,7 @@ const ja_JP = {
     api_url_tip: '空欄の場合は https://api.atlassian.com を使います。パス /jsm/ops/integration/v2/alerts は自動で付加されます',
     api_url_invalid: 'http:// または https:// で始まる必要があります',
     priority_map: '重大度と優先度',
-    priority_map_tip: 'Nightingale の重大度ごとの JSM アラート優先度。JSM の優先度はサイト全体で共通なので、ここで一度設定すれば全ルールで使われます。既定は S1→P1、S2→P2、S3→P3',
+    priority_map_tip: '致腾慧运维 の重大度ごとの JSM アラート優先度。JSM の優先度はサイト全体で共通なので、ここで一度設定すれば全ルールで使われます。既定は S1→P1、S2→P2、S3→P3',
     proxy_tip: 'api.atlassian.com へのアクセスにプロキシが必要な場合に入力します（例：http://127.0.0.1:7890）',
   },
   pagerduty_request_config: {

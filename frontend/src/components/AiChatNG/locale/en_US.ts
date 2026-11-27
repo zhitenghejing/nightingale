@@ -23,7 +23,7 @@ const en_US = {
   },
   nightingale: {
     share_fallback_notice: 'You do not have access to the original page, only the conversation is shown here',
-    title: 'Nightingale AI',
+    title: '致慧AI',
     new_chat: 'New chat',
     sessions: 'Conversations',
     llm_configs: 'LLM configs',
@@ -34,9 +34,9 @@ const en_US = {
     expand_sidebar: 'Expand AI sidebar',
     welcome_cards: {
       overview: {
-        title: 'Get to know Nightingale',
+        title: 'Get to know 致腾慧运维',
         description: 'Understand the product and what the AI assistant can do in one minute',
-        prompt: 'Give me a one-minute introduction to Nightingale monitoring and what you can help me do',
+        prompt: 'Give me a one-minute introduction to 致腾慧运维 monitoring and what you can help me do',
       },
       alerts: {
         title: 'Review my alerts',

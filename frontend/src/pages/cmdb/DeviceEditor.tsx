@@ -34,6 +34,7 @@ export default function DeviceEditor({
   onSaved,
   canEdit = true,
   canDelete = false,
+  viewContent,
 }: {
   editor?: Editor;
   devices: Device[];
@@ -42,6 +43,7 @@ export default function DeviceEditor({
   onSaved: () => Promise<void>;
   canEdit?: boolean;
   canDelete?: boolean;
+  viewContent?: React.ReactNode;
 }) {
   const [editor, setEditor] = useState(initial);
   const [editorError, setEditorError] = useState('');
@@ -97,8 +99,21 @@ export default function DeviceEditor({
         next.alertEnabled = false;
         next.monitorState = '未接入';
       } else if (!editor?.device?.monitored) next.monitorState = '等待心跳';
+      const previous = editor?.device;
+      const keepRecordedMaterial =
+        editor?.mode === 'edit' &&
+        previous?.uStart != null &&
+        previous.uEnd != null &&
+        next.uStart != null &&
+        next.uEnd != null &&
+        previous.uEnd - previous.uStart === next.uEnd - next.uStart &&
+        previous.vendor === next.vendor &&
+        previous.model === next.model &&
+        previous.type === next.type &&
+        previous.assetMaterialId === next.assetMaterialId &&
+        matchMaterial(next).status === 'height-mismatch';
       setSaving(true);
-      await saveAsset(attachMaterial(next), editor?.mode === 'add');
+      await saveAsset(keepRecordedMaterial ? next : attachMaterial(next), editor?.mode === 'add');
       form.resetFields();
       setEditor(undefined);
       onClose();
@@ -166,6 +181,7 @@ export default function DeviceEditor({
       }
     >
       {editorError && <Alert className='mb-4' type='error' showIcon message={editorError} />}
+      {readonly && viewContent}
       <Form
         name='cmdb-device'
         form={form}

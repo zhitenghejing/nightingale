@@ -140,3 +140,54 @@ func TestCollectionEnabledPreservesServiceAuthenticatedHostFilter(t *testing.T) 
 	require.Contains(t, w.Body.String(), d.Ident)
 	require.NotContains(t, w.Body.String(), `"cpu_percent"`)
 }
+
+type collectionCadenceProm struct {
+	prompkg.API
+	ranges []prompkg.Range
+}
+
+func (p *collectionCadenceProm) QueryRange(_ context.Context, _ string, r prompkg.Range) (model.Value, prompkg.Warnings, error) {
+	p.ranges = append(p.ranges, r)
+	stream := &model.SampleStream{Metric: model.Metric{"__name__": "snmp_cpu_load"}}
+	for at := r.Start; !at.After(r.End); at = at.Add(r.Step) {
+		value := model.SampleValue(15)
+		if int(at.Sub(r.Start)/time.Minute)%2 == 1 {
+			value = 40
+		}
+		stream.Values = append(stream.Values, model.SamplePair{Timestamp: model.Time(at.UnixMilli()), Value: value})
+	}
+	return model.Matrix{stream}, nil, nil
+}
+func TestCollectionChartCadencePreservesTemplatePlateaus(t *testing.T) {
+	r, rt, d := detailFixture(t)
+	require.NoError(t, rt.Collection.DB.Model(&models.MonitorDevice{}).Where("id = ?", d.ID).Update("interval_seconds", 60).Error)
+	client := &collectionCadenceProm{}
+	rt.PromClients = &prom.PromClientMap{ReaderClients: map[int64]prompkg.API{1: client}}
+	endpoint := "/api/n9e/collection/devices/" + d.ID + "/metrics"
+	response := collectionCall(r, "GET", endpoint+"?step_seconds=30", nil, "collection-reader")
+	require.Equal(t, 200, response.Code, response.Body.String())
+	require.NotEmpty(t, client.ranges)
+	for _, queryRange := range client.ranges {
+		require.Equal(t, 30*time.Second, queryRange.Step)
+	}
+	var result struct {
+		Dat struct {
+			Metrics map[string]model.Matrix `json:"metrics"`
+		} `json:"dat"`
+	}
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &result))
+	values := result.Dat.Metrics["cpu"][0].Values
+	require.Len(t, values, 121)
+	require.Equal(t, []model.SampleValue{15, 15, 40, 40}, []model.SampleValue{values[0].Value, values[1].Value, values[2].Value, values[3].Value})
+	for _, badStep := range []string{"0", "1", "13", "30.5", "invalid", "100000"} {
+		before := len(client.ranges)
+		require.Equal(t, 400, collectionCall(r, "GET", endpoint+"?step_seconds="+badStep, nil, "collection-reader").Code)
+		require.Len(t, client.ranges, before)
+	}
+	require.Equal(t, 403, collectionCall(r, "GET", endpoint+"?step_seconds=30", nil, "collection-outsider").Code)
+	client.ranges = nil
+	require.Equal(t, 200, collectionCall(r, "GET", endpoint, nil, "collection-reader").Code)
+	for _, queryRange := range client.ranges {
+		require.Equal(t, time.Minute, queryRange.Step)
+	}
+}

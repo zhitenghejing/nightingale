@@ -16,6 +16,7 @@ const zh_CN = {
     create: '创建模板',
   },
   logo_picker_title: '选择图标',
+  logo_vendor_title: '厂商与操作系统',
   logo_library_title: '自定义图标素材',
   logo_add_material: '添加图标素材',
   logo_upload_hint: '支持 2 MB 以内的 PNG、JPG、SVG、WebP 图片；上传后可供所有模板选择。',

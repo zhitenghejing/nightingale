@@ -71,7 +71,7 @@ const fr_FR = {
     "about": "À propos du produit",
     "license_management": "Gestion des certificats",
     "ai_config": "Configuration IA",
-    "nightingale_ai": "Nightingale AI",
+    "nightingale_ai": "致慧AI",
     "ai_config_agents": "Gestion des agents",
     "ai_config_llm_configs": "Gestion des LLM",
     "ai_config_skills": "Gestion des skills",

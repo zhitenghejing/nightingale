@@ -80,7 +80,7 @@ export default function CatalogEditor({ componentId }: { componentId: number }) 
           commonState,
         });
     } catch {
-      message.error('模板内容不是有效的夜莺 JSON');
+      message.error('模板内容不是有效的致腾慧运维 JSON');
     }
   };
   const save = async (publish: boolean) => {
@@ -120,7 +120,7 @@ export default function CatalogEditor({ componentId }: { componentId: number }) 
       </div>
       {error && <Alert className='mb-3' type='error' message={error} showIcon />}
       <div className='template-package-layout'>
-        <Menu selectedKeys={[String(section)]} onClick={({ key }) => setSection(Number(key))} items={sections.map((label, key) => ({ key: String(key), label }))} />
+        <Menu mode='horizontal' selectedKeys={[String(section)]} onClick={({ key }) => setSection(Number(key))} items={sections.map((label, key) => ({ key: String(key), label }))} />
         <div className='template-package-content'>
           <h3>{sections[section]}</h3>
           {section === 0 && (
@@ -152,6 +152,20 @@ export default function CatalogEditor({ componentId }: { componentId: number }) 
           {section === 1 && (
             <>
               <p>新增设备按照本表生成控件、条件字段和校验。密码加密保存；隐藏字段不会参与校验或下发。</p>
+              <Form layout='vertical'>
+                <Form.Item label='设备控制台默认协议' extra='新增设备时可选填该设备的账号和密码。'>
+                  <Select
+                    value={draft.console_protocol || 'auto'}
+                    style={{ width: 240 }}
+                    onChange={(value: 'auto' | 'ssh' | 'rdp') => patch({ console_protocol: value === 'auto' ? undefined : value })}
+                    options={[
+                      { value: 'auto', label: '按设备类型推荐' },
+                      { value: 'ssh', label: 'SSH' },
+                      { value: 'rdp', label: 'RDP' },
+                    ]}
+                  />
+                </Form.Item>
+              </Form>
               <Space className='mb-3'>
                 <Button onClick={() => editField(draft.fields.length)}>添加字段</Button>
                 <Button onClick={() => Modal.confirm({ title: '替换为此采集方式的连接字段？', onOk: () => patch({ fields: connectionFields(draft.adapter) }) })}>
@@ -240,7 +254,7 @@ export default function CatalogEditor({ componentId }: { componentId: number }) 
               <Alert
                 className='mb-3'
                 type='info'
-                message={section === 3 ? '发布后，每台设备创建独立仪表盘。编辑此草稿不会修改已有设备。' : '告警使用夜莺现有规则与通知引擎。未映射有效通知规则时只保留事件。'}
+                message={section === 3 ? '发布后，每台设备创建独立仪表盘。编辑此草稿不会修改已有设备。' : '告警使用致腾慧运维现有规则与通知引擎。未映射有效通知规则时只保留事件。'}
               />
               <Button className='mb-3' onClick={() => editResource(section === 3 ? 'dashboards' : 'alerts', pack[section === 3 ? 'dashboards' : 'alerts'].length)}>
                 添加{section === 3 ? '仪表盘' : '告警规则'}
@@ -299,7 +313,7 @@ export default function CatalogEditor({ componentId }: { componentId: number }) 
                       />
                     </Form.Item>
                   )}
-                  <Form.Item label='消息内容' extra='消息随设备告警发送；投递格式和渠道由所选夜莺通知规则控制。'>
+                  <Form.Item label='消息内容' extra='消息随设备告警发送；投递格式和渠道由所选致腾慧运维通知规则控制。'>
                     <Input.TextArea rows={5} value={notify.message} onChange={(e) => patchNotify({ message: e.target.value })} />
                   </Form.Item>
                 </Form>
@@ -414,7 +428,7 @@ export default function CatalogEditor({ componentId }: { componentId: number }) 
             patchPack({ [resource!.kind]: items });
             setResource(undefined);
           } catch (e) {
-            if (!(e as any).errorFields) message.error('模板内容必须是有效的夜莺 JSON');
+            if (!(e as any).errorFields) message.error('模板内容必须是有效的致腾慧运维 JSON');
           }
         }}
       >
@@ -422,7 +436,7 @@ export default function CatalogEditor({ componentId }: { componentId: number }) 
           <Form.Item name='name' label='模板名称' rules={[{ required: true }]}>
             <Input />
           </Form.Item>
-          <Form.Item name='content' label='夜莺原生模板内容（JSON）' rules={[{ required: true }]}>
+          <Form.Item name='content' label='致腾慧运维原生模板内容（JSON）' rules={[{ required: true }]}>
             <Input.TextArea rows={22} spellCheck={false} style={{ fontFamily: 'monospace' }} />
           </Form.Item>
         </Form>

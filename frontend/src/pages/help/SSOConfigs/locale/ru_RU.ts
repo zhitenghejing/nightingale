@@ -12,7 +12,7 @@ const ru_RU = {
       'Feishu Open Platform application unique identifier, generated automatically when the application is created, and users cannot modify it themselves. You can view the app_id in the Credentials and Basic Information page of the <1>Developer Backend</1>',
     app_secret_tip: 'Application secret. Generated automatically when the application is created',
     cover_attributes_tip:
-      'After each login, if user information has changed, the user information from Feishu will overwrite the user information in Nightingale (phone number, email)',
+      'After each login, if user information has changed, the user information from Feishu will overwrite the user information in 致腾慧运维 (phone number, email)',
   },
   dingtalk_setting: {
     enable: 'Включить',
@@ -23,7 +23,7 @@ const ru_RU = {
     client_secret: 'Client Secret',
     cover_attributes: 'Обновить информацию о пользователе',
     cover_attributes_tip:
-      'После каждого входа, если информация о пользователе изменилась, информация из DingTalk перезапишет информацию пользователя в Nightingale (номер телефона, электронная почта)',
+      'После каждого входа, если информация о пользователе изменилась, информация из DingTalk перезапишет информацию пользователя в 致腾慧运维 (номер телефона, электронная почта)',
     username_field: 'Поле имени пользователя',
     default_team: 'По умолчанию команда',
     username_field_map: {

@@ -863,6 +863,23 @@ var ListTargets = aiagent.AgentTool{
 	},
 }
 
+var SearchCMDBDevices = aiagent.AgentTool{
+	Name: "search_cmdb_devices",
+	Description: "只读查询当前用户有权查看的在库 CMDB 设备台账，适用于资产、机房机柜、起止 U 位、设备占用 U 数、机柜总容量与维保查询。过保范围按台账的过保时间字段筛选，包含起止当天，缺失或无效日期单独计数。" +
+		"结果按过保时间和设备 ID 排序，并返回命中总数和下一页页码。",
+	Type: aiagent.ToolTypeBuiltin,
+	Parameters: []aiagent.ToolParameter{
+		{Name: "keyword", Type: "string", Description: "空格分隔的关键词，全部匹配。可跨主机名、型号、厂商、机房、机柜、序列号、业务和业务 IP", Required: false},
+		{Name: "room", Type: "string", Description: "机房名称或名称的一部分", Required: false},
+		{Name: "device_type", Type: "string", Description: "设备类型或类型的一部分，如服务器、交换机或防火墙", Required: false},
+		{Name: "warranty_type", Type: "string", Description: "保修类型的完整名称，如官方维保、第三方维保、无维保", Required: false},
+		{Name: "expire_from", Type: "string", Description: "过保时间起点，YYYY-MM-DD，含当天", Required: false},
+		{Name: "expire_to", Type: "string", Description: "过保时间终点，YYYY-MM-DD，含当天", Required: false},
+		{Name: "page", Type: "integer", Description: "页码，从 1 开始，后续使用结果中的 next_page", Required: false},
+		{Name: "page_size", Type: "integer", Description: "每页条数，默认 20，最大 25。翻页时保持一致", Required: false},
+	},
+}
+
 var GetTargetDetail = aiagent.AgentTool{
 	Name:        "get_target_detail",
 	Description: "获取单台机器/主机的详细信息",
@@ -958,6 +975,21 @@ var GetTaskTplDetail = aiagent.AgentTool{
 // =============================================================================
 // Ibex task dispatch & result
 // =============================================================================
+
+var RunTargetDiagnostic = aiagent.AgentTool{
+	Name: "run_target_diagnostic",
+	Description: "通过已登记设备的 SSH 连接执行你根据当前问题写出的只读查询，返回 stdout、stderr、退出状态和截断信息，供下一轮分析。" +
+		"后端负责连接、授权、校验查询和限制输出。SSH 地址、凭据及可选堡垒机取自设备配置。结果仅作为证据。",
+	Type: aiagent.ToolTypeBuiltin,
+	Parameters: []aiagent.ToolParameter{
+		{Name: "ident", Type: "string", Description: "已登记主机的准确 ident，从告警或主机查询获得", Required: true},
+		{Name: "check", Type: "string", Description: "Linux 使用 linux_cli，华为 VRP 使用 huawei_cli", Required: true},
+		{Name: "query", Type: "string", Description: "按问题编写查询。huawei_cli 接受一条策略允许的 display 查询。linux_cli 接受 lscpu、free、uptime、uname、df、lsblk、ps、cat（固定系统信息路径）、tail -n N PATH（限 approved_log_paths）、systemctl show -p PROPERTIES UNIT（限服务状态属性）、journalctl -n N（可选 -u UNIT、--since @Unix秒、--until @Unix秒、--utc、--no-pager）。Linux 查询可以用 | 接 grep、head -n N 或 wc，用 ; 合并最多三组查询。引用含空格的字面参数，不使用重定向、脚本、变量、网络请求或命令替换。", Required: true},
+		{Name: "interface", Type: "string", Description: "huawei_cli 的接口查询可单独提供：用户指定的完整物理接口名（如 GigabitEthernet0/0/2）或端口号（如 2）。仅提供端口号时由设备接口列表匹配，多个匹配需请用户选择。", Required: false},
+		{Name: "severity", Type: "string", Description: "仅 display logbuffer：error 为错误及以上（默认），all 为所有级别。", Required: false},
+		{Name: "lines", Type: "integer", Description: "仅用于华为 display logbuffer：默认20条，范围1至50", Required: false},
+	},
+}
 
 var DispatchTaskStateless = aiagent.AgentTool{
 	Name:        "dispatch_task_stateless",

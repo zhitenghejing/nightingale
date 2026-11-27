@@ -1,6 +1,8 @@
 // Shared in-memory API double for component tests; production always calls the service.
 import { sampleDevices, Device } from './model';
+import type { RackAlert } from './api';
 let rows: Device[] = [];
+let rackAlerts: Record<string, RackAlert[]> = {};
 export const catalog = {
   rooms: [{ id: 'room', name: '北院7号楼11F' }],
   racks: [
@@ -10,9 +12,13 @@ export const catalog = {
 };
 export function resetMock() {
   rows = sampleDevices().map((d) => ({ ...d, version: 1, rackId: d.rack === '6号柜' ? 'rack2' : 'rack' }));
+  rackAlerts = {};
 }
 export function setMockDevices(devices: Device[]) {
   rows = devices;
+}
+export function setMockRackAlerts(alerts: Record<string, RackAlert[]>) {
+  rackAlerts = alerts;
 }
 export const saveAsset = jest.fn(async (d: Device, create: boolean) => {
   const saved = { ...d, id: create ? 'created' : d.id, version: (d.version || 0) + 1 };
@@ -22,6 +28,7 @@ export const saveAsset = jest.fn(async (d: Device, create: boolean) => {
 export const api = jest.fn(async (path: string) => {
   if (path === 'access') return { admin: true, permissions: { userId: 1, read: true, create: true, edit: true, delete: true, import: true, export: true } };
   if (path === 'catalog') return catalog;
+  if (path === 'rack-alerts') return rackAlerts;
   if (path === 'devices' || path === 'export') return rows;
   return [];
 });

@@ -21,7 +21,7 @@ const ja_JP = {
   cpu_util: 'CPU',
   cpu_num: 'コア数',
   offset: '時間オフセット',
-  offset_tip: '計算ロジックは、夜莺で展開されたマシンの時間からcategrafで展開されたマシンの時間を引いたものです',
+  offset_tip: '計算ロジックは、致腾慧运维で展開されたマシンの時間からcategrafで展開されたマシンの時間を引いたものです',
   os: 'オペレーティングシステム',
   arch: 'CPUアーキテクチャ',
   update_at: '更新時間',

@@ -1,5 +1,5 @@
 const en_US = {
-  pageTitle: 'Welcome to Nightingale',
+  pageTitle: 'Welcome to 致腾慧运维',
   onboarding: {
     dismiss: "Don't show again",
     title: 'Getting started',
@@ -119,11 +119,11 @@ const en_US = {
     ai: {
       title: 'AI Intelligence',
       description: 'LLM and agents',
-      links: ['What built-in skills does Nightingale have?', 'How to use Agents to analyze alerts?'],
+      links: ['What built-in skills does 致腾慧运维 have?', 'How to use Agents to analyze alerts?'],
     },
   },
   aiAssistant: {
-    title: 'Nightingale AI Assistant',
+    title: '致慧AI Assistant',
     description: 'Powered by LLMs — operate the platform, query data and analyze root causes with natural language.',
     capabilities: ['Natural language queries', 'Root-cause analysis', 'PromQL / LogQL generation', 'Documentation Q&A'],
     action: 'Try the AI Assistant',

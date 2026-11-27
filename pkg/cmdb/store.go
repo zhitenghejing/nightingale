@@ -2,6 +2,7 @@
 package cmdb
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -101,6 +102,27 @@ type writeLock struct {
 func (writeLock) TableName() string { return "cmdb_write_lock" }
 
 type Store struct{ DB *gorm.DB }
+
+func (s *Store) accessFor(ctx context.Context, u User) (Access, error) {
+	access := Access{UserID: u.ID}
+	if u.Admin {
+		return Access{UserID: u.ID, Read: true, Create: true, Edit: true, Delete: true, Import: true, Export: true}, nil
+	}
+	err := s.DB.WithContext(ctx).First(&access, "user_id = ?", u.ID).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		err = nil
+	}
+	return access, err
+}
+
+// CanRead lets center integrations apply the same inventory ACL as the CMDB API.
+func (s *Store) CanRead(ctx context.Context, u User) (bool, error) {
+	if u.ID < 1 || u.Disabled != 0 {
+		return false, nil
+	}
+	access, err := s.accessFor(ctx, u)
+	return access.Read, err
+}
 
 func (s *Store) Migrate() error {
 	// Initial provisioning creates missing CMDB tables only. Never let AutoMigrate
@@ -328,20 +350,40 @@ func (s *Store) Save(tx *gorm.DB, d Document, user int64, create bool) (Document
 	return d, audit(tx, user, id, action, before, encode(d))
 }
 func (s *Store) Assets(deleted bool) ([]Document, error) {
-	var rows []Asset
-	err := s.DB.Where("deleted = ?", deleted).Order("updated_at DESC").Find(&rows).Error
+	return readAssets(s.DB, deleted)
+}
+
+type assetRow struct {
+	Asset
+	RoomName  *string
+	RackName  *string
+	RackUnits *int
+}
+
+func readAssetRows(db *gorm.DB, deleted bool) ([]assetRow, error) {
+	var rows []assetRow
+	err := db.Model(&Asset{}).
+		Select("cmdb_device.*, cmdb_room.name AS room_name, cmdb_rack.name AS rack_name, cmdb_rack.units AS rack_units").
+		Joins("LEFT JOIN cmdb_rack ON cmdb_rack.id = cmdb_device.rack_id").
+		Joins("LEFT JOIN cmdb_room ON cmdb_room.id = cmdb_rack.room_id").
+		Where("cmdb_device.deleted = ?", deleted).Order("cmdb_device.updated_at DESC").Scan(&rows).Error
+	return rows, err
+}
+
+func (row assetRow) document() Document {
+	doc := decode(row.Asset)
+	if row.RoomName != nil && row.RackName != nil {
+		doc["room"] = *row.RoomName
+		doc["rack"] = *row.RackName
+	}
+	return doc
+}
+
+func readAssets(db *gorm.DB, deleted bool) ([]Document, error) {
+	rows, err := readAssetRows(db, deleted)
 	out := make([]Document, 0, len(rows))
-	for _, a := range rows {
-		d := decode(a)
-		if a.RackID != "" {
-			var r Rack
-			var room Room
-			if s.DB.First(&r, "id = ?", a.RackID).Error == nil && s.DB.First(&room, "id = ?", r.RoomID).Error == nil {
-				d["room"] = room.Name
-				d["rack"] = r.Name
-			}
-		}
-		out = append(out, d)
+	for _, row := range rows {
+		out = append(out, row.document())
 	}
 	return out, err
 }

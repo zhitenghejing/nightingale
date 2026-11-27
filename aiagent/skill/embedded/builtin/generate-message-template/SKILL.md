@@ -1,13 +1,13 @@
 ---
 name: generate-message-template
-description: Generate or modify Nightingale (n9e) alert notification message templates. Use when the user asks to write a notification template, change the message format, add hostname/recovery value/severity, or create DingTalk/Feishu/Lark/email/SMS/voice templates.
+description: Generate or modify 致腾慧运维 alert notification message templates. Use when the user asks to write a notification template, change the message format, add hostname/recovery value/severity, or create DingTalk/Feishu/Lark/email/SMS/voice templates.
 tags:
   - internal
 ---
 
-# Nightingale (n9e) Notification Message Template Generation
+# 致腾慧运维 Notification Message Template Generation
 
-Nightingale message templates use Go `text/template` / `html/template` syntax (email uses `text/template`, others use `html/template` and then escape). Users edit them on the "Notification Management → Message Templates" page; once saved they are referenced by notification rules, and when an alert fires the variables are substituted with rendered data and sent to each channel.
+致腾慧运维 message templates use Go `text/template` / `html/template` syntax (email uses `text/template`, others use `html/template` and then escape). Users edit them on the "Notification Management → Message Templates" page; once saved they are referenced by notification rules, and when an alert fires the variables are substituted with rendered data and sent to each channel.
 
 This skill focuses on **writing/modifying the template fragment itself**, and does not cover creating notification rules or channel configuration.
 
@@ -20,7 +20,7 @@ The `renderData` passed in when the backend executes:
 | key | type | description |
 |---|---|---|
 | `.events` | `[]*AlertCurEvent` | The list of alert events in the current batch, usually just 1 |
-| `.domain` | `string` | The n9e site URL, used to build redirect links |
+| `.domain` | `string` | The 致腾慧运维 site URL, used to build redirect links |
 
 **Automatically injected shorthands** (no need to write by hand):
 

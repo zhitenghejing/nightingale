@@ -452,7 +452,7 @@ func historyBudgetFromContextLength(contextLength *int) int {
 
 // buildToolDeps 组装内置工具依赖（chat 主流程与 resume 重放共用同一构造）。
 func (rt *Router) buildToolDeps() *aiagent.ToolDeps {
-	return &aiagent.ToolDeps{
+	deps := &aiagent.ToolDeps{
 		DBCtx:   rt.Ctx,
 		Library: rt.Library,
 		// SkillsPath lets skill-authoring tools (create_skill / update_skill)
@@ -470,6 +470,7 @@ func (rt *Router) buildToolDeps() *aiagent.ToolDeps {
 		GetEventProcessingLogs: rt.getEventLogs,
 		Redis:                  rt.Redis,
 		Sandbox:                rt.Sandbox,
+		RemoteDiagnostics:      rt.RemoteDiagnostics,
 		IbexEnabled:            rt.Ibex.Enable,
 		// Skill Gateway HTTP passthrough: loopback base for n9e's own API + a hook
 		// to inject a freshly-created user token into the live auth cache so it
@@ -482,4 +483,8 @@ func (rt *Router) buildToolDeps() *aiagent.ToolDeps {
 			}
 		},
 	}
+	if rt.CMDB != nil {
+		deps.CMDB = rt.CMDB.Store
+	}
+	return deps
 }

@@ -1,4 +1,6 @@
 import './style.less';
+import { HostKeyConfirmationCancelled } from '@/pages/remoteAccess/hostKeys';
+import SSHSettings, { SSHSettingsHandle } from '@/pages/remoteAccess/SSHSettings';
 import { formError, errorText } from './errors';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Button, Checkbox, Collapse, Form, Input, InputNumber, Modal, Select, Space, Switch, Steps, Descriptions, Divider, Table, Tag } from 'antd';
@@ -6,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { CommonStateContext } from '@/App';
 import { api as inventory } from '@/pages/cmdb/api';
 import type { Device as Asset } from '@/pages/cmdb/model';
-import { collectionRequest, Collector, Credential, Device, getCollectors, getCredentials, Probe, requestKey, saveDevice } from '@/services/collection';
+import { collectionRequest, CollectorOption, Credential, Device, getCollectorOptions, getCredentials, Probe, requestKey, saveDevice } from '@/services/collection';
 import TemplateSelection, { legacyFields, resetTemplateParameters } from './TemplateSelection';
 import { activeFields, adapterNames, Catalog, CatalogEntry, entryDefinition, executionNames, getCatalog, getCatalogEntry, NotificationPreset, PackResource } from '@/pages/builtInComponents/catalog';
 import TemplateFields from './TemplateFields';
@@ -20,12 +22,13 @@ interface Props {
 }
 export default function DeviceEditor({ device, onClose, onSaved }: Props) {
   const { t } = useTranslation('collection');
+  const { owner: savedOwner, ...otherLabels } = device?.labels || {};
   const { busiGroups, profile: account, perms } = useContext(CommonStateContext);
   const [form] = Form.useForm();
   const [fullEntry, setFullEntry] = useState<CatalogEntry>();
   const [loadingPack, setLoadingPack] = useState(false);
   const [catalog, setCatalog] = useState<Catalog>();
-  const [collectors, setCollectors] = useState<Collector[]>([]);
+  const [collectors, setCollectors] = useState<CollectorOption[]>([]);
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [step, setStep] = useState(0);
   const [notifyEdited, setNotifyEdited] = useState(false);
@@ -43,10 +46,14 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
   const [credentialBusy, setCredentialBusy] = useState(false);
   const [customize, setCustomize] = useState(false);
   const key = useRef(requestKey());
+  const consoleSettings = useRef<SSHSettingsHandle>(null);
   const group = Form.useWatch('group_id', form);
+  const deviceAddress = Form.useWatch('address', form);
+  const collectorId = Form.useWatch('collector_id', form);
   const selectedVersion = Form.useWatch('template_version_id', form);
   const selection = Form.useWatch('template_selection', form);
   const chosen = catalog?.entries.find((e) => selection === `catalog:${e.component_id}`);
+  const windows = /windows/i.test([chosen?.ident, chosen?.name, ...(chosen?.published?.category_path || []), device?.profile?.name].join(' '));
   useEffect(() => {
     let active = true;
     setFullEntry(undefined);
@@ -80,7 +87,7 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
   const activeEntry = fullEntry?.component_id === chosen?.component_id ? fullEntry || chosen : chosen;
   const canBind = retainedSnapshot || (!!activeEntry?.published && (activeEntry.onboarding?.ready ?? ['snmp_v2c', 'mysql'].includes(activeEntry.published.definition.adapter)));
   const fetchOptions = () =>
-    Promise.all([getCollectors(), getCredentials(), getCatalog()])
+    Promise.all([getCollectorOptions(), getCredentials(), getCatalog()])
       .then(([cs, cr, catalogData]) => {
         setCatalog(catalogData);
         setCollectors(cs);
@@ -131,7 +138,10 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
   const input = async () => {
     const values = await form.validateFields();
     if (!canBind || !selectedVersion) throw new Error('此模板尚不具备自动接入条件，请先查看模板接入状态');
-    const { custom_config, custom_metrics, custom_dashboards, custom_alerts, keep_conflicts, template_selection, ...fields } = values;
+    const { custom_config, custom_metrics, custom_dashboards, custom_alerts, keep_conflicts, template_selection, owner, labels: labelsJSON, ...fields } = values;
+    const labels: Record<string, string> = JSON.parse(labelsJSON || '{}');
+    const ownerName = owner?.trim();
+    if (ownerName) labels.owner = ownerName;
     const resources = { ...resourceOverrides };
     if (custom_dashboards !== undefined && form.isFieldTouched('custom_dashboards')) resources.dashboards = JSON.parse(custom_dashboards);
     if (custom_alerts !== undefined && form.isFieldTouched('custom_alerts')) resources.alerts = JSON.parse(custom_alerts);
@@ -151,7 +161,7 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
       ...(customize || Object.keys(resources).length
         ? { customization: { ...(customize ? { config: custom_config, metrics: JSON.parse(custom_metrics || '[]') } : {}), ...resources } }
         : {}),
-      labels: JSON.parse(values.labels || '{}'),
+      labels,
       protocol: selectedDefinition?.adapter || values.protocol || device?.protocol || 'snmp_v2c',
       record_version: device?.record_version || 0,
       cmdb_id: values.cmdb_id || '',
@@ -161,10 +171,12 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
     setBusy(true);
     setError('');
     try {
-      const d = await saveDevice(device?.id, await input(), key.current);
+      const values = await input();
+      const remote_access = await consoleSettings.current?.value(true);
+      const d = await saveDevice(device?.id, { ...values, remote_access }, key.current);
       onSaved(d);
     } catch (e) {
-      if (!formError(e)) setError(errorText(e, t('query_failed')));
+      if (!(e instanceof HostKeyConfirmationCancelled) && !formError(e)) setError(errorText(e, t('query_failed')));
     } finally {
       setBusy(false);
     }
@@ -173,7 +185,8 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
     setBusy(true);
     setError('');
     try {
-      const p = await collectionRequest('probes', RequestMethod.Post, { ...(await input()), probe_device_id: device?.id });
+      const values = await input();
+      const p = await collectionRequest('probes', RequestMethod.Post, { ...values, probe_device_id: device?.id });
       setProbe(p);
     } catch (e) {
       if (!formError(e)) setError(errorText(e, t('query_failed')));
@@ -204,6 +217,7 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
               onClick={async () => {
                 try {
                   const values = await input();
+                  if (step === 0) await consoleSettings.current?.value();
                   setSummary({ ...values, notify: values.notify || device?.notify });
                   setError('');
                   setStep(step + 1);
@@ -251,7 +265,8 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
                 enabled: device.enabled,
                 template_version_id: device.template_version_id,
                 protocol: device.protocol,
-                labels: JSON.stringify(device.labels),
+                owner: savedOwner,
+                labels: JSON.stringify(otherLabels),
                 parameters: device.parameters || {},
                 notify: device.notify || device.profile?.catalog?.definition.notify || { mode: 'events_only', rule_ids: [], message: '' },
               }
@@ -318,6 +333,9 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
                   <Input disabled={!!device} placeholder={t('address')} />
                 </Form.Item>
               </Space>
+              <Form.Item name='owner' label={t('owner')}>
+                <Input allowClear />
+              </Form.Item>
               <Form.Item name='group_id' label={t('group')} rules={[{ required: true }]}>
                 <Select
                   options={busiGroups.map((g) => ({ label: g.name, value: g.id }))}
@@ -329,15 +347,15 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
                         parameters[f.key] = '';
                       });
                     resetTemplateParameters(form, parameters);
-                    form.setFieldsValue({ collector_id: undefined, credential_id: undefined });
+                    form.setFieldsValue({ credential_id: undefined });
                   }}
                 />
               </Form.Item>
-              <Form.Item name='collector_id' label={t('collector')} rules={[{ required: true }]}>
-                <Select options={collectors.filter((c) => c.group_ids.includes(group)).map((c) => ({ label: `${c.name} (${c.agent_ident})`, value: c.id }))} />
+              <Form.Item name='collector_id' label={t('collector')} rules={[{ required: true }]} extra={device && collectorId && collectorId !== device.collector_id ? '更换采集器前，请先停用设备，等待旧任务撤回确认及观察期结束后再保存。' : undefined}>
+                <Select showSearch optionFilterProp='label' options={collectors.map((c) => ({ label: `${c.name} (${c.agent_ident})${c.enabled ? '' : ' · 已停用'}`, value: c.id, disabled: !c.enabled }))} />
               </Form.Item>
               <Form.Item label='指标数据源'>
-                <Input readOnly value={collectors.find((c) => c.id === form.getFieldValue('collector_id'))?.datasource_id || ''} placeholder='随执行采集器的数据源绑定' />
+                <Input readOnly value={collectors.find((c) => c.id === collectorId)?.datasource_id || ''} placeholder='随执行采集器的数据源绑定' />
               </Form.Item>
               <Divider orientation='left'>连接与采集参数</Divider>
               <TemplateFields
@@ -365,6 +383,13 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
                   {t('new_credential')}
                 </Button>
               )}
+              <SSHSettings
+                ref={consoleSettings}
+                ident={device?.ident}
+                group={group}
+                host={deviceAddress || device?.address}
+                defaultProtocol={selectedDefinition?.console_protocol || (windows ? 'rdp' : 'ssh')}
+              />
               {device && selectedVersion !== device.template_version_id && (
                 <Form.Item name='reset_resources' valuePropName='checked'>
                   <Checkbox>重建仪表盘和告警规则，重置该设备的资源自定义（默认保留）</Checkbox>
@@ -437,6 +462,7 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
                       try {
                         const v = JSON.parse(value || '{}');
                         if (!v || Array.isArray(v) || typeof v !== 'object' || Object.values(v).some((n) => typeof n !== 'string')) throw new Error();
+                        if (Object.prototype.hasOwnProperty.call(v, 'owner')) return Promise.reject(new Error(t('owner_in_field')));
                         return Promise.resolve();
                       } catch {
                         return Promise.reject(new Error(t('json_invalid')));
@@ -536,7 +562,7 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
                                 if (!Array.isArray(JSON.parse(value))) throw new Error();
                                 return Promise.resolve();
                               } catch {
-                                return Promise.reject(new Error('请输入有效的夜莺模板数组'));
+                                return Promise.reject(new Error('请输入有效的致腾慧运维模板数组'));
                               }
                             },
                           },
@@ -561,13 +587,13 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
               <Form.Item noStyle shouldUpdate={(previous, next) => previous.notify?.mode !== next.notify?.mode}>
                 {() =>
                   form.getFieldValue(['notify', 'mode']) === 'rules' ? (
-                    <Form.Item name={['notify', 'rule_ids']} label='夜莺通知规则' rules={[{ required: true, message: '请选择通知规则' }]}>
+                    <Form.Item name={['notify', 'rule_ids']} label='致腾慧运维通知规则' rules={[{ required: true, message: '请选择通知规则' }]}>
                       <Select mode='multiple' options={notificationRules.map((r) => ({ value: r.id, label: r.name }))} />
                     </Form.Item>
                   ) : null
                 }
               </Form.Item>
-              <Form.Item name={['notify', 'message']} label='消息内容' extra='随设备告警发送；投递格式和渠道由所选夜莺通知规则控制。'>
+              <Form.Item name={['notify', 'message']} label='消息内容' extra='随设备告警发送；投递格式和渠道由所选致腾慧运维通知规则控制。'>
                 <Input.TextArea rows={4} maxLength={1024} />
               </Form.Item>
               <Alert type='info' message='没有映射有效通知规则时，只生成告警事件。保存后仍需等待采集器返回必需指标，才显示采集正常。' />
@@ -577,6 +603,7 @@ export default function DeviceEditor({ device, onClose, onSaved }: Props) {
                 <h3>确认设备添加方案</h3>
                 <Descriptions column={1} bordered size='small'>
                   <Descriptions.Item label='对象名称'>{summary.name}</Descriptions.Item>
+                  <Descriptions.Item label={t('owner')}>{summary.labels?.owner || '—'}</Descriptions.Item>
                   <Descriptions.Item label='模板 / 发布版本'>
                     {chosen?.name || device?.profile?.name} · v{chosen?.published?.version || device?.profile?.catalog?.version}
                   </Descriptions.Item>

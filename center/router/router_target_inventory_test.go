@@ -25,7 +25,7 @@ func TestInventoryUsesPinnedTypeAndRealCurrentAlerts(t *testing.T) {
 	version := models.MonitorTemplateVersion{ID: "pinned", TemplateKey: "inventory-test", Version: 1, Definition: `{"catalog":{"category_path":["操作系统","Linux","通用 SNMP"],"version":1},"component":"Linux_SNMP"}`}
 	require.NoError(t, rt.Ctx.DB.Create(&version).Error)
 	require.NoError(t, rt.Ctx.DB.Create(&models.MonitorTemplateVersion{ID: "original-windows", TemplateKey: "windows_basic", Version: 1, Definition: `{}`}).Error)
-	require.NoError(t, rt.Ctx.DB.Create(&models.MonitorDevice{ID: "inventory-device", Name: "Linux 设备", Ident: "dev-one", Protocol: "snmp_v2c", TemplateVersionID: "pinned", ProfileState: `{"rules":[{"id":80}]}`}).Error)
+	require.NoError(t, rt.Ctx.DB.Create(&models.MonitorDevice{ID: "inventory-device", Name: "Linux 设备", Ident: "dev-one", Protocol: "snmp_v2c", TemplateVersionID: "pinned", Labels: `{"owner":"Jane Doe"}`, ProfileState: `{"rules":[{"id":80}]}`}).Error)
 	require.NoError(t, rt.Ctx.DB.Create(&models.MonitorDevice{ID: "old-device", Name: "旧版 Windows", Ident: "old-windows", Protocol: "snmp_v2c", TemplateVersionID: "original-windows", RequestKey: "old-device-request"}).Error)
 	for _, event := range []models.AlertCurEvent{
 		{Id: 1, TargetIdent: "dev-one", GroupId: 1, Severity: 1},
@@ -43,6 +43,7 @@ func TestInventoryUsesPinnedTypeAndRealCurrentAlerts(t *testing.T) {
 	require.NoError(t, rt.targetInventory(inventoryContext(&reader), targets))
 	view := targets[0].Inventory
 	require.Equal(t, "Linux 设备", view.Name)
+	require.Equal(t, "Jane Doe", view.Owner)
 	require.Equal(t, "操作系统", view.DeviceType)
 	require.Equal(t, "snmp", view.Method)
 	require.Equal(t, "Linux", view.DeviceModel)
