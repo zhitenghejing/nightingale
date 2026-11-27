@@ -453,7 +453,8 @@ func historyBudgetFromContextLength(contextLength *int) int {
 // buildToolDeps 组装内置工具依赖（chat 主流程与 resume 重放共用同一构造）。
 func (rt *Router) buildToolDeps() *aiagent.ToolDeps {
 	deps := &aiagent.ToolDeps{
-		DBCtx: rt.Ctx,
+		DBCtx:   rt.Ctx,
+		Library: rt.Library,
 		// SkillsPath lets skill-authoring tools (create_skill / update_skill)
 		// materialize a just-saved skill to disk immediately. In the main chat
 		// flow InitSkills overwrites this with the absolute path; setting it here

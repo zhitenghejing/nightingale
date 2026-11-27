@@ -92,6 +92,7 @@ const MigrateDashboards = React.lazy(() => import('@/pages/help/migrate'));
 const VariableConfigs = React.lazy(() => import('@/pages/variableConfigs'));
 const SiteSettings = React.lazy(() => import('@/pages/siteSettings'));
 const CMDB = React.lazy(() => import('@/pages/cmdb'));
+const OpsKnowledge = React.lazy(() => import('@/pages/opsKnowledge'));
 const RackViews = React.lazy(() => import('@/pages/rackViews'));
 const Landing = React.lazy(() => import('@/pages/landing'));
 import { dynamicPackages, Entry, dynamicPages } from '@/utils';
@@ -157,6 +158,7 @@ export default function Content() {
       !location.pathname.includes('/settings/source/') &&
       !location.pathname.startsWith('/nightingale-ai') &&
       !(location.pathname === '/archives' || location.pathname.startsWith('/archives/')) &&
+      !location.pathname.startsWith('/ops/') &&
       !['/targets/cmdb', '/targets/racks'].includes(location.pathname) &&
       !location.pathname.includes('/403')
     ) {
@@ -258,6 +260,8 @@ export default function Content() {
           <Route exact path='/alert-cur-events/:eventId' component={EventDetail} />
           <Route exact path='/alert-his-events/:eventId' component={EventDetail} />
           <Route exact path='/targets/cmdb' component={CMDB} />
+          <Redirect exact from='/ops/cases/:id?' to='/ops/knowledge' />
+          <Route exact path='/ops/knowledge' component={OpsKnowledge} />
           <Route exact path='/targets/racks' component={RackViews} />
 
           <Route exact path='/job-tpls' component={TaskTpl} />

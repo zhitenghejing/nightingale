@@ -61,7 +61,12 @@ type AssistantMessage struct {
 }
 
 type AssistantMessageExtra struct {
-	HistoryMessages []byte `json:"history_messages"` // json(aiagent.TranscriptEnvelope)：结构化会话 transcript
+	KnowledgeProtocolRecoveries int `json:"knowledge_protocol_recoveries,omitempty"`
+	// Safe review telemetry, without prompts, credentials or hidden reasoning.
+	KnowledgeReview json.RawMessage `json:"knowledge_review,omitempty"`
+	// Server-created Q&A evidence scopes; replay requires fresh authorization.
+	KnowledgeEvidence json.RawMessage `json:"knowledge_evidence,omitempty"`
+	HistoryMessages   []byte          `json:"history_messages"` // json(aiagent.TranscriptEnvelope)：结构化会话 transcript
 
 	// Route 是会话路由状态：路由一旦确立即随会话携带，后续轮默认继承，而非每轮
 	// 从零重判。一句无信号的跟进（如"确认"）靠它续接上一轮的 action 与编辑目标。
@@ -103,6 +108,8 @@ type ConversationRoute struct {
 // ==================== Message Query ====================
 
 type AssistantMessageQuery struct {
+	// Empty mode selects the unified main agent; explicit legacy modes remain compatible.
+	Mode     string            `json:"mode,omitempty"`
 	Content  string            `json:"content"`
 	Action   AssistantAction   `json:"action"`
 	PageFrom AssistantPageInfo `json:"page_from"`

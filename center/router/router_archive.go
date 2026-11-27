@@ -89,6 +89,7 @@ func (rt *Router) configArchiveRoutes(pages *gin.RouterGroup) {
 	g.DELETE("", rt.archiveBatchDelete)
 	g.GET("/files/:file_id", rt.archiveFile)
 	g.GET("/documents/:document_id", rt.archiveDocument)
+	g.GET("/documents/:document_id/workbook", rt.archiveWorkbook)
 	g.GET("/documents/:document_id/versions", rt.archiveDocumentVersions)
 	g.POST("/documents/:document_id/versions/:version_id/restore", rt.archiveDocumentRestore)
 	g.POST("/documents/:document_id/lease", rt.archiveAcquire)

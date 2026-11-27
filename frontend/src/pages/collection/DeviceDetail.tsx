@@ -1,3 +1,4 @@
+import EnvironmentRelations from '@/components/EnvironmentRelations';
 import React, { useContext, useEffect, useState } from 'react';
 import { Alert, Button, Descriptions, Drawer, Empty, Modal, Select, Space, Spin, Table, Tabs, Tag } from 'antd';
 import { useTranslation } from 'react-i18next';
@@ -52,7 +53,8 @@ export default function DeviceDetail({ id, target, onClose, onChanged, editable 
   const name = inventory?.name || device?.name || target?.inventory?.name || target?.ident || t('device_details');
   const lastSample = inventory?.last_sample_at || device?.collection.last_sample_at || 0;
   const deviceInfo = data ? <>
-      <Space className='mb-3'>
+      <Space className='mb-3' wrap>
+        <EnvironmentRelations objectRef={device ? `device:${device.id}` : `target:${data.target.id}`} />
         <Button onClick={() => { load(); setRefresh((value) => value + 1); }}>{t('refresh')}</Button>
         {canWrite && !device?.deleted && (device || onEditNative) && <Button onClick={() => device ? setEdit(true) : onEditNative?.()}>{t('edit')}</Button>}
         {canWrite && device && !device.deleted && <Button loading={busy} onClick={() => act(device.enabled ? 'disable' : 'enable')}>{t(device.enabled ? 'disable' : 'enable')}</Button>}

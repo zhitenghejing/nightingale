@@ -36,6 +36,7 @@ type Center struct {
 	AIAgent               AIAgent
 	Archives              ArchiveConfig
 	Collection            CollectionConfig
+	Ops                   OpsConfig
 	RemoteDiagnostics     remotediag.Config
 
 	// Sandbox isolates execution of user-uploaded Skill Python/Bash scripts
@@ -43,6 +44,15 @@ type Center struct {
 	// degrade to the unsafe-exec floor so scripts still run; set
 	// Sandbox.RequireIsolation=true to refuse execution without real isolation.
 	Sandbox sandbox.Config
+}
+
+// OpsConfig keeps production execution and model egress opt-in.
+type OpsConfig struct {
+	DataDir        string
+	ModelEnable    bool
+	AllowExecution bool
+	DemoEnable     bool
+	DemoURL        string
 }
 
 type AIAgent struct {

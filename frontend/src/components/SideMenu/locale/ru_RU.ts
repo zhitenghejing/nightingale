@@ -10,6 +10,9 @@ const ru_RU = {
   recentUsed: 'Недавно использованные',
   personalCollection: 'Личные коллекции',
   menu: {
+    ops_cases: 'Alert operations',
+    ops_knowledge: 'Operations knowledge',
+
     archives: 'Archives',
     cmdb: 'CMDB',
     rack_views: 'Rack views',

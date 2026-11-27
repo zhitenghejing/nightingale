@@ -235,6 +235,39 @@ describe('ChatPanel 页面动作', () => {
   });
 });
 
+describe('ChatPanel 统一问答入口', () => {
+  beforeEach(() => {
+    const services = jest.requireMock('./services');
+    services.getMessageHistory.mockResolvedValue([]);
+    services.createChat.mockResolvedValue({ chat_id: 'unified-chat', title: '', last_update: 0 });
+    services.sendMessage.mockReset();
+    services.sendMessage.mockResolvedValue({ chat_id: 'unified-chat', seq_id: 1 });
+    getMessageDetail.mockResolvedValue({ ...inProgress, chat_id: 'unified-chat' });
+    manifest.mockReturnValue([]);
+    services.cancelMessage.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.requireMock('./services').getMessageHistory.mockResolvedValue([inProgress]);
+  });
+
+  it.each(['full', 'slim'] as const)('在%s入口直接发送联合问题，不要求选择模式', async (variant) => {
+    const services = jest.requireMock('./services');
+    render(<ChatPanel variant={variant} queryPageFrom={{ url: '/nightingale-ai' }} />);
+    expect(screen.queryByRole('button', { name: '选择会话模式' })).not.toBeInTheDocument();
+    expect(screen.queryByText('按问题自动查询资料与平台数据')).not.toBeInTheDocument();
+    expect(screen.queryByText('input.evidence_hint')).not.toBeInTheDocument();
+    const box = screen.getByPlaceholderText('input.placeholder');
+    fireEvent.change(box, { target: { value: '报告里的设备现在接入了多少台？' } });
+    fireEvent.keyDown(box, { key: 'Enter' });
+    await waitFor(() => expect(services.sendMessage).toHaveBeenCalled());
+    const request = services.sendMessage.mock.calls[0][0];
+    expect(request.query.content).toBe('报告里的设备现在接入了多少台？');
+    expect(request.query).not.toHaveProperty('mode');
+    expect(request.page_actions).toBeUndefined();
+  });
+});
+
 describe('ChatPanel 流式刷新（jsdom 集成）', () => {
   beforeEach(() => {
     startStream.mockClear();

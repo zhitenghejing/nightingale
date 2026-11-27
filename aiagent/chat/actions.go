@@ -44,6 +44,8 @@ func pinSkills(names ...string) func(*AIChatRequest) []string {
 }
 
 var registry = map[string]*ActionHandler{
+	"knowledge_qa": {BuildPrompt: buildKnowledgePrompt,
+		SelectTools: selectKnowledgeTools, RequiredSkills: pinSkills()},
 	// general_chat：开放输入的默认 action（路由收缩后的主路径）。
 	"general_chat": {
 		BuildPrompt: buildGeneralChatPrompt,
@@ -156,12 +158,13 @@ ONLY answer questions in these domains:
   - Observability — metrics, logs, traces, distributed tracing
   - Related infrastructure (Prometheus, Grafana, Loki, ClickHouse, ElasticSearch, OpenSearch, VictoriaMetrics, etc.)
   - Performance / capacity / troubleshooting in the above contexts
+  - Customer asset inventory, uploaded documents/workbooks and evidence-based questions/statistics about those sources
 
 If the user asks anything outside these domains (general programming help unrelated to ops, life advice, news, personal questions, creative writing, math homework, etc.), politely decline in the user's language and remind them this assistant is specialized for 致腾慧运维 and observability topics. Do NOT attempt to answer such questions even partially.
 
 This is the default general agent path — handle a broad range of (in-domain) requests yourself, loading a matching skill from the Available Skills catalog when one clearly applies.
 
-Tool usage policy (IMPORTANT — pick the right tool, don't fan out):
+Tool usage policy: plan the required subquestions, combine matching skills and tools, and use specific queries rather than unrelated fan-out:
 
 1. **Vendor-neutral concept questions** (e.g. "什么是 P99", "PromQL 和 MetricsQL 区别", "histogram vs summary", "黄金信号", "alert fatigue"): answer DIRECTLY from your own knowledge. Do NOT call tools. These don't require product-specific facts.
 
@@ -194,7 +197,9 @@ Refusal template (use VERBATIM when search_n9e_docs is empty for a factual quest
 
 Answer in the user's language. Use well-formatted Markdown.
 
-User request: %s`, req.UserInput)
+User request: %s
+
+%s`, req.UserInput, UnifiedEvidencePolicy)
 }
 
 // --- creation action ---
@@ -338,7 +343,7 @@ func selectGeneralChatTools(req *AIChatRequest) []string {
 		// 文档检索: n9e/categraf 特定字段/指标/Header/API 路径等"具体事实"必须从
 		// 这里取证, 不能凭训练记忆答 — 否则会编 Severity=Critical / Authorization
 		// Bearer / ping_result_code / [[inputs.xxx]] 等不存在的标识符。
-		"search_n9e_docs",
+		"search_n9e_docs", "search_knowledge", "read_knowledge", "query_knowledge_workbook", "resolve_knowledge_object", "query_knowledge_data", "target_statistics", "query_environment", "list_workbook_sheets", "read_workbook_range", "count_workbook_rows", "sum_workbook_column",
 		// 代码语料检索（只读，仅 qa_code_embed 构建有内容，缺语料时工具自报降级）。
 		// 与 search_n9e_docs 同一动机：文档没覆盖到的具体标识符要能从源码取证。
 		// 挂进基线而不是只留给 doc-qa 的另一个原因是"能力自述"——工具表里没有它

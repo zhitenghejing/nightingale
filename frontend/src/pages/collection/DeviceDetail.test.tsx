@@ -6,7 +6,7 @@ import { getDeviceDetail } from '@/services/collection';
 import DeviceDetail from './DeviceDetail';
 import request from '@/utils/request';
 
-jest.mock('@/utils/request', () => jest.fn());
+jest.mock('@/utils/request', () => ({ __esModule: true, default: jest.fn() }));
 jest.mock('@/App', () => ({ CommonStateContext: require('react').createContext({ profile: { admin: true }, perms: [] }) }));
 jest.mock('@/services/collection', () => ({ getDeviceDetail: jest.fn(), setDeviceState: jest.fn() }));
 jest.mock('./LinuxTrendChart', () => () => null);
@@ -30,6 +30,7 @@ test('details show device information and its existing dashboard before editing'
   expect(screen.getByText('192.0.2.1:161')).toBeTruthy();
   expect(screen.getByText('操作系统')).toBeTruthy();
   expect(screen.getByText('Windows Server 2019')).toBeTruthy();
+  expect(screen.getByRole('button', { name: '环境关联' })).toBeTruthy();
   expect(screen.getAllByRole('tab').map((el) => el.textContent)).toEqual(['profile_dashboard', 'device_current_alerts', 'profile_metrics', 'profile_alerts']);
   expect((await screen.findByTitle('Device dashboard')).getAttribute('src')).toBe('/dashboards/42?viewMode=fullscreen&__readonly=true&__show_header=true&__refresh=10');
   fireEvent.click(screen.getByRole('tab', { name: 'device_current_alerts' }));
@@ -137,9 +138,11 @@ test('Linux actions and merged information live only inside the asset category',
   expect(screen.queryByText('资产描述')).toBeNull();
   expect(summary!.closest('.linux-dashboard-asset-info')).toBeTruthy();
   expect(screen.getByRole('button', { name: 'edit' }).closest('.linux-dashboard-asset-info')).toBeTruthy();
+  expect(screen.getByRole('button', { name: '环境关联' }).closest('.linux-dashboard-asset-info')).toBeTruthy();
   fireEvent.click(screen.getByRole('tab', { name: 'CPU信息' }));
   expect(document.querySelector('.device-detail-summary')).toBeNull();
   expect(screen.queryByRole('button', { name: 'edit' })).toBeNull();
+  expect(screen.queryByRole('button', { name: '环境关联' })).toBeNull();
   fireEvent.click(screen.getByRole('tab', { name: '资产信息' }));
   expect(await screen.findByText((_, el) => el?.className === 'ant-descriptions-item-content' && el.textContent === 'CPU 8 核 · 内存 16 GB')).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'edit' }));

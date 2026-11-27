@@ -524,6 +524,26 @@ func (o *OpenAI) convertRequest(req *GenerateRequest) *openAIRequest {
 		// 兜底时需要就地摘掉 extraBody 里的 max_tokens，直接引用会写坏共享 map。
 		extraBody: cloneExtraBody(o.config.ExtraBody),
 	}
+	// SiliconFlow's Qwen3 API decouples thinking_budget from max_tokens.
+	// Keep this capability narrow: arbitrary OpenAI-compatible servers may
+	// reject vendor fields. Request-local copies never mutate the cached config.
+	endpoint, _ := url.Parse(o.config.BaseURL)
+	host := ""
+	if endpoint != nil {
+		host = strings.ToLower(endpoint.Hostname())
+	}
+	if req.ThinkingBudget != nil && *req.ThinkingBudget > 0 && (host == "api.siliconflow.cn" || host == "api.siliconflow.com") && strings.Contains(strings.ToLower(o.config.Model), "qwen3") {
+		if enabled, explicit := openAIReq.extraBody["enable_thinking"].(bool); !explicit || enabled {
+			budget := *req.ThinkingBudget
+			if configured, ok := positiveInt(openAIReq.extraBody["thinking_budget"]); ok && configured < budget {
+				budget = configured
+			}
+			if openAIReq.extraBody == nil {
+				openAIReq.extraBody = map[string]any{}
+			}
+			openAIReq.extraBody["thinking_budget"] = budget
+		}
+	}
 
 	// Temperature: request 优先，fallback 到 config 默认值
 	switch {

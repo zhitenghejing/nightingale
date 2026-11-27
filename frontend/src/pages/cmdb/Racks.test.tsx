@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 import React from 'react';
+jest.mock('@/utils/request', () => ({ __esModule: true, default: jest.fn() }));
 import { createEvent, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Racks, { placement } from './Racks';

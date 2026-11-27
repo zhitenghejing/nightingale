@@ -168,6 +168,14 @@ I18NHeaderKey = "X-Language"
 # <= 0 means keep forever (default)
 # CleanAlertHisEventDay = 365
 
+# Evidence-based operations handling. Model access and production execution are opt-in.
+[Center.Ops]
+DataDir = "data/ops"
+ModelEnable = false
+AllowExecution = false
+DemoEnable = false
+DemoURL = ""
+
 [Center.AnonymousAccess]
 PromQuerier = true
 AlertDetail = true

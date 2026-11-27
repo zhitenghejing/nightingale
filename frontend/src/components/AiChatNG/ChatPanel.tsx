@@ -558,6 +558,7 @@ export default function ChatPanel(props: IAiChatProps) {
           initialSkill && messagesRef.current.length === 0 && !acceptedChatIdsRef.current.has(chat.chat_id)
             ? [{ id: initialSkill, name: initialSkill, type: 'skill' as const, skill: { name: initialSkill } }]
             : undefined;
+        const pageActions = uiActionRuntime.manifest();
         const query = {
           content: references ? `<@${references[0].id}> ${content}` : content,
           references,
@@ -568,7 +569,6 @@ export default function ChatPanel(props: IAiChatProps) {
         // What the page can do right now. Read at send time: registrations
         // come and go with the page, and this is also what closes a confirm
         // scope of 'turn' in the runtime.
-        const pageActions = uiActionRuntime.manifest();
         const result = await sendMessage({
           chat_id: chat.chat_id,
           query,
@@ -943,8 +943,7 @@ export default function ChatPanel(props: IAiChatProps) {
                 {inputSuffix}
               </>
             ) : (
-              <div className='mt-3 flex items-center justify-between gap-2 px-2 pb-2'>
-                <div />
+              <div className='mt-3 flex items-center justify-end gap-2 px-2 pb-2'>
                 <div className='flex items-center gap-2'>{sendButton}</div>
               </div>
             )}

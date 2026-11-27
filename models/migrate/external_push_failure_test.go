@@ -58,7 +58,7 @@ func TestDisabledChannelIdentityFailureBlocksSchemaAndOldPersistence(t *testing.
 	}
 	var lines []string
 	for _, line := range strings.Split(string(raw), "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), "--") || strings.Contains(line, "`dispatch_id`") || strings.Contains(line, "`incident_id`") || strings.Contains(line, "`incident_sequence`") {
+		if strings.HasPrefix(strings.TrimSpace(line), "--") || strings.HasPrefix(strings.TrimSpace(line), "`dispatch_id`") || strings.HasPrefix(strings.TrimSpace(line), "`incident_id`") || strings.HasPrefix(strings.TrimSpace(line), "`incident_sequence`") {
 			continue
 		}
 		lines = append(lines, line)

@@ -43,6 +43,8 @@ export interface IAiChatSkillReference {
 }
 
 export interface IAiChatMessageQuery {
+  // Omitted for ordinary questions; legacy operational contexts are automatic.
+  mode?: 'auto' | 'ops' | 'knowledge_qa';
   content: string;
   references?: IAiChatSkillReference[];
   action?: IAiChatAction;

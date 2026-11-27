@@ -10,6 +10,9 @@ const zh_HK = {
   recentUsed: '近期使用',
   personalCollection: '個人收藏',
   menu: {
+    ops_cases: '告警處置',
+    ops_knowledge: '運維知識',
+
     archives: '檔案管理',
     cmdb: 'CMDB',
     rack_views: '机柜图',

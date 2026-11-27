@@ -394,6 +394,26 @@ def app_config(binding, backend_port):
             raise ValueError("collection key file must be private")
         collection_config = ("[Center.Collection]\nEnable = true\nProviderEnable = "
                              + str(collector is not None).lower() + "\nKeyFile = " + json.dumps(str(key_file)) + "\n")
+    ops_config = ""
+    ops_file = directory / "ops.json"
+    if ops_file.exists():
+        settings = json.loads(ops_file.read_text())
+        if (binding.get("role", "development") != "development"
+                or set(settings) != {"demoURL", "modelEnable"}
+                or type(settings["modelEnable"]) is not bool):
+            raise ValueError("invalid private development operations configuration")
+        parsed = urlsplit(settings["demoURL"])
+        try:
+            loopback = ipaddress.ip_address(parsed.hostname).is_loopback
+        except (ValueError, TypeError):
+            loopback = False
+        if (parsed.scheme != "http" or not loopback or parsed.username or parsed.password
+                or parsed.query or parsed.fragment or parsed.path not in ("", "/") or not parsed.port):
+            raise ValueError("operations demo requires an explicit loopback HTTP URL")
+        ops_config = ("[Center.Ops]\nDataDir = " + json.dumps(str(directory / "ops-data"))
+                      + "\nModelEnable = " + str(settings["modelEnable"]).lower()
+                      + "\nAllowExecution = false\nDemoEnable = true\nDemoURL = "
+                      + json.dumps(settings["demoURL"]) + "\n")
     return f'''[Global]
 RunMode = "release"
 [Log]
@@ -435,6 +455,7 @@ MetricsYamlFile = {json.dumps(str(ROOT / 'etc/metrics.yaml'))}
 BuiltinIntegrationsDir = {json.dumps(str(ROOT / 'integrations'))}
 I18NHeaderKey = "X-Language"
 {collection_config}
+{ops_config}
 [Center.AIAgent]
 SkillsPath = "skill"
 [Center.Sandbox]
