@@ -111,7 +111,7 @@ func TestSummaryFailureDoesNotHideRawSource(t *testing.T) {
 	require.NoError(t, e)
 	v, e := s.Version(1, rows[0].ID)
 	require.NoError(t, e)
-	require.Equal(t, "待核实摘要", string(v.Summary))
+	require.Contains(t, string(v.Summary), "待核实摘要")
 }
 func TestLeaseAndUncommittedDraftExcluded(t *testing.T) {
 	s := fixture(t)
@@ -206,5 +206,5 @@ func TestLongSummaryCoverageCannotBeOmittedByModel(t *testing.T) {
 	v, e := s.Version(1, rows[0].ID)
 	require.NoError(t, e)
 	require.Contains(t, string(v.Summary), "覆盖范围（系统标记）")
-	require.Contains(t, string(v.Summary), "14000")
+	require.Contains(t, string(v.Summary), "已整理 1/6 节")
 }

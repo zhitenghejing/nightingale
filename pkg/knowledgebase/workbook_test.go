@@ -3,6 +3,7 @@ package knowledgebase
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ccfos/nightingale/v6/archives"
@@ -90,4 +91,36 @@ func TestExcelArchiveKnowledgeLifecycle(t *testing.T) {
 	require.NoError(t, s.DB.Model(&models.ArchiveRecord{}).Where("id=?", a.ID).Update("deleted", true).Error)
 	_, e = s.Archives.Workbook(context.Background(), d.ID, 0, workbook.Query{Operation: "sheets"})
 	require.Error(t, e)
+}
+
+func TestWorkbookMatchesReturnsExactLateRowWithOriginalContext(t *testing.T) {
+	s := fixture(t)
+	d, v := source(t, s, "SN 005066001979")
+	require.NoError(t, s.Scan())
+	_, err := s.ProcessOne(t.Context())
+	require.NoError(t, err)
+	var k models.LibraryVersion
+	require.NoError(t, s.DB.Where("source_version_id=?", v.ID).First(&k).Error)
+	book := workbook.Book{Sheets: []workbook.Sheet{{Name: "设备", Rows: 600, Columns: 4, Cells: []workbook.Cell{
+		{Address: "A1", Row: 1, Column: 1, Value: "序列号", Type: "s"}, {Address: "B1", Row: 1, Column: 2, Value: "厂商", Type: "s"}, {Address: "C1", Row: 1, Column: 3, Value: "位置", Type: "s"},
+		{Address: "A599", Row: 599, Column: 1, Value: "0050660019799", Type: "s"}, {Address: "C599", Row: 599, Column: 3, Value: "错误邻行位置", Type: "s"},
+		{Address: "A600", Row: 600, Column: 1, Value: "005066001979", Type: "s"}, {Address: "B600", Row: 600, Column: 2, Value: "深信服", Type: "s"}, {Address: "C600", Row: 600, Column: 3, Value: "B03-18U", Type: "s"},
+	}}}}
+	raw, err := json.Marshal(book)
+	require.NoError(t, err)
+	require.NoError(t, s.DB.Create(&models.LibraryWorkbook{VersionID: k.ID, Data: models.LibraryText(raw)}).Error)
+	rows, err := s.WorkbookMatches(1, k.ID, 1, []string{"005066001979"})
+	require.NoError(t, err)
+	require.Len(t, rows, 1)
+	require.Equal(t, 600, rows[0].Row)
+	require.Equal(t, []string{"A600"}, rows[0].MatchingCells)
+	require.Equal(t, "序列号", rows[0].ContextRows[0][0].Value)
+	require.True(t, rows[0].Result.Complete)
+	require.Equal(t, "A600:D600", rows[0].ReadParams["range"])
+	text, _ := json.Marshal(rows[0])
+	require.Contains(t, string(text), "B03-18U")
+	require.NotContains(t, string(text), "错误邻行位置")
+	require.NoError(t, s.DB.Model(&models.ArchiveDocument{}).Where("id=?", d.ID).Update("deleted", true).Error)
+	_, err = s.WorkbookMatches(1, k.ID, 1, []string{"005066001979"})
+	require.Error(t, err)
 }

@@ -18,6 +18,7 @@ import (
 	"github.com/ccfos/nightingale/v6/dskit/sqlbase"
 	"github.com/ccfos/nightingale/v6/dskit/types"
 	"github.com/ccfos/nightingale/v6/models"
+	"github.com/ccfos/nightingale/v6/pkg/cmdb"
 	"github.com/ccfos/nightingale/v6/pkg/environment"
 	"github.com/prometheus/prometheus/promql/parser"
 )
@@ -25,6 +26,8 @@ import (
 var knowledgeDataHandlers = map[string]aiagent.BuiltinToolFunc{
 	"list_datasources":           listDatasourcesBuiltin,
 	"list_targets":               listTargets,
+	"target_statistics":          queryKnowledgeInventory,
+	"asset_lookup":               queryKnowledgeAsset,
 	"get_target_detail":          getTargetDetail,
 	"get_target_realtime_status": getTargetRealtimeStatus,
 	"list_metrics":               listMetrics,
@@ -38,9 +41,10 @@ var knowledgeDataHandlers = map[string]aiagent.BuiltinToolFunc{
 func init() {
 	register(opsDef("resolve_knowledge_object", "Resolve report object against authorized monitored targets. Pass exact ident and/or host_ip when known; query only discovers name candidates. Conflicting or multiple matches remain unconfirmed. A match is current identity evidence, not proof of historical ownership or health.",
 		aiagent.ToolParameter{Name: "ident", Type: "string"}, aiagent.ToolParameter{Name: "host_ip", Type: "string"}, aiagent.ToolParameter{Name: "query", Type: "string"}), resolveKnowledgeObject)
-	register(opsDef("query_knowledge_data", "Read authorized platform/database/monitoring evidence. operation is one of list_datasources,list_targets,get_target_detail,get_target_realtime_status,list_metrics,query_prometheus,list_databases,list_tables,describe_table,query_log. Discover datasource/schema first. SQL query_log requires a single SELECT and an administrator-configured read-only database account; the server caps results at 100 rows. query is a target search, metric prefix or PromQL as appropriate. Empty/old data does not prove healthy. Never executes scripts or writes.",
-		aiagent.ToolParameter{Name: "operation", Type: "string", Required: true, Enum: []string{"list_datasources", "list_targets", "get_target_detail", "get_target_realtime_status", "list_metrics", "query_prometheus", "list_databases", "list_tables", "describe_table", "query_log"}},
-		aiagent.ToolParameter{Name: "datasource_id", Type: "integer"}, aiagent.ToolParameter{Name: "ident", Type: "string"}, aiagent.ToolParameter{Name: "query", Type: "string"}, aiagent.ToolParameter{Name: "sql", Type: "string"}, aiagent.ToolParameter{Name: "database", Type: "string"}, aiagent.ToolParameter{Name: "table", Type: "string"}, aiagent.ToolParameter{Name: "time_range", Type: "string", Description: "Up to 24h, e.g. 1h or 30m"}, aiagent.ToolParameter{Name: "query_type", Type: "string", Enum: []string{"instant", "range"}}, aiagent.ToolParameter{Name: "limit", Type: "integer"}), queryKnowledgeData)
+	register(opsDef("query_knowledge_data", "Read authorized platform/database/monitoring evidence. For asset identity by serial use asset_lookup with serial as a quoted STRING (not query or Target ident); reads the CMDB master record before any document fallback. Asset records do not prove monitoring onboarding or health. For current device totals/distributions prefer the standalone target_statistics TOOL, whose only arguments are query and group_by. The operation here remains compatible; query must be explicit, an empty string only for all devices. Never count list pages or Excel rows. Pass group_by=os/agent_version/engine_name explicitly for distributions; omitted group_by returns total only. Groups belong solely to the returned dimension. operation is one of target_statistics,list_datasources,list_targets,get_target_detail,get_target_realtime_status,list_metrics,query_prometheus,list_databases,list_tables,describe_table,query_log. Discover datasource/schema first. SQL query_log requires a single SELECT and an administrator-configured read-only database account; the server caps results at 100 rows. query is a target search, metric prefix or PromQL as appropriate. Empty/old data does not prove healthy. Never executes scripts or writes.",
+		aiagent.ToolParameter{Name: "operation", Type: "string", Required: true, Enum: []string{"asset_lookup", "target_statistics", "list_datasources", "list_targets", "get_target_detail", "get_target_realtime_status", "list_metrics", "query_prometheus", "list_databases", "list_tables", "describe_table", "query_log"}},
+		aiagent.ToolParameter{Name: "serial", Type: "string", Description: "Complete CMDB serial, including numeric-only identifiers as JSON strings; preserve leading zeros"}, aiagent.ToolParameter{Name: "asset_id", Type: "string", Description: "Known CMDB asset UUID, not a monitored Target ident"},
+		aiagent.ToolParameter{Name: "group_by", Type: "string", Description: "Target distribution dimension; use this for agent_version/os/engine_name grouping, never table", Enum: []string{"os", "agent_version", "engine_name"}}, aiagent.ToolParameter{Name: "datasource_id", Type: "integer"}, aiagent.ToolParameter{Name: "ident", Type: "string"}, aiagent.ToolParameter{Name: "query", Type: "string"}, aiagent.ToolParameter{Name: "sql", Type: "string"}, aiagent.ToolParameter{Name: "database", Type: "string"}, aiagent.ToolParameter{Name: "table", Type: "string", Description: "SQL table name for SQL operations; target_statistics accepts only os/agent_version/engine_name as an explicit alias for group_by"}, aiagent.ToolParameter{Name: "time_range", Type: "string", Description: "Up to 24h, e.g. 1h or 30m"}, aiagent.ToolParameter{Name: "query_type", Type: "string", Enum: []string{"instant", "range"}}, aiagent.ToolParameter{Name: "limit", Type: "integer"}), queryKnowledgeData)
 }
 
 // Revalidate at invocation and before publishing/history replay. Catalog results
@@ -49,9 +53,39 @@ func CheckKnowledgeDataAccess(ctx context.Context, d *aiagent.ToolDeps, userID i
 	if d == nil || d.DBCtx == nil {
 		return fmt.Errorf("没有权限查阅")
 	}
+	scopedDeps := *d
+	scopedDB := *d.DBCtx
+	scopedDB.DB = scopedDB.DB.WithContext(ctx)
+	scopedDB.Ctx = ctx
+	scopedDeps.DBCtx = &scopedDB
+	d = &scopedDeps
 	user, err := getUser(d, map[string]string{"user_id": fmt.Sprint(userID)})
 	if err != nil || user.Disabled != 0 {
 		return fmt.Errorf("没有权限查阅")
+	}
+	if e.Operation == "asset_lookup" {
+		store := &cmdb.Store{DB: d.DBCtx.DB.WithContext(ctx)}
+		record, err := store.LookupAsset(cmdb.User{ID: user.Id, Admin: user.IsAdmin(), Disabled: user.Disabled}, e.AssetLookupSerial, e.AssetLookupID)
+		if err != nil {
+			return err
+		}
+		if record == nil {
+			if len(e.AssetRefs) == 0 {
+				return nil
+			}
+			return fmt.Errorf("资产已删除或变更，请重新查询")
+		}
+		if len(e.AssetRefs) != 1 || e.AssetRefs[record.ID] != record.Fingerprint {
+			return fmt.Errorf("资产记录已变更，请重新查询")
+		}
+		return nil
+	}
+	if e.Operation == "target_statistics" {
+		_, scope, err := inventoryScope(d, user)
+		if err != nil || e.InventoryScope == "" || scope != e.InventoryScope {
+			return fmt.Errorf("设备查询权限范围已变更，请重新查询")
+		}
+		return nil
 	}
 	if strings.HasPrefix(e.Operation, "workbook_") {
 		if d.Library == nil || e.WorkbookVersion <= 0 || e.WorkbookDigest == "" {
@@ -105,6 +139,12 @@ func queryKnowledgeData(ctx context.Context, d *aiagent.ToolDeps, a map[string]i
 	}
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
 	defer cancel()
+	if op == "asset_lookup" {
+		return queryKnowledgeAsset(ctx, d, a, map[string]string{"user_id": fmt.Sprint(u.Id)})
+	}
+	if op == "target_statistics" {
+		return queryKnowledgeInventory(ctx, d, a, map[string]string{"user_id": fmt.Sprint(u.Id), "user_input": p["user_input"], "lang": p["lang"]})
+	}
 	scopedDeps := *d
 	scopedDB := *d.DBCtx
 	scopedDB.DB = scopedDB.DB.WithContext(ctx)

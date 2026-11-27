@@ -67,6 +67,8 @@ type AgentConfig struct {
 	// Restricted workflows enforce the visible tool set before builtin dispatch.
 	RestrictTools bool `json:"restrict_tools,omitempty"`
 	MaxToolCalls  int  `json:"max_tool_calls,omitempty"`
+	// Bound source-only loops without restricting the available skills/tools.
+	GuardEvidenceProgress bool `json:"guard_evidence_progress,omitempty"`
 	// Read-only Q&A may finalize with collected evidence when its query budget is used.
 	FinishOnToolBudget bool `json:"finish_on_tool_budget,omitempty"`
 	// Agent 行为
@@ -137,11 +139,12 @@ type AgentRequest struct {
 
 // AgentResponse Agent 执行结果
 type AgentResponse struct {
-	Content    string     `json:"content"`         // 最终结果文本
-	Steps      []ToolStep `json:"steps"`           // 执行轨迹
-	Iterations int        `json:"iterations"`      // 迭代次数
-	Success    bool       `json:"success"`         // 是否成功
-	Error      string     `json:"error,omitempty"` // 错误信息
+	ProtocolRecoveries int        `json:"protocol_recoveries,omitempty"`
+	Content            string     `json:"content"`         // 最终结果文本
+	Steps              []ToolStep `json:"steps"`           // 执行轨迹
+	Iterations         int        `json:"iterations"`      // 迭代次数
+	Success            bool       `json:"success"`         // 是否成功
+	Error              string     `json:"error,omitempty"` // 错误信息
 
 	// contentStreamed（仅包内）：流式模式下正文已逐 token 经 StreamTypeContent
 	// 下发。executeNativeWithDone 据此给 Done chunk 打标，路由层只把 Done.Content
@@ -309,11 +312,12 @@ type ToolStep struct {
 
 // ToolLoopConfig 工具循环配置
 type ToolLoopConfig struct {
-	FinishOnToolBudget bool
-	MaxToolCalls       int
-	MaxIterations      int
-	TimeoutMessage     string
-	LogPrefix          string
+	GuardEvidenceProgress bool
+	FinishOnToolBudget    bool
+	MaxToolCalls          int
+	MaxIterations         int
+	TimeoutMessage        string
+	LogPrefix             string
 
 	// 本次循环可见的工具集（runCtx.tools 快照）
 	Tools []AgentTool
@@ -358,4 +362,6 @@ type ChatMessage struct {
 	// transcript 持久化，回放时由 provider 适配层回填——开启 thinking 后工具
 	// 续轮的协议硬性要求（语义见 llm.ThinkingBlock）。
 	ThinkingBlocks []llm.ThinkingBlock `json:"thinking_blocks,omitempty"`
+	DurationMS     int64               `json:"duration_ms,omitempty"`
+	FailureClass   string              `json:"failure_class,omitempty"`
 }

@@ -61,6 +61,9 @@ type AssistantMessage struct {
 }
 
 type AssistantMessageExtra struct {
+	KnowledgeProtocolRecoveries int `json:"knowledge_protocol_recoveries,omitempty"`
+	// Safe review telemetry, without prompts, credentials or hidden reasoning.
+	KnowledgeReview json.RawMessage `json:"knowledge_review,omitempty"`
 	// Server-created Q&A evidence scopes; replay requires fresh authorization.
 	KnowledgeEvidence json.RawMessage `json:"knowledge_evidence,omitempty"`
 	HistoryMessages   []byte          `json:"history_messages"` // json(aiagent.TranscriptEnvelope)：结构化会话 transcript
@@ -105,6 +108,7 @@ type ConversationRoute struct {
 // ==================== Message Query ====================
 
 type AssistantMessageQuery struct {
+	// Empty mode selects the unified main agent; explicit legacy modes remain compatible.
 	Mode     string            `json:"mode,omitempty"`
 	Content  string            `json:"content"`
 	Action   AssistantAction   `json:"action"`

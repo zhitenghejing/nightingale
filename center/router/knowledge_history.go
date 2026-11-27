@@ -41,7 +41,7 @@ func knowledgeFollowupHistory(prior []*models.AssistantMessage, valid func(knowl
 			continue
 		}
 		out = append(out, aiagent.ChatMessage{Role: "user", Content: msg.Query.Content})
-		if msg.Query.Mode != "knowledge_qa" || !msg.IsFinish || msg.ErrCode != 0 {
+		if !msg.IsFinish || msg.ErrCode != 0 {
 			continue
 		}
 		e := knowledgeMessageEvidence(msg)
@@ -61,6 +61,9 @@ func knowledgeFollowupHistory(prior []*models.AssistantMessage, valid func(knowl
 		if i := strings.Index(answer, "\n\n本次查询来源"); i >= 0 {
 			answer = answer[:i]
 		}
+		if i := strings.Index(answer, "\n\n来源（本轮已核验）"); i >= 0 {
+			answer = answer[:i]
+		}
 		text := []rune(strings.TrimSpace(answer))
 		if len(text) > 3000 {
 			text = text[:3000]
@@ -70,4 +73,48 @@ func knowledgeFollowupHistory(prior []*models.AssistantMessage, valid func(knowl
 		}
 	}
 	return out
+}
+
+// Saved live queries explain a follow-up's context, but are never fresh evidence
+// for the new answer. Reusable workbook receipts still recheck the source version.
+func reusableKnowledgeEvidence(e knowledgeAnswerEvidence) knowledgeAnswerEvidence {
+	e.Data = documentEvidenceData(e.Data)
+	return e
+}
+
+func historyContainsSourceContext(history []aiagent.ChatMessage) bool {
+	for _, m := range history {
+		if strings.Contains(m.Content, "[上一轮答复，仅用于理解话题和指代。") {
+			return true
+		}
+		if m.Role == "tool" {
+			var e knowledgeAnswerEvidence
+			e.observe(m.ToolName, m.Content)
+			if e.observed() {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// Failed turns retain completed calls and timing, but never hidden reasoning.
+// They are diagnostic records, not reusable successful answer evidence.
+func saveFailedSourceTurn(msg *models.AssistantMessage, history, turn []aiagent.ChatMessage, e knowledgeAnswerEvidence) {
+	if len(turn) == 0 || !e.observed() {
+		return
+	}
+	clean := make([]aiagent.ChatMessage, len(turn))
+	copy(clean, turn)
+	for i := range clean {
+		clean[i].ThinkingBlocks = nil
+		if clean[i].Role == "assistant" {
+			clean[i].Content = modeloutput.Visible(clean[i].Content)
+		}
+	}
+	env := aiagent.TranscriptEnvelope{SchemaVersion: aiagent.TranscriptSchemaVersion, Messages: assembleTurnHistory(history, msg.Query.Content, clean, "")}
+	msg.Extra.HistoryMessages, _ = json.Marshal(env)
+	if e.observed() {
+		msg.Extra.KnowledgeEvidence, _ = json.Marshal(e)
+	}
 }

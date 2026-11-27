@@ -42,7 +42,7 @@ func TestKnowledgeFollowupKeepsOnlyRevalidatedAnswer(t *testing.T) {
 	require.NotContains(t, h[0].Content, "HA")
 	msg.Query.Mode = "ops"
 	h = knowledgeFollowupHistory([]*models.AssistantMessage{msg}, func(knowledgeAnswerEvidence) bool { return true })
-	require.Len(t, h, 1)
+	require.Len(t, h, 2, "unified main-agent history receives the same source reauthorization")
 }
 func TestKnowledgeHistoryDoesNotTreatOlderToolResultsAsCurrentTurnEvidence(t *testing.T) {
 	msg := &models.AssistantMessage{}
@@ -55,7 +55,7 @@ func TestKnowledgeHistoryDoesNotTreatOlderToolResultsAsCurrentTurnEvidence(t *te
 func TestKnowledgeDocumentSearchCannotUseTargetCatalogAsDocumentEvidence(t *testing.T) {
 	h, _ := chat.Lookup("knowledge_qa")
 	names := h.SelectTools(&chat.AIChatRequest{UserInput: "请查找只含 ZZNOFOLLOWUP781923 的资料"})
-	require.Equal(t, []string{"search_knowledge", "read_knowledge", "query_knowledge_workbook", "query_environment"}, names)
+	require.Equal(t, []string{"search_knowledge", "read_knowledge", "list_workbook_sheets", "read_workbook_range", "count_workbook_rows", "sum_workbook_column", "query_environment", "resolve_knowledge_object", "query_knowledge_data", "target_statistics"}, names)
 	require.True(t, chat.KnowledgeDocumentSearch("请查找这个编号的资料"))
 }
 
@@ -88,7 +88,7 @@ func TestKnowledgeDeniedLookupCanRecoverWithAuthorizedEvidence(t *testing.T) {
 	var e knowledgeAnswerEvidence
 	e.observe("read_knowledge", "Error: 没有权限查阅，或资料已失效")
 	e.observe("read_knowledge", fmt.Sprintf(`{"id":%d}`, section.ID))
-	answer := rt.groundKnowledgeAnswer(1, e, "Verified fact")
+	answer := rt.groundKnowledgeAnswer(t.Context(), 1, e, "Verified fact")
 	require.Contains(t, answer, "Verified fact")
 	require.NotContains(t, answer, "请重新查询")
 	model := &knowledgeAuditTestModel{}
@@ -103,7 +103,7 @@ func TestKnowledgeDeniedLookupCanRecoverWithAuthorizedEvidence(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, model.request, "revoked source cannot reach the model")
 
-	require.Contains(t, rt.groundKnowledgeAnswer(1, e, "Do not leak"), "失效")
+	require.Contains(t, rt.groundKnowledgeAnswer(t.Context(), 1, e, "Do not leak"), "失效")
 }
 
 type knowledgeAuditTestModel struct{ request *llm.GenerateRequest }
@@ -153,4 +153,24 @@ func TestWorkbookCitationRestoresOnlyAuthorizedLocalLinks(t *testing.T) {
 	require.Contains(t, normalized, "[来源]("+source+")")
 	require.Contains(t, normalized, "(http://archives/99/documents/77)")
 	require.Contains(t, normalized, "(https://example.com/report)")
+}
+
+func TestUnifiedHistoryRetainsEarlierObjectsAndFailureTraceHasNoReasoning(t *testing.T) {
+	prior := []*models.AssistantMessage{}
+	for i, id := range []string{"SERIAL-A12345", "SERIAL-B12345", "对比第一台"} {
+		m := &models.AssistantMessage{IsFinish: true, Query: models.AssistantMessageQuery{Mode: "auto", Content: id}, Response: []models.AssistantMessageResponse{{ContentType: models.ContentTypeMarkdown, Content: "answer " + id}}}
+		m.Extra.KnowledgeEvidence = []byte(fmt.Sprintf(`{"Sections":[%d]}`, i+1))
+		prior = append(prior, m)
+	}
+	h := knowledgeFollowupHistory(prior, func(knowledgeAnswerEvidence) bool { return true })
+	require.Len(t, h, 6)
+	require.Contains(t, h[1].Content, "SERIAL-A12345")
+	require.Contains(t, h[3].Content, "SERIAL-B12345")
+	failed := &models.AssistantMessage{Query: models.AssistantMessageQuery{Content: "Q"}}
+	turn := []aiagent.ChatMessage{{Role: "assistant", ToolCalls: []llm.ToolCall{{ID: "a", Name: "search_knowledge", Arguments: `{"query":"SERIAL-A12345"}`}}, ThinkingBlocks: []llm.ThinkingBlock{{Thinking: "PRIVATE_REASONING"}}, DurationMS: 100}, {Role: "tool", ToolName: "search_knowledge", ToolCallID: "a", Content: `{"documents":[]}`, DurationMS: 3}}
+	saveFailedSourceTurn(failed, nil, turn, knowledgeAnswerEvidence{Searched: true, Empty: true})
+	require.NotContains(t, string(failed.Extra.HistoryMessages), "PRIVATE_REASONING")
+	require.Contains(t, string(failed.Extra.HistoryMessages), "search_knowledge")
+	require.Contains(t, string(failed.Extra.HistoryMessages), "duration_ms")
+	require.True(t, historyContainsSourceContext(turn))
 }

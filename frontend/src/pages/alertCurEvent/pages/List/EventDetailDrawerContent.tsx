@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 
 import DetailNG from '@/pages/event/DetailNG';
 import getActions from '@/pages/event/DetailNG/Actions';
-import EnterOpsCaseButton from '@/pages/opsShared/EnterOpsCaseButton';
 
 import { NS } from '../../constants';
 
@@ -34,7 +33,6 @@ export default function EventDetailDrawer(props: Props) {
       visible={visible}
       footer={
         <Space wrap>
-          <EnterOpsCaseButton eventId={data?.id} onEntered={onClose} />
           {getActions({
             eventDetail: data,
             showDeleteBtn,

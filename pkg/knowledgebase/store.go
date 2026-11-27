@@ -10,6 +10,7 @@ import (
 	"github.com/ccfos/nightingale/v6/pkg/workbook"
 	"io"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -19,14 +20,16 @@ import (
 	"github.com/ccfos/nightingale/v6/models"
 	"github.com/ccfos/nightingale/v6/pkg/opsauth"
 	"github.com/google/uuid"
+	"github.com/toolkits/pkg/logger"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
 type Store struct {
-	DB        *gorm.DB
-	Archives  *archives.Service
-	Summarize func(context.Context, string) (string, error)
+	DB           *gorm.DB
+	Archives     *archives.Service
+	Summarize    func(context.Context, string) (string, error)
+	SummaryModel func() string
 }
 
 func (s *Store) WithContext(ctx context.Context) *Store {
@@ -51,15 +54,15 @@ func (s *Store) Scan() error {
 	var cursor int64
 	for {
 		var docs []models.ArchiveDocument
-		if e := s.DB.Table("archive_document AS d").Select("d.*").Joins("JOIN archive_record a ON a.id=d.archive_id").Where("d.deleted = ? AND a.deleted = ? AND d.id > ? AND d.current_version_id > 0", false, false, cursor).Order("d.id").Limit(100).Find(&docs).Error; e != nil {
+		if e := s.DB.Table("archive_document AS d").Select("d.*").Joins("JOIN archive_record a ON a.id=d.archive_id").Joins("LEFT JOIN knowledge_document_version known_version ON known_version.source_version_id=d.current_version_id").Where("d.deleted = ? AND a.deleted = ? AND d.id > ? AND d.current_version_id > 0 AND known_version.id IS NULL", false, false, cursor).Order("d.id").Limit(100).Find(&docs).Error; e != nil {
 			return e
 		}
 		if len(docs) == 0 {
-			return nil
+			return s.reconcileIndexes()
 		}
 		for _, d := range docs {
 			var v models.ArchiveDocumentVersion
-			if e := s.DB.First(&v, "id = ? AND document_id = ?", d.CurrentVersionID, d.ID).Error; e != nil {
+			if e := s.DB.Select("id,sequence,has_content").First(&v, "id = ? AND document_id = ?", d.CurrentVersionID, d.ID).Error; e != nil {
 				return e
 			}
 			cursor = d.ID
@@ -74,39 +77,66 @@ func (s *Store) Scan() error {
 		}
 	}
 }
+
+// Parsing and generation have independent loops: a slow model never holds up
+// discovery or deterministic source indexing. Per-version leases fence both.
 func (s *Store) Start(ctx context.Context) func() {
-	done := make(chan struct{})
-	worker := *s
-	worker.DB = s.DB.WithContext(ctx)
-	go func() {
-		defer close(done)
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
-		for {
-			if ctx.Err() != nil {
-				return
-			}
-			_ = worker.Scan()
-			for i := 0; i < 10 && ctx.Err() == nil; i++ {
-				worked, _ := worker.ProcessOne(ctx)
-				if !worked {
-					break
+	done := make(chan struct{}, 2)
+	launch := func(parse bool) {
+		go func() {
+			defer func() { done <- struct{}{} }()
+			ticker := time.NewTicker(5 * time.Second)
+			defer ticker.Stop()
+			for ctx.Err() == nil {
+				if parse {
+					if err := s.WithContext(ctx).Scan(); err != nil {
+						logger.Warningf("[Knowledge] reconciliation failed: %v", err)
+					}
+				}
+				for i := 0; i < 10 && ctx.Err() == nil; i++ {
+					var worked bool
+					var err error
+					if parse {
+						worked, err = s.WithContext(ctx).processSource(ctx)
+					} else {
+						worked, err = s.WithContext(ctx).processSummary(ctx)
+					}
+					if err != nil {
+						logger.Warningf("[Knowledge] worker parse=%t failed: %v", parse, err)
+						break
+					}
+					if !worked {
+						break
+					}
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
 				}
 			}
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-			}
-		}
-	}()
-	return func() { <-done }
+		}()
+	}
+	launch(true)
+	launch(false)
+	return func() { <-done; <-done }
 }
 
+// ProcessOne retains the synchronous entry point for callers and tests. Runtime
+// workers deliberately use separate parse and generation entry points.
 func (s *Store) ProcessOne(ctx context.Context) (bool, error) {
+	worked, err := s.processSource(ctx)
+	if err != nil {
+		return worked, err
+	}
+	summary, err := s.processSummary(ctx)
+	return worked || summary, err
+}
+
+func (s *Store) processSource(ctx context.Context) (bool, error) {
 	now := time.Now().Unix()
 	var k models.LibraryVersion
-	q := s.visible().Where("k.state IN ? AND k.next_run <= ? AND k.lease_until < ?", []string{"queued", "retry", "ready"}, now, now).Where("k.state <> ? OR k.summary_state IN ?", "ready", []string{"pending", "retry"}).Order("k.id").Limit(1).Find(&k)
+	q := s.visible().Where("k.state IN ? AND k.next_run <= ? AND k.lease_until < ?", []string{"queued", "retry"}, now, now).Order("k.id").Limit(1).Find(&k)
 	if q.Error != nil {
 		return false, q.Error
 	}
@@ -191,6 +221,20 @@ func (s *Store) ProcessOne(ctx context.Context) (bool, error) {
 			}
 		}
 		cancel()
+		if e == nil {
+			bounded := []workbook.Section{}
+			for _, part := range parts {
+				runes := []rune(part.Body)
+				for offset := 0; offset < len(runes); offset += 6000 {
+					end := offset + 6000
+					if end > len(runes) {
+						end = len(runes)
+					}
+					bounded = append(bounded, workbook.Section{Heading: part.Heading, Body: string(runes[offset:end])})
+				}
+			}
+			parts = bounded
+		}
 		if e != nil {
 			return true, fail(e)
 		}
@@ -203,11 +247,28 @@ func (s *Store) ProcessOne(ctx context.Context) (bool, error) {
 			if held.Lease != lease || held.LeaseUntil < time.Now().Unix() {
 				return fmt.Errorf("index lease lost")
 			}
+			var current int64
+			if err := (&Store{DB: tx}).visible().Where("k.id=?", k.ID).Count(&current).Error; err != nil {
+				return err
+			}
+			if current != 1 {
+				return fmt.Errorf("source version changed during parsing")
+			}
 			if e := tx.Where("version_id = ?", k.ID).Delete(&models.LibrarySection{}).Error; e != nil {
 				return e
 			}
+			if e := tx.Where("version_id = ?", k.ID).Delete(&models.LibraryTerm{}).Error; e != nil {
+				return e
+			}
+			if e := tx.Where("version_id = ?", k.ID).Delete(&models.LibraryDerivation{}).Error; e != nil {
+				return e
+			}
 			for i, p := range parts {
-				if e := tx.Create(&models.LibrarySection{VersionID: k.ID, Position: i + 1, Heading: p.Heading, Body: models.LibraryText(p.Body)}).Error; e != nil {
+				section := models.LibrarySection{VersionID: k.ID, Position: i + 1, Heading: p.Heading, Body: models.LibraryText(p.Body)}
+				if e := tx.Create(&section).Error; e != nil {
+					return e
+				}
+				if e := writeTerms(tx, section, d.Title); e != nil {
 					return e
 				}
 			}
@@ -216,65 +277,68 @@ func (s *Store) ProcessOne(ctx context.Context) (bool, error) {
 					return err
 				}
 			}
-			return tx.Model(&held).Updates(map[string]interface{}{"state": "ready", "markdown": md, "digest": hex.EncodeToString(sum[:]), "error": ""}).Error
+			return tx.Model(&held).Updates(map[string]interface{}{"state": "ready", "markdown": md, "digest": hex.EncodeToString(sum[:]), "parser_revision": parserRevision, "index_revision": indexRevision, "summary_state": "pending", "attempts": 0, "next_run": 0, "error": ""}).Error
 		})
 		if e != nil {
 			return true, fail(e)
 		}
 		k.Markdown = models.LibraryText(md)
 	}
-	// Summary failure never removes the deterministic source index. A separate
-	// retry budget prevents repeatedly parsing an already indexed document.
-	if s.Summarize == nil {
-		return true, save(map[string]interface{}{"summary_state": "pending", "next_run": now + 60})
-	}
-	summaryCtx, cancel := context.WithTimeout(ctx, 100*time.Second)
-	text := string(k.Markdown)
-	if len([]rune(text)) > 14000 {
-		text = string([]rune(text)[:14000]) + "\n[仅整理前14000字符，全文请按章节检索]"
-	}
-	summary, e := s.Summarize(summaryCtx, text)
-	cancel()
-	if e != nil {
-		state := "retry"
-		if k.Attempts >= 4 {
-			state = "failed"
-		}
-		return true, save(map[string]interface{}{"summary_state": state, "next_run": now + 60*int64(k.Attempts+1), "error": "AI 整理暂未完成，原文仍可检索"})
-	}
-	if strings.TrimSpace(summary) == "" || len(summary) > 64000 {
-		return true, save(map[string]interface{}{"summary_state": "failed", "error": "AI summary is empty or oversized"})
-	}
-	summary = summaryCoverage(string(k.Markdown), summary)
-	return true, save(map[string]interface{}{"summary_state": "ready", "summary": summary, "error": ""})
+	return true, save(map[string]interface{}{"next_run": 0, "attempts": 0})
 }
-func (s *Store) Retry(user, id int64) error {
-	if e := s.allowed(user); e != nil {
-		return e
+
+func (s *Store) Retry(user, id int64) error { return s.requeue(user, id, nil) }
+
+// Reprocess carries an explicit UI intent so completion racing with a retry
+// cannot accidentally regenerate successful chapters. Retry retains its legacy
+// behavior for existing callers.
+func (s *Store) Reprocess(user, id int64, regenerate bool) error {
+	return s.requeue(user, id, &regenerate)
+}
+
+func (s *Store) requeue(user, id int64, force *bool) error {
+	if err := s.allowed(user); err != nil {
+		return err
 	}
-	var k models.LibraryVersion
-	if e := s.visible().Where("k.id = ?", id).First(&k).Error; e != nil {
-		return e
-	}
-	state := "queued"
-	if k.State == "ready" {
-		state = "ready"
-	}
-	res := s.DB.Model(&k).Where("lease_until < ?", time.Now().Unix()).Updates(map[string]interface{}{"state": state, "summary_state": "pending", "attempts": 0, "next_run": 0, "error": ""})
-	if res.Error != nil {
-		return res.Error
-	}
-	if res.RowsAffected != 1 {
-		return opsauth.Fail(409, "knowledge_busy", "资料正在处理，请稍后重试")
-	}
-	return nil
+	return s.DB.Transaction(func(tx *gorm.DB) error {
+		var k models.LibraryVersion
+		if err := (&Store{DB: tx}).visible().Clauses(clause.Locking{Strength: "UPDATE", Table: clause.Table{Name: "k"}}).Where("k.id=?", id).First(&k).Error; err != nil {
+			return err
+		}
+		if k.LeaseUntil >= time.Now().Unix() {
+			return opsauth.Fail(409, "knowledge_busy", "资料正在处理，请稍后重试")
+		}
+		state := "queued"
+		if k.State == "ready" {
+			state = "ready"
+		}
+		regenerate := k.State == "ready" && k.SummaryState == "ready"
+		if force != nil {
+			regenerate = *force
+		}
+		values := map[string]interface{}{"state": state, "summary_state": "pending", "attempts": 0, "next_run": 0, "error": ""}
+		if regenerate {
+			values["summary"] = ""
+		}
+		if err := tx.Model(&k).Updates(values).Error; err != nil {
+			return err
+		}
+		derived := tx.Model(&models.LibraryDerivation{}).Where("version_id=?", id)
+		reset := map[string]interface{}{"state": "pending", "attempts": 0, "next_run": 0, "error": ""}
+		if regenerate {
+			reset["content"] = ""
+		} else {
+			derived = derived.Where("state<>?", "ready")
+		}
+		return derived.Updates(reset).Error
+	})
 }
 func (s *Store) List(user int64) ([]models.LibraryVersion, error) {
 	if e := s.allowed(user); e != nil {
 		return nil, e
 	}
 	items := []models.LibraryVersion{}
-	e := s.visible().Select("k.id,k.source_version_id,k.document_id,k.archive_id,d.title,k.sequence,k.state,k.summary_state,k.error,k.updated_at").Order("k.id DESC").Limit(500).Find(&items).Error
+	e := s.visible().Select("k.id,k.source_version_id,k.document_id,k.archive_id,d.title,k.sequence,k.state,k.summary_state,k.error,k.updated_at,k.parser_revision,k.index_revision,k.summary_model,k.summary_recipe").Order("k.id DESC").Limit(500).Find(&items).Error
 	return items, e
 }
 
@@ -291,6 +355,16 @@ type Hit struct {
 	Body            string `json:"body"`
 	URL             string `json:"url"`
 	Score           int    `json:"-"`
+}
+
+// MarshalJSON provides a ready-to-copy citation so internal locator IDs are
+// not confused with human version numbers or original-source URLs.
+func (h Hit) MarshalJSON() ([]byte, error) {
+	type record Hit
+	return json.Marshal(struct {
+		record
+		Citation string `json:"citation"`
+	}{record(h), fmt.Sprintf("[%s · V%d](%s)", h.Title, h.Sequence, h.URL)})
 }
 
 func tokens(q string) []string {
@@ -332,7 +406,34 @@ func tokens(q string) []string {
 	}
 	return result
 }
+
+var specificKnowledgeIdentifier = regexp.MustCompile(`(?i)\b(?:[a-z][a-z0-9_-]*[0-9][a-z0-9_-]*|[0-9]+[a-z][a-z0-9_-]*|(?:[0-9]{1,3}\.){3}[0-9]{1,3}|[0-9]{9,64})\b`)
+
 func (s *Store) Search(user int64, q string) ([]Hit, error) {
+	return s.SearchScoped(user, q, "", 0)
+}
+
+// SearchScoped narrows discovery to an explicit title/version without changing
+// source visibility. It never falls back to unrelated documents on no match.
+func (s *Store) SearchScoped(user int64, q, title string, version int64) ([]Hit, error) {
+	return s.SearchWithin(user, q, version, SourceScope{Title: title})
+}
+
+// SearchWithin preserves constraints from the real user question even when a
+// model rewrites a query to a prefix, synonym, or another identifier.
+func (s *Store) SearchWithin(user int64, q string, version int64, scope SourceScope) ([]Hit, error) {
+	title := scope.Title
+	if len(scope.Identifiers) > 8 {
+		return nil, fmt.Errorf("too many literal identifiers")
+	}
+	for _, id := range scope.Identifiers {
+		if len(id) > 200 {
+			return nil, fmt.Errorf("literal identifier exceeds limit")
+		}
+	}
+	if version < 0 || len(title) > 500 {
+		return nil, opsauth.Fail(422, "invalid_scope", "资料查询范围无效")
+	}
 	if len(q) > 1000 {
 		return nil, opsauth.Fail(422, "query_large", "Search query is too long")
 	}
@@ -340,10 +441,60 @@ func (s *Store) Search(user int64, q string) ([]Hit, error) {
 		return nil, e
 	}
 	ts := tokens(q)
+	identifierOnly := len(ts) == 0
+	if identifierOnly {
+		for _, id := range scope.Identifiers {
+			ts = append(ts, strings.ToLower(id))
+		}
+	}
 	if len(ts) == 0 {
 		return []Hit{}, nil
 	}
-	db := s.visible().Joins("JOIN knowledge_document_section c ON c.version_id=k.id").Where("k.state = ?", "ready")
+	db := s.visible().Joins("JOIN knowledge_document_section c ON c.version_id=k.id").Where("k.state = ? AND (k.index_revision <> ? OR d.title <> k.title)", "ready", indexRevision)
+	if title != "" {
+		db = exactTitleScope(db, title)
+	}
+	if version > 0 {
+		db = db.Where("k.id = ?", version)
+	}
+	// Prefer exact identifier matches before the bounded window, without hard
+	// exclusion: V2/A12 can be version/cell notation rather than equipment IDs.
+	ids := specificKnowledgeIdentifier.FindAllString(strings.ToLower(q), -1)
+	if identifierOnly {
+		ids = append(ids, scope.Identifiers...)
+	}
+	required := scope.Identifiers
+	if len(required) == 0 {
+		required = strongIdentifiers(ids)
+	}
+	if strong := required; len(strong) > 0 {
+		clauses := []string{}
+		values := []interface{}{}
+		for _, id := range strong {
+			pattern := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(strings.ToLower(id)) + "%"
+			bodyColumn := "c.body"
+			if len(scope.Identifiers) > 0 {
+				bodyColumn = "k.markdown"
+			}
+			clauses = append(clauses, "(LOWER("+bodyColumn+") LIKE ? ESCAPE '!' OR LOWER(d.title) LIKE ? ESCAPE '!')")
+			values = append(values, pattern, pattern)
+		}
+		db = db.Where(strings.Join(clauses, " OR "), values...)
+	}
+	columns := "c.id,c.version_id,k.document_id,k.archive_id,k.source_version_id,k.sequence,d.title,c.heading,c.body"
+	selectArgs := []interface{}{}
+	if len(ids) > 0 {
+		clauses := []string{}
+		args := []interface{}{}
+		for _, id := range ids {
+			pattern := "%" + strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(id) + "%"
+			clauses = append(clauses, "(LOWER(c.body) LIKE ? ESCAPE '!' OR LOWER(d.title) LIKE ? ESCAPE '!')")
+			args = append(args, pattern, pattern)
+		}
+		columns += ", CASE WHEN " + strings.Join(clauses, " OR ") + " THEN 1 ELSE 0 END AS identifier_rank"
+		selectArgs = args
+		db = db.Order("identifier_rank DESC")
+	}
 	clauses := []string{}
 	args := []interface{}{}
 	for _, t := range ts {
@@ -353,15 +504,30 @@ func (s *Store) Search(user int64, q string) ([]Hit, error) {
 		args = append(args, pattern, pattern)
 	}
 	hits := []Hit{}
-	e := db.Where(strings.Join(clauses, " OR "), args...).Select("c.id,c.version_id,k.document_id,k.archive_id,k.source_version_id,k.sequence,d.title,c.heading,c.body").Order("k.id DESC,c.position").Limit(1000).Scan(&hits).Error
+	e := db.Where(strings.Join(clauses, " OR "), args...).Select(columns, selectArgs...).Order("k.id DESC,c.position").Limit(1000).Scan(&hits).Error
 	if e != nil {
 		return nil, e
 	}
+	indexed, err := s.indexedHits(q, title, version, ts, ids, required, len(scope.Identifiers) > 0)
+	if err != nil {
+		return nil, err
+	}
+	hits = append(indexed, hits...)
 	for i := range hits {
 		h := &hits[i]
+		h.Score = 0
+		for _, id := range ids {
+			if strings.Contains(strings.ToLower(h.Title+" "+h.Body), id) {
+				h.Score += 50
+				break
+			}
+		}
 		for _, t := range ts {
 			if strings.Contains(strings.ToLower(h.Title), t) {
 				h.Score += 5
+			}
+			if strings.Contains(strings.ToLower(h.Heading), t) {
+				h.Score += 3
 			}
 			if strings.Contains(strings.ToLower(h.Body), t) {
 				h.Score++
@@ -397,11 +563,15 @@ func (s *Store) Search(user int64, q string) ([]Hit, error) {
 	selected := []Hit{}
 	counts := map[int64]int{}
 	minimum := 1
-	if len(hits) > 0 && hits[0].Score > 4 {
+	if title == "" && version == 0 && len(hits) > 0 && hits[0].Score > 4 {
 		minimum = (hits[0].Score + 1) / 2
 	}
+	perDocument := 2
+	if title != "" || version > 0 {
+		perDocument = 6
+	}
 	for _, h := range hits {
-		if h.Score < minimum || counts[h.DocumentID] >= 2 {
+		if h.Score < minimum || counts[h.DocumentID] >= perDocument {
 			continue
 		}
 		selected = append(selected, h)
@@ -434,8 +604,19 @@ func (s *Store) Version(user, id int64) (*models.LibraryVersion, error) {
 	}
 	var k models.LibraryVersion
 	e := s.visible().Where("k.id = ?", id).First(&k).Error
-	if e == nil && k.Summary != "" {
-		k.Summary = models.LibraryText(summaryCoverage(string(k.Markdown), string(k.Summary)))
+	if e == nil {
+		var d models.ArchiveDocument
+		if err := s.DB.First(&d, k.DocumentID).Error; err != nil {
+			return nil, err
+		}
+		k.Title = d.Title
+		if s.SummaryModel != nil && (k.SummaryModel != s.summaryModel() || k.SummaryRecipe != summaryRecipe) {
+			k.Summary = ""
+			k.SummaryState = "pending"
+		}
+		if k.ParserRevision == "" && k.Summary != "" {
+			k.Summary = models.LibraryText(summaryCoverage(string(k.Markdown), string(k.Summary)))
+		}
 	}
 	return &k, e
 }

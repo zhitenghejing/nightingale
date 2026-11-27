@@ -35,6 +35,10 @@ type LibraryVersion struct {
 	LeaseUntil      int64       `json:"-"`
 	NextRun         int64       `json:"-"`
 	UpdatedAt       int64       `json:"updated_at"`
+	SummaryModel    string      `json:"summary_model" gorm:"type:varchar(255);default:''"`
+	SummaryRecipe   string      `json:"summary_recipe" gorm:"type:varchar(64);default:''"`
+	ParserRevision  string      `json:"parser_revision" gorm:"type:varchar(32);default:''"`
+	IndexRevision   string      `json:"index_revision" gorm:"type:varchar(32);default:''"`
 }
 
 func (LibraryVersion) TableName() string { return "knowledge_document_version" }
@@ -55,6 +59,34 @@ type LibraryWorkbook struct {
 }
 
 func (LibraryWorkbook) TableName() string { return "knowledge_document_workbook" }
+
+// Postings can be rebuilt from immutable sections; terms are normalized SHA-256
+// keys, avoiding collation and index-width differences between SQL engines.
+type LibraryTerm struct {
+	Term      string `gorm:"type:varchar(64);primaryKey"`
+	SectionID int64  `gorm:"primaryKey;autoIncrement:false"`
+	VersionID int64  `gorm:"not null;index"`
+	Weight    int    `gorm:"not null"`
+}
+
+func (LibraryTerm) TableName() string { return "knowledge_document_term" }
+
+// Each generated section is derived from one exact source section. The parent
+// lease fences writes; retries retain already completed, unchanged sections.
+type LibraryDerivation struct {
+	SectionID    int64       `json:"section_id" gorm:"primaryKey;autoIncrement:false"`
+	VersionID    int64       `json:"version_id" gorm:"not null;index"`
+	SourceDigest string      `json:"source_digest" gorm:"type:varchar(64)"`
+	Recipe       string      `json:"recipe" gorm:"type:varchar(64)"`
+	Model        string      `json:"model" gorm:"type:varchar(255)"`
+	State        string      `json:"state" gorm:"type:varchar(32)"`
+	Content      LibraryText `json:"content"`
+	Attempts     int         `json:"attempts"`
+	NextRun      int64       `json:"-"`
+	Error        string      `json:"error" gorm:"type:varchar(500)"`
+}
+
+func (LibraryDerivation) TableName() string { return "knowledge_document_derivation" }
 func LibraryTables() []interface{} {
-	return []interface{}{&LibraryVersion{}, &LibrarySection{}, &LibraryWorkbook{}}
+	return []interface{}{&LibraryVersion{}, &LibrarySection{}, &LibraryWorkbook{}, &LibraryTerm{}, &LibraryDerivation{}}
 }

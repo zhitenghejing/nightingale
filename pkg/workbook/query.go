@@ -23,23 +23,30 @@ type Query struct {
 	Limit     int     `json:"limit"`
 }
 type Result struct {
-	Sheets       []Sheet  `json:"sheets,omitempty"`
-	Sheet        string   `json:"sheet,omitempty"`
-	Range        string   `json:"range,omitempty"`
-	Operation    string   `json:"operation"`
-	Column       string   `json:"column,omitempty"`
-	Filter       *Filter  `json:"filter,omitempty"`
-	Offset       int      `json:"offset"`
-	Limit        int      `json:"limit"`
-	Rows         [][]Cell `json:"rows"`
-	MatchedRows  int      `json:"matched_rows"`
-	ScannedRows  int      `json:"scanned_rows"`
-	NumericCells int      `json:"numeric_cells"`
-	Sum          string   `json:"sum,omitempty"`
-	Complete     bool     `json:"complete"`
-	Issues       []string `json:"issues"`
-	HasMore      bool     `json:"has_more"`
-	Warnings     []string `json:"warnings"`
+	MergedRanges []MergedRange `json:"merged_ranges,omitempty"`
+	Sheets       []Sheet       `json:"sheets,omitempty"`
+	Sheet        string        `json:"sheet,omitempty"`
+	Range        string        `json:"range,omitempty"`
+	Operation    string        `json:"operation"`
+	Column       string        `json:"column,omitempty"`
+	Filter       *Filter       `json:"filter,omitempty"`
+	Offset       int           `json:"offset"`
+	Limit        int           `json:"limit"`
+	Rows         [][]Cell      `json:"rows"`
+	MatchedRows  int           `json:"matched_rows"`
+	ScannedRows  int           `json:"scanned_rows"`
+	NumericCells int           `json:"numeric_cells"`
+	Sum          string        `json:"sum,omitempty"`
+	Complete     bool          `json:"complete"`
+	Issues       []string      `json:"issues"`
+	HasMore      bool          `json:"has_more"`
+	Warnings     []string      `json:"warnings"`
+}
+
+type MergedRange struct {
+	Range       string `json:"range"`
+	Anchor      string `json:"anchor"`
+	AnchorValue string `json:"anchor_value"`
 }
 
 func (b *Book) Query(q Query) (*Result, error) {
@@ -85,6 +92,27 @@ func (b *Book) Query(q Query) (*Result, error) {
 	if q.Offset < 0 || q.Offset > MaxRows {
 		return nil, fmt.Errorf("offset 超限")
 	}
+	if q.Operation == "read" {
+		for _, merge := range s.Merges {
+			parts := strings.Split(merge, ":")
+			if len(parts) != 2 {
+				continue
+			}
+			mc1, mr1, e1 := excelize.CellNameToCoordinates(parts[0])
+			mc2, mr2, e2 := excelize.CellNameToCoordinates(parts[1])
+			if e1 != nil || e2 != nil || mc2 < c1 || mc1 > c2 || mr2 < r1 || mr1 > r2 {
+				continue
+			}
+			entry := MergedRange{Range: merge, Anchor: parts[0]}
+			for _, cell := range s.Cells {
+				if cell.Address == entry.Anchor {
+					entry.AnchorValue = cell.Value
+					break
+				}
+			}
+			r.MergedRanges = append(r.MergedRanges, entry)
+		}
+	}
 	if q.Limit == 0 {
 		q.Limit = 50
 	}
@@ -124,6 +152,12 @@ func (b *Book) Query(q Query) (*Result, error) {
 		r.ScannedRows++
 		cells := byRow[row]
 		if len(cells) == 0 {
+			if q.Operation == "sum" && q.Filter == nil {
+				r.Complete = false
+				if len(r.Issues) < 20 {
+					r.Issues = append(r.Issues, fmt.Sprintf("第 %d 行求和值为空", row))
+				}
+			}
 			continue
 		}
 		if q.Filter != nil {

@@ -3,6 +3,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -123,4 +124,197 @@ func TestKnowledgeSampleAgeUsesSourceTimeNotQueryTime(t *testing.T) {
 	require.Len(t, checks, 1)
 	require.Equal(t, float64(12), checks[0]["lag_seconds"])
 	require.Empty(t, knowledgeSampleAges(`{"data":[]}`))
+}
+
+func TestKnowledgeInventoryCountsWholeDatabaseAndKeepsIdentity(t *testing.T) {
+	d := knowledgeDataFixture(t)
+	for i := 0; i < 121; i++ {
+		osName := "linux"
+		if i >= 80 {
+			osName = "windows"
+		}
+		require.NoError(t, d.DBCtx.DB.Create(&models.Target{Ident: fmt.Sprintf("kb-count-%03d", i), HostIp: "10.9.9.9", OS: osName}).Error)
+	}
+	raw, err := queryKnowledgeData(t.Context(), d, map[string]interface{}{"operation": "target_statistics", "query": "kb-count-", "group_by": "os", "limit": float64(2)}, map[string]string{"user_id": "1"})
+	require.NoError(t, err)
+	var receipt aiagent.KnowledgeDataEvidence
+	require.NoError(t, json.Unmarshal([]byte(raw), &receipt))
+	var result struct {
+		Total  int64 `json:"total"`
+		Groups []struct {
+			Value string `json:"value"`
+			Count int64  `json:"count"`
+		} `json:"groups"`
+		Complete bool `json:"count_complete"`
+	}
+	require.NoError(t, json.Unmarshal(receipt.Result, &result))
+	require.EqualValues(t, 121, result.Total)
+	require.True(t, result.Complete)
+	require.EqualValues(t, 80, result.Groups[0].Count)
+	require.EqualValues(t, 41, result.Groups[1].Count)
+	require.NoError(t, CheckKnowledgeDataAccess(t.Context(), d, 1, receipt))
+	require.NoError(t, d.DBCtx.DB.Model(&models.User{}).Where("id=1").Update("disabled", 1).Error)
+	require.Error(t, CheckKnowledgeDataAccess(t.Context(), d, 1, receipt))
+}
+
+func TestKnowledgeInventoryScopesCountsAndInvalidatesRevokedMembership(t *testing.T) {
+	d := knowledgeDataFixture(t)
+	db := d.DBCtx.DB
+	require.NoError(t, db.AutoMigrate(&models.UserGroupMember{}, &models.BusiGroupMember{}))
+	require.NoError(t, db.Model(&models.User{}).Where("id=1").Update("roles", "Standard").Error)
+	require.NoError(t, db.Create(&models.UserGroupMember{UserId: 1, GroupId: 10}).Error)
+	require.NoError(t, db.Create(&models.BusiGroupMember{UserGroupId: 10, BusiGroupId: 20, PermFlag: "ro"}).Error)
+	for i, ident := range []string{"visible-device", "hidden-device"} {
+		require.NoError(t, db.Create(&models.Target{Ident: ident, OS: "linux"}).Error)
+		require.NoError(t, db.Create(&models.TargetBusiGroup{TargetIdent: ident, GroupId: int64(20 + i)}).Error)
+	}
+	raw, err := queryKnowledgeData(t.Context(), d, map[string]interface{}{"operation": "target_statistics", "query": ""}, map[string]string{"user_id": "1"})
+	require.NoError(t, err)
+	var receipt aiagent.KnowledgeDataEvidence
+	require.NoError(t, json.Unmarshal([]byte(raw), &receipt))
+	require.Contains(t, string(receipt.Result), `"total":1`)
+	require.NoError(t, CheckKnowledgeDataAccess(t.Context(), d, 1, receipt))
+	require.NoError(t, db.Where("user_id=1").Delete(&models.UserGroupMember{}).Error)
+	require.Error(t, CheckKnowledgeDataAccess(t.Context(), d, 1, receipt))
+	raw, err = queryKnowledgeData(t.Context(), d, map[string]interface{}{"operation": "target_statistics", "query": ""}, map[string]string{"user_id": "1"})
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal([]byte(raw), &receipt))
+	require.Contains(t, string(receipt.Result), `"total":0`)
+}
+
+func TestKnowledgeInventoryRejectsTruncatedFilterInsteadOfCountingWiderScope(t *testing.T) {
+	d := knowledgeDataFixture(t)
+	for _, ident := range []string{"kb-count-001", "kb-count-002", "kb-countX-003"} {
+		require.NoError(t, d.DBCtx.DB.Create(&models.Target{Ident: ident}).Error)
+	}
+	p := map[string]string{"user_id": "1", "user_input": "平台当前设备库中kb-count-有多少台？"}
+	_, err := queryKnowledgeData(t.Context(), d, map[string]interface{}{"operation": "target_statistics", "query": "kb-count"}, p)
+	require.ErrorContains(t, err, "完整")
+	raw, err := queryKnowledgeData(t.Context(), d, map[string]interface{}{"operation": "target_statistics", "query": "kb-count-"}, p)
+	require.NoError(t, err)
+	var receipt aiagent.KnowledgeDataEvidence
+	require.NoError(t, json.Unmarshal([]byte(raw), &receipt))
+	var result struct {
+		Total int64 `json:"total"`
+	}
+	require.NoError(t, json.Unmarshal(receipt.Result, &result))
+	require.EqualValues(t, 2, result.Total)
+	p["user_input"] = "按kb-count查询，kb-count-只是其中一组"
+	_, err = queryKnowledgeData(t.Context(), d, map[string]interface{}{"operation": "target_statistics", "query": "kb-count"}, p)
+	require.NoError(t, err, "an explicitly requested wider literal remains allowed")
+}
+
+func TestInventoryTotalDoesNotInjectUnrequestedOSGroups(t *testing.T) {
+	d := knowledgeDataFixture(t)
+	require.NoError(t, d.DBCtx.DB.Create(&models.Target{Ident: "sample", OS: ""}).Error)
+	raw, err := queryKnowledgeData(t.Context(), d, map[string]interface{}{"operation": "target_statistics", "query": ""}, map[string]string{"user_id": "1"})
+	require.NoError(t, err)
+	var receipt aiagent.KnowledgeDataEvidence
+	require.NoError(t, json.Unmarshal([]byte(raw), &receipt))
+	var result struct {
+		Total  int           `json:"total"`
+		Group  string        `json:"group_by"`
+		Groups []interface{} `json:"groups"`
+	}
+	require.NoError(t, json.Unmarshal(receipt.Result, &result))
+	require.Equal(t, 1, result.Total)
+	require.Empty(t, result.Group)
+	require.Empty(t, result.Groups)
+}
+
+func TestTargetStatisticsNormalizesOnlyUnambiguousDimensionAlias(t *testing.T) {
+	d := knowledgeDataFixture(t)
+	require.NoError(t, d.DBCtx.DB.Create(&models.Target{Ident: "one", AgentVersion: "v1"}).Error)
+	require.NoError(t, d.DBCtx.DB.Create(&models.Target{Ident: "two", AgentVersion: "v2"}).Error)
+	for _, args := range []map[string]interface{}{
+		{"operation": "target_statistics", "query": "", "table": "agent_version"},
+		{"operation": "target_statistics", "query": "", "group_by": "agent_version"},
+		{"operation": "target_statistics", "query": "", "group_by": "agent_version", "table": "agent_version"},
+	} {
+		raw, err := queryKnowledgeData(t.Context(), d, args, map[string]string{"user_id": "1"})
+		require.NoError(t, err)
+		require.Contains(t, raw, `"group_by":"agent_version"`)
+		require.Contains(t, raw, `"value":"v1"`)
+		require.Contains(t, raw, `"value":"v2"`)
+		if args["table"] != nil {
+			require.Contains(t, raw, `"normalized_arguments":{"table":"group_by=agent_version"}`)
+		}
+	}
+	for _, args := range []map[string]interface{}{
+		{"operation": "target_statistics", "query": "", "table": "target"},
+		{"operation": "target_statistics", "query": "", "table": "agent_version; DROP TABLE target"},
+		{"operation": "target_statistics", "query": "", "table": "os", "group_by": "agent_version"},
+		{"operation": "target_statistics", "query": "", "table": "agent_version", "sql": "SELECT 1"},
+		{"operation": "target_statistics", "query": "", "database": "postgres"},
+	} {
+		_, err := queryKnowledgeData(t.Context(), d, args, map[string]string{"user_id": "1"})
+		require.Error(t, err)
+	}
+}
+
+func TestTargetStatisticsToolRequiresExplicitScopeAndCountsOnlyThatScope(t *testing.T) {
+	d := knowledgeDataFixture(t)
+	for _, target := range []models.Target{
+		{Ident: "scope-001", AgentVersion: "v1"},
+		{Ident: "scope-002", AgentVersion: "v2"},
+		{Ident: "scopeX-003", AgentVersion: "outside"},
+	} {
+		require.NoError(t, d.DBCtx.DB.Create(&target).Error)
+	}
+	p := map[string]string{"user_id": "1", "user_input": "查scope-设备按agent_version分组"}
+	for _, raw := range []string{`{"query":"scope-"}`, `{"group_by":"agent_version"}`, `{"query":123}`, `{"query":"scope-","table":"agent_version"}`, `{"query":"scope-","group_by":"agent_version","time_range":"15m"}`} {
+		_, handled, err := aiagent.ExecuteBuiltinTool(t.Context(), d, "target_statistics", p, raw)
+		require.True(t, handled)
+		require.Error(t, err)
+	}
+	raw, handled, err := aiagent.ExecuteBuiltinTool(t.Context(), d, "target_statistics", p, `{"query":"scope-","group_by":"agent_version"}`)
+	require.True(t, handled)
+	require.NoError(t, err)
+	var receipt aiagent.KnowledgeDataEvidence
+	require.NoError(t, json.Unmarshal([]byte(raw), &receipt))
+	require.Equal(t, "scope-", receipt.Query)
+	require.Equal(t, "target_statistics", receipt.Operation)
+	require.NoError(t, CheckKnowledgeDataAccess(t.Context(), d, 1, receipt))
+	var result struct {
+		Total  int    `json:"total"`
+		Group  string `json:"group_by"`
+		Groups []struct {
+			Value string `json:"value"`
+			Count int    `json:"count"`
+		} `json:"groups"`
+	}
+	require.NoError(t, json.Unmarshal(receipt.Result, &result))
+	require.Equal(t, 2, result.Total)
+	require.Equal(t, "agent_version", result.Group)
+	require.Len(t, result.Groups, 2)
+	for _, g := range result.Groups {
+		require.NotEqual(t, "outside", g.Value)
+		require.Equal(t, 1, g.Count)
+	}
+	_, err = queryKnowledgeData(t.Context(), d, map[string]interface{}{"operation": "target_statistics", "group_by": "agent_version"}, p)
+	require.ErrorContains(t, err, "显式提供query")
+}
+
+func TestDedicatedStatisticsExplicitTotal(t *testing.T) {
+	d := knowledgeDataFixture(t)
+	raw, handled, err := aiagent.ExecuteBuiltinTool(t.Context(), d, "target_statistics", map[string]string{"user_id": "1"}, `{"query":"","group_by":"none"}`)
+	require.True(t, handled)
+	require.NoError(t, err)
+	require.Contains(t, raw, `"group_by":""`)
+}
+
+func TestKnowledgeDataReauthorizationUsesCancellationForEveryReceipt(t *testing.T) {
+	d := knowledgeDataFixture(t)
+	raw, err := queryKnowledgeData(t.Context(), d, map[string]interface{}{"operation": "target_statistics", "query": ""}, map[string]string{"user_id": "1"})
+	require.NoError(t, err)
+	var receipt aiagent.KnowledgeDataEvidence
+	require.NoError(t, json.Unmarshal([]byte(raw), &receipt))
+	require.NoError(t, CheckKnowledgeDataAccess(t.Context(), d, 1, receipt))
+	canceled, cancel := context.WithCancel(t.Context())
+	cancel()
+	require.Error(t, CheckKnowledgeDataAccess(canceled, d, 1, receipt))
+	datasourceReceipt := aiagent.KnowledgeDataEvidence{Operation: "list_metrics", DatasourceIDs: []int64{1}}
+	require.NoError(t, CheckKnowledgeDataAccess(t.Context(), d, 1, datasourceReceipt))
+	require.Error(t, CheckKnowledgeDataAccess(canceled, d, 1, datasourceReceipt))
+	require.NoError(t, CheckKnowledgeDataAccess(t.Context(), d, 1, receipt), "canceled projection must not mutate shared ToolDeps")
 }

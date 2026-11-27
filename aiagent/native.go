@@ -2,11 +2,13 @@ package aiagent
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/ccfos/nightingale/v6/aiagent/llm"
+	"github.com/ccfos/nightingale/v6/pkg/modeloutput"
 
 	"github.com/toolkits/pkg/logger"
 )
@@ -52,16 +54,17 @@ func (a *Agent) executeNative(ctx context.Context, req *AgentRequest, rc *runCtx
 		len(messages), len(systemPrompt), len(userMessage), len(req.History), len(rc.tools), req.StreamChan != nil)
 
 	return a.runNativeLoop(ctx, req, messages, buildNativeToolDefs(rc.tools), &ToolLoopConfig{
-		MaxIterations:        a.maxIterationsForSkills(rc),
-		MaxToolCalls:         a.cfg.MaxToolCalls,
-		FinishOnToolBudget:   a.cfg.FinishOnToolBudget,
-		TimeoutMessage:       "agent execution timeout",
-		LogPrefix:            "AI Agent(native)",
-		Tools:                rc.tools,
-		StreamChan:           req.StreamChan,
-		RequestID:            requestID,
-		ExtractPartialResult: true,
-		EmitTranscript:       true, // 顶层 chat：本轮 transcript 持久化以供下一轮回放
+		GuardEvidenceProgress: a.cfg.GuardEvidenceProgress,
+		MaxIterations:         a.maxIterationsForSkills(rc),
+		MaxToolCalls:          a.cfg.MaxToolCalls,
+		FinishOnToolBudget:    a.cfg.FinishOnToolBudget,
+		TimeoutMessage:        "agent execution timeout",
+		LogPrefix:             "AI Agent(native)",
+		Tools:                 rc.tools,
+		StreamChan:            req.StreamChan,
+		RequestID:             requestID,
+		ExtractPartialResult:  true,
+		EmitTranscript:        true, // 顶层 chat：本轮 transcript 持久化以供下一轮回放
 	})
 }
 
@@ -72,6 +75,10 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 	resp := &AgentResponse{Steps: []ToolStep{}}
 	streaming := config.StreamChan != nil
 	dedup := newTurnWriteDeduper() // 写类工具幂等：整个循环（跨迭代）内同名同参只执行一次
+	readonlyFailures := map[string]int{}
+	protocolRepaired := false
+	progress := newEvidenceProgress()
+	lastSourceRound := false
 
 	for iteration := 0; iteration < config.MaxIterations; iteration++ {
 		select {
@@ -82,8 +89,27 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 		default:
 		}
 
-		content, calls, thinking, err := a.callLLMNative(ctx, messages, toolDefs, config.StreamChan, config.RequestID, req.Params["lang"])
+		callCtx := ctx
+		cancelCall := func() {}
+		if config.GuardEvidenceProgress && lastSourceRound && progress.hasEvidence() {
+			if deadline, ok := ctx.Deadline(); ok {
+				cutoff := deadline.Add(-120 * time.Second)
+				if time.Until(cutoff) <= 0 {
+					return a.finishEvidenceCollection(ctx, req, messages, config, resp, iteration)
+				}
+				callCtx, cancelCall = context.WithDeadline(ctx, cutoff)
+			}
+		}
+		llmStart := time.Now()
+		content, calls, thinking, err := a.callLLMNative(callCtx, messages, toolDefs, config.StreamChan, config.RequestID, req.Params["lang"])
+		llmDuration := time.Since(llmStart).Milliseconds()
+		planningExpired := callCtx.Err() != nil && ctx.Err() == nil
+		cancelCall()
+		if planningExpired && config.GuardEvidenceProgress && progress.hasEvidence() {
+			return a.finishEvidenceCollection(ctx, req, messages, config, resp, iteration)
+		}
 		if err != nil {
+			emitTranscript(config, ChatMessage{Role: "assistant", DurationMS: llmDuration, FailureClass: "model_call_failed"})
 			resp.Error = fmt.Sprintf("LLM call failed at iteration %d: %v", iteration, err)
 			resp.Iterations = iteration
 			return resp
@@ -93,6 +119,20 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 
 		// 无工具调用 = 最终答案（原生协议的天然完成信号）。
 		if len(calls) == 0 {
+			if modeloutput.ProtocolOnly(content) {
+				// Preserve the real malformed response, but keep the corrective
+				// instruction out of canonical history and evidence boundaries.
+				emitTranscript(config, ChatMessage{Role: "assistant", Content: content, ThinkingBlocks: thinking})
+				if !protocolRepaired && iteration+1 < config.MaxIterations && ctx.Err() == nil && (config.MaxToolCalls <= 0 || len(resp.Steps) < config.MaxToolCalls) {
+					protocolRepaired = true
+					resp.ProtocolRecoveries++
+					messages = append(messages, ChatMessage{Role: "assistant", Content: content, ThinkingBlocks: thinking}, ChatMessage{Role: "user", Content: "上一轮仅返回协议标记或空白，未形成可见答案。请按原生tools结构继续原问题所需的工具调用，或依据已取得证据回答；证据不足时说明具体缺口。遵守当前工具权限和审批，不重复已执行的写操作，不要将工具标记当作正文。"})
+					continue
+				}
+				resp.Error = "模型未形成可核对的可见答复。"
+				resp.Iterations = iteration + 1
+				return resp
+			}
 			resp.Content = content
 			resp.contentStreamed = streaming // 正文已逐 token 走 StreamTypeContent，Done 不再推流
 			resp.Iterations = iteration + 1
@@ -121,7 +161,8 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 
 		// ThinkingBlocks 随 assistant 轮进入上下文与 transcript：Anthropic 系开启
 		// thinking 后，续轮回填这些块（带签名）是 API 硬性要求。
-		asstTurn := ChatMessage{Role: "assistant", Content: content, ToolCalls: calls, ThinkingBlocks: thinking}
+		asstTurn := ChatMessage{Role: "assistant", Content: content, ToolCalls: calls, ThinkingBlocks: thinking, DurationMS: llmDuration}
+		progress.beginRound()
 		messages = append(messages, asstTurn)
 		turn := []ChatMessage{asstTurn}
 
@@ -142,6 +183,7 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 				return resp
 			}
 			step := ToolStep{Thought: content, Action: tc.Name, ActionInput: tc.Arguments}
+			toolStart := time.Now()
 
 			if streaming {
 				config.StreamChan <- &StreamChunk{
@@ -154,7 +196,17 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 			}
 
 			var observation string
-			if cached, hit := dedup.lookup(tc.Name, tc.Arguments); hit {
+			failureArgs := tc.Arguments
+			var parsedArgs map[string]interface{}
+			if json.Unmarshal([]byte(tc.Arguments), &parsedArgs) == nil {
+				if canonical, err := json.Marshal(parsedArgs); err == nil {
+					failureArgs = string(canonical)
+				}
+			}
+			failureKey := tc.Name + "\x00" + failureArgs
+			if !isWriteTool(tc.Name) && readonlyFailures[failureKey] >= 2 {
+				observation = "Error: 相同只读查询已连续失败两次；请按缺失字段修正参数，或说明该项未完成。此调用未执行。"
+			} else if cached, hit := dedup.lookup(tc.Name, tc.Arguments); hit {
 				// 同轮同名同参的写工具重复调用：复用首次结果，不重复落库。
 				observation = cached + "\n\n(本轮已用相同参数执行过该写操作，以上为首次执行结果，未重复执行)"
 			} else {
@@ -181,6 +233,9 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 					return resp
 				}
 				dedup.record(tc.Name, tc.Arguments, observation)
+				if !isWriteTool(tc.Name) && strings.HasPrefix(observation, "Error:") {
+					readonlyFailures[failureKey]++
+				}
 			}
 
 			// 工具渐进披露：load_skill 成功后把该
@@ -196,6 +251,8 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 					}
 				}
 			}
+			progress.observe(tc.Name, tc.Arguments, observation)
+			toolDuration := time.Since(toolStart).Milliseconds()
 			step.Observation = observation
 			resp.Steps = append(resp.Steps, step)
 
@@ -203,13 +260,13 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 				config.StreamChan <- &StreamChunk{
 					Type:      StreamTypeToolResult,
 					Content:   observation,
-					Metadata:  map[string]interface{}{"tool": tc.Name},
+					Metadata:  map[string]interface{}{"tool": tc.Name, "arguments": tc.Arguments},
 					RequestID: config.RequestID,
 					Timestamp: time.Now().UnixMilli(),
 				}
 			}
 
-			toolTurn := ChatMessage{Role: llm.RoleTool, ToolCallID: tc.ID, ToolName: tc.Name, Content: observation}
+			toolTurn := ChatMessage{Role: llm.RoleTool, ToolCallID: tc.ID, ToolName: tc.Name, Content: observation, DurationMS: toolDuration}
 			// messages 收的是投影副本：本轮观测在这里就按 LiveObservationCapBytes
 			// 收口，否则一次超大工具结果会原样留在 messages 里，被剩余每次迭代
 			// 重复送进请求（跨轮的 projectHistory 此时还够不着它）。turn 进
@@ -221,6 +278,13 @@ func (a *Agent) runNativeLoop(ctx context.Context, req *AgentRequest, messages [
 		// 结构化 transcript：assistant(tool_calls) + tool 结果轮成组持久化，
 		// 工具产物（如 proposal_id）下一轮直接以原生形态回放。
 		emitTranscript(config, turn...)
+		lastSourceRound = progress.endRound()
+		if config.GuardEvidenceProgress && lastSourceRound && progress.stalled() {
+			return a.finishEvidenceCollection(ctx, req, messages, config, resp, iteration+1)
+		}
+		if config.GuardEvidenceProgress && lastSourceRound && progress.warn() {
+			messages = append(messages, ChatMessage{Role: "user", Content: "上一轮取证没有增加新的来源、记录或单元格。逐项核对原问题要求的来源类别与字段：导入备注不等于已读取原台账，不同资料类别不能互相替代。先核对matched_records/read_documents；所需事实齐全就直接回答，仍缺来源或字段时只补查缺项，勿换关键词重复检索已有记录。参数类型报错先修正再继续，不要把未执行的调用说成已检索。"})
+		}
 		if config.FinishOnToolBudget && config.MaxToolCalls > 0 && len(resp.Steps) >= config.MaxToolCalls {
 			return a.finishNativeBudget(ctx, req, messages, config, resp, iteration+1)
 		}
@@ -488,13 +552,30 @@ func (a *Agent) executeNativeWithDone(ctx context.Context, req *AgentRequest, rc
 		// 评论），不再二次推流——否则回答整段重复。
 		done.Metadata = map[string]interface{}{"content_streamed": true}
 	}
+	if resp.ProtocolRecoveries > 0 {
+		if done.Metadata == nil {
+			done.Metadata = map[string]interface{}{}
+		}
+		done.Metadata["protocol_recoveries"] = resp.ProtocolRecoveries
+	}
 	streamChan <- done
 }
 
 // Only explicitly opted-in read workflows use this path. It makes one final
 // inference with no tools and never executes an unsolicited call from that reply.
 func (a *Agent) finishNativeBudget(ctx context.Context, req *AgentRequest, messages []ChatMessage, config *ToolLoopConfig, resp *AgentResponse, iterations int) *AgentResponse {
-	messages = append(messages, ChatMessage{Role: llm.RoleUser, Content: "本轮查询额度已用尽，请停止工具调用。直接回答用户最新问题，只依据已经取得的证据；明确未完成的查询和不能判断的事项，不复述整个历史故障，不把未知状态说成正常。"})
+	return a.finishNativeSummary(ctx, req, messages, config, resp, iterations, "本轮查询额度已用尽，请停止工具调用。", "\n\n本轮查询已达到上限，未完成的检查仍待核实。")
+}
+
+func (a *Agent) finishEvidenceCollection(ctx context.Context, req *AgentRequest, messages []ChatMessage, config *ToolLoopConfig, resp *AgentResponse, iterations int) *AgentResponse {
+	return a.finishNativeSummary(ctx, req, messages, config, resp, iterations, "取证未增加新记录或已到预留作答窗口，请停止工具调用。", "")
+}
+func (a *Agent) finishNativeSummary(ctx context.Context, req *AgentRequest, messages []ChatMessage, config *ToolLoopConfig, resp *AgentResponse, iterations int, reason, suffix string) *AgentResponse {
+	if ctx.Err() != nil {
+		resp.Error = config.TimeoutMessage
+		return resp
+	}
+	messages = append(messages, ChatMessage{Role: llm.RoleUser, Content: reason + "直接回答用户最新问题，只依据已经取得的证据；明确未完成的查询和不能判断的事项，不复述整个历史故障，不把未知状态说成正常。"})
 	content, calls, _, err := a.callLLMNative(ctx, messages, nil, config.StreamChan, config.RequestID, req.Params["lang"])
 	if err != nil {
 		resp.Error = fmt.Sprintf("final evidence summary failed: %v", err)
@@ -504,7 +585,11 @@ func (a *Agent) finishNativeBudget(ctx context.Context, req *AgentRequest, messa
 		resp.Error = "final evidence summary requested unavailable tools"
 		return resp
 	}
-	resp.Content = content + "\n\n本轮查询已达到上限，未完成的检查仍待核实。"
+	if modeloutput.ProtocolOnly(content) {
+		resp.Error = "模型未形成可核对的可见答复。"
+		return resp
+	}
+	resp.Content = content + suffix
 	resp.Success = true
 	resp.Iterations = iterations + 1
 	resp.contentStreamed = false

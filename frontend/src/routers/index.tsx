@@ -92,7 +92,6 @@ const MigrateDashboards = React.lazy(() => import('@/pages/help/migrate'));
 const VariableConfigs = React.lazy(() => import('@/pages/variableConfigs'));
 const SiteSettings = React.lazy(() => import('@/pages/siteSettings'));
 const CMDB = React.lazy(() => import('@/pages/cmdb'));
-const OpsCases = React.lazy(() => import('@/pages/opsCases'));
 const OpsKnowledge = React.lazy(() => import('@/pages/opsKnowledge'));
 const RackViews = React.lazy(() => import('@/pages/rackViews'));
 const Landing = React.lazy(() => import('@/pages/landing'));
@@ -261,7 +260,7 @@ export default function Content() {
           <Route exact path='/alert-cur-events/:eventId' component={EventDetail} />
           <Route exact path='/alert-his-events/:eventId' component={EventDetail} />
           <Route exact path='/targets/cmdb' component={CMDB} />
-          <Route exact path='/ops/cases/:id?' component={OpsCases} />
+          <Redirect exact from='/ops/cases/:id?' to='/ops/knowledge' />
           <Route exact path='/ops/knowledge' component={OpsKnowledge} />
           <Route exact path='/targets/racks' component={RackViews} />
 

@@ -2,11 +2,28 @@ package aiagent
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/ccfos/nightingale/v6/aiagent/llm"
 )
+
+func TestReadonlyQAStopsExecutingIdenticalFailedCalls(t *testing.T) {
+	calls := 0
+	name := "test_failed_read"
+	RegisterBuiltinTool(name, &BuiltinTool{Definition: AgentTool{Name: name, Type: ToolTypeBuiltin}, Handler: func(context.Context, *ToolDeps, map[string]interface{}, map[string]string) (string, error) {
+		calls++
+		return "", fmt.Errorf("missing range")
+	}})
+	t.Cleanup(func() { delete(builtinTools, name) })
+	fake := &scriptedNativeLLM{rounds: [][]llm.StreamChunk{{{ToolCalls: []llm.ToolCall{{ID: "1", Name: name, Arguments: "{}"}, {ID: "2", Name: name, Arguments: "{}"}, {ID: "3", Name: name, Arguments: "{}"}}}}, {{Content: "范围未提供，无法完成读取。"}}}}
+	a := NewAgent(&AgentConfig{RestrictTools: true, FinishOnToolBudget: true, MaxIterations: 5, MaxToolCalls: 5, Timeout: 3000, Tools: []AgentTool{{Name: name, Type: ToolTypeBuiltin}}}, WithLLMClient(fake))
+	response, err := a.Run(context.Background(), &AgentRequest{UserMessage: "读取"})
+	if err != nil || !response.Success || calls != 2 || !strings.Contains(response.Steps[2].Observation, "此调用未执行") {
+		t.Fatalf("repeated failures not bounded: calls=%d response=%+v err=%v", calls, response, err)
+	}
+}
 
 func TestRestrictedWorkflowDoesNotDispatchHiddenBuiltin(t *testing.T) {
 	calls := 0
