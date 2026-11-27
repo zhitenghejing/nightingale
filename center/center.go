@@ -250,6 +250,9 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 		if err = collectionStore.Migrate(); err != nil {
 			return nil, fmt.Errorf("initialize collection schema: %w", err)
 		}
+		if err = collectionStore.EnsureBuiltinCatalog(); err != nil {
+			return nil, fmt.Errorf("initialize bundled collection templates: %w", err)
+		}
 		if !config.Center.Collection.BackgroundDisabled {
 			if err = collectionStore.SyncReachability(); err != nil {
 				return nil, fmt.Errorf("initialize default ICMP collection: %w", err)
