@@ -14,6 +14,7 @@ import { DocumentAssets } from './assets';
 import { Projection, projectMarkdown, restoreMarkdown } from './markdown';
 import type { RichHandle } from './RichEditor';
 const RichEditor = React.lazy(() => import('./RichEditor'));
+const WorkbookReader = React.lazy(() => import('./WorkbookReader'));
 const PdfReader = React.lazy(() => import('./PdfReader'));
 import HistoryPanel, { plainText } from './HistoryPanel';
 import { openPrintWindow, printPdf } from './print';
@@ -102,7 +103,7 @@ export default function DocumentPage() {
     };
   }, [load]);
   useEffect(() => {
-    if (!doc || initialPage === undefined || (doc.kind === 'online' && lease)) return;
+    if (!doc || doc.kind === 'xlsx' || initialPage === undefined || (doc.kind === 'online' && lease)) return;
     const controller = new AbortController();
     let url = '';
     (async () => {
@@ -505,20 +506,22 @@ export default function DocumentPage() {
                 </>
               ) : (
                 <>
-                  <Button
-                    size='small'
-                    icon={<BookOutlined />}
-                    onClick={async () => {
-                      try {
-                        await api(`/documents/${doc.id}/bookmark`, 'PUT', { version_id: doc.version.id, position: { page } });
-                        message.success(`已保存第 ${page} 页阅读位置`);
-                      } catch (e) {
-                        message.error(errorText(e));
-                      }
-                    }}
-                  >
-                    保存书签
-                  </Button>
+                  {doc.kind !== 'xlsx' && (
+                    <Button
+                      size='small'
+                      icon={<BookOutlined />}
+                      onClick={async () => {
+                        try {
+                          await api(`/documents/${doc.id}/bookmark`, 'PUT', { version_id: doc.version.id, position: { page } });
+                          message.success(`已保存第 ${page} 页阅读位置`);
+                        } catch (e) {
+                          message.error(errorText(e));
+                        }
+                      }}
+                    >
+                      保存书签
+                    </Button>
+                  )}
                   {doc.file && (
                     <Button
                       size='small'
@@ -658,6 +661,8 @@ export default function DocumentPage() {
                 </div>
               </div>
             )
+          ) : doc.kind === 'xlsx' ? (
+            <WorkbookReader key={doc.version.id} documentID={doc.id} versionID={doc.version.id} />
           ) : doc.kind === 'docx' ? (
             wordBuffer ? (
               <>

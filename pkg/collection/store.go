@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ccfos/nightingale/v6/models"
+	"github.com/ccfos/nightingale/v6/pkg/remoteaccess"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -59,6 +60,7 @@ func (s Scope) Check(group int64, write bool) error {
 }
 
 type Store struct {
+	RemoteAccess  *remoteaccess.Store
 	DB            *gorm.DB
 	Keys          *Keyring
 	Writers       map[string]bool

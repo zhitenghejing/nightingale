@@ -1,4 +1,5 @@
-import React, { lazy, Suspense, useContext, useState } from 'react';
+import ConnectionModal from '@/pages/remoteAccess/ConnectionModal';
+import React, { lazy, Suspense, useContext, useEffect, useState } from 'react';
 import { Alert, Button, message, Modal, Space, Spin, Table, Tag, Tooltip } from 'antd';
 import type { ColumnType, TableProps } from 'antd/es/table';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +8,7 @@ import { Device, getDevice, setDeviceState } from '@/services/collection';
 import { deleteTargets } from '@/services/targets';
 import TargetMetaDrawer from '@/pages/targets/TargetMetaDrawer';
 import { errorText } from '@/pages/collection/errors';
+import { api, Features } from '@/pages/remoteAccess/api';
 import { NS } from '../../constants';
 import { Item, OperateType } from '../../types';
 import Tags from './Tags';
@@ -16,6 +18,7 @@ import './deviceInventory.less';
 
 const DeviceEditor = lazy(() => import('@/pages/collection/DeviceEditor'));
 const DeviceDetail = lazy(() => import('@/pages/collection/DeviceDetail'));
+const DeviceConsole = lazy(() => import('@/pages/remoteAccess/DeviceConsole'));
 export const COLUMN_WIDTHS_KEY = 'hosts-device-inventory-columns-v1';
 const defaultWidths = { name: 210, type: 135, model: 210, ip: 170, owner: 145, method: 145, reachability: 135, alerts: 210, groups: 170, tags: 250 };
 type ColumnKey = keyof typeof defaultWidths;
@@ -44,12 +47,26 @@ export default function DeviceInventoryTable({ tableProps, selectedRows, setSele
   const [widths, setWidths] = useState(readWidths);
   const [editing, setEditing] = useState<Device>();
   const [detail, setDetail] = useState<Item>();
+  const [configuration, setConfiguration] = useState<Item>();
+  const [consoleTarget, setConsoleTarget] = useState<Item>();
+  const [consoleFeatures, setConsoleFeatures] = useState<Features>();
   const [agent, setAgent] = useState<Item>();
   const [agentRevision, setAgentRevision] = useState(0);
   const [operation, setOperation] = useState(OperateType.None);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const can = (permission: string) => editable && (!!profile?.admin || !!perms?.includes(permission));
+  const canOpenTerminal = can('/remote-access/terminal');
+  useEffect(() => {
+    if (!canOpenTerminal) return;
+    let active = true;
+    api<Features>('features')
+      .then((features) => { if (active) setConsoleFeatures(features); })
+      .catch(() => { if (active) setConsoleFeatures(undefined); });
+    return () => { active = false; };
+  }, [canOpenTerminal]);
+  const showConsole = canOpenTerminal && !!(consoleFeatures?.terminal || consoleFeatures?.rdp);
+  const actionsWidth = showConsole ? 198 : 146;
   const canEdit = (row: Item) => can(row.collection ? '/collection/write' : '/targets/put');
   const canDelete = (row: Item) => can(row.collection ? '/collection/delete' : '/targets/del');
   const edit = async (row: Item) => {
@@ -134,8 +151,9 @@ export default function DeviceInventoryTable({ tableProps, selectedRows, setSele
       return tags.length ? <Tags type='outline' data={tags} onTagClick={onTagClick} /> : '—';
     }),
     {
-      key: 'actions', title: t('inventory.actions'), width: 144, fixed: 'right', className: 'device-inventory-actions',
+      key: 'actions', title: t('inventory.actions'), width: actionsWidth, fixed: 'right', className: 'device-inventory-actions',
       render: (_, row) => <Space size={4}>
+        {showConsole && <Button type='link' size='small' aria-label={`${t('terminal.console')} ${deviceName(row)}`} onClick={() => setConsoleTarget(row)}>{t('terminal.console')}</Button>}
         <Button type='link' size='small' aria-label={`${t('inventory.edit')} ${deviceName(row)}`} disabled={!canEdit(row)} loading={busy === row.ident} onClick={() => edit(row)}>{t('inventory.edit')}</Button>
         <Button type='link' size='small' danger aria-label={`${t('inventory.delete')} ${deviceName(row)}`} disabled={!canDelete(row)} onClick={() => remove(row)}>{t('inventory.delete')}</Button>
       </Space>,
@@ -149,10 +167,12 @@ export default function DeviceInventoryTable({ tableProps, selectedRows, setSele
       rowKey='id' size='small' tableLayout='fixed'
       components={{ header: { cell: ResizableHeaderCell } }}
       columns={columns}
-      scroll={{ x: Object.values(widths).reduce((sum, width) => sum + width, 184), y: 'calc(100% - 38px)' }}
+      scroll={{ x: Object.values(widths).reduce((sum, width) => sum + width, actionsWidth + 40), y: 'calc(100% - 38px)' }}
       rowSelection={{ columnWidth: 40, preserveSelectedRowKeys: true, selectedRowKeys: selectedRows.map((row) => row.id), onChange: (_, rows) => setSelectedRows(rows) }}
     />
+    {configuration && <ConnectionModal ident={configuration.ident} host={configuration.host_ip || configuration.ident} groups={configuration.group_ids || []} defaultProtocol={/windows/i.test(configuration.os || '') ? 'rdp' : 'ssh'} onClose={() => setConfiguration(undefined)} />}
     <Suspense fallback={<Spin />}>
+      {consoleTarget && showConsole && consoleFeatures && <DeviceConsole ident={consoleTarget.ident} name={deviceName(consoleTarget)} features={consoleFeatures} onClose={() => setConsoleTarget(undefined)} />}
       {detail && <DeviceDetail id={detail.collection?.device_id} target={detail} editable={editable} onClose={() => setDetail(undefined)} onChanged={onChanged} onEditNative={() => { setDetail(undefined); edit(detail); }} />}
       {editing && <DeviceEditor device={editing} onClose={() => setEditing(undefined)} onSaved={() => { setEditing(undefined); onChanged(); }} />}
     </Suspense>
@@ -162,6 +182,7 @@ export default function DeviceInventoryTable({ tableProps, selectedRows, setSele
         <Button onClick={() => setOperation(OperateType.UnbindTag)}>{t('unbind_tag.title')}</Button>
         <Button onClick={() => setOperation(OperateType.UpdateBusi)}>{t('update_busi.title')}</Button>
         <Button onClick={() => setOperation(OperateType.UpdateNote)}>{t('update_note.title')}</Button>
+        {can('/remote-access/connections/write') && <Button onClick={() => setConfiguration(agent)}>{t('terminal.configure')}</Button>}
       </Space>
     } />}
     {agent && operation !== OperateType.None && <OperationModal operateType={operation} setOperateType={setOperation} idents={[agent.ident]} reloadList={() => { setAgentRevision((value) => value + 1); onChanged(); }} />}

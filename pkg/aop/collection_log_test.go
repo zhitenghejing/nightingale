@@ -3,7 +3,7 @@ package aop
 import "testing"
 
 func TestCollectionBodiesCannotBeEnabledForLogging(t *testing.T) {
-	paths := []string{"/api/n9e/collection/credentials", "/api/n9e/collection/collectors", "/api/n9e/collection/devices/device-id", "/v1/n9e/collection/configs"}
+	paths := []string{"/api/n9e/remote-access/credentials", "/api/n9e/remote-access/connection?ident=a", "/api/n9e/collection/credentials", "/api/n9e/collection/collectors", "/api/n9e/collection/devices/device-id", "/v1/n9e/collection/configs"}
 	configured := map[string]struct{}{}
 	for _, p := range paths {
 		configured[p] = struct{}{}

@@ -85,6 +85,17 @@ func MergeOperationConf() error {
 const (
 	builtInOps = `
 ops:
+- name: RemoteAccess
+  cname: SSH Diagnostics
+  ops:
+    - name: /remote-access/connections/write
+      cname: SSH Connection - Configure
+    - name: /remote-access/credentials/write
+      cname: SSH Credential - Manage
+    - name: /remote-access/execute
+      cname: SSH Diagnostic - Execute
+    - name: /remote-access/terminal
+      cname: SSH Terminal - Open
 - name: Infrastructure
   cname: Infrastructure
   ops:

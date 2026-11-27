@@ -31,6 +31,7 @@ import (
 	"github.com/ccfos/nightingale/v6/pkg/cmdb"
 	"github.com/ccfos/nightingale/v6/pkg/collection"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
+	"github.com/ccfos/nightingale/v6/pkg/environment"
 	"github.com/ccfos/nightingale/v6/pkg/evallog"
 	"github.com/ccfos/nightingale/v6/pkg/externalpush"
 	"github.com/ccfos/nightingale/v6/pkg/flashduty"
@@ -38,6 +39,8 @@ import (
 	"github.com/ccfos/nightingale/v6/pkg/i18nx"
 	"github.com/ccfos/nightingale/v6/pkg/logx"
 	"github.com/ccfos/nightingale/v6/pkg/macros"
+	"github.com/ccfos/nightingale/v6/pkg/remoteaccess"
+	"github.com/ccfos/nightingale/v6/pkg/remotediag"
 	"github.com/ccfos/nightingale/v6/pkg/version"
 	"github.com/ccfos/nightingale/v6/prom"
 	"github.com/ccfos/nightingale/v6/pushgw/idents"
@@ -151,7 +154,11 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 
 	macros.RegisterMacro(macros.ExpandTimeFilter)
 	dscache.Init(ctx, false, config.Alert.Heartbeat.EngineName)
-	alert.Start(config.Alert, config.Pushgw, syncStats, alertStats, externalProcessors, targetCache, busiGroupCache, alertMuteCache, alertRuleCache, notifyConfigCache, taskTplCache, dsCache, ctx, promClients, userCache, userGroupCache, notifyRuleCache, notifyChannelCache, messageTemplateCache, configCvalCache)
+	// A diagnostics-only center can share inventory without evaluating rules or
+	// dispatching a second set of notifications. Honor the existing config flag.
+	if !config.Alert.Disable {
+		alert.Start(config.Alert, config.Pushgw, syncStats, alertStats, externalProcessors, targetCache, busiGroupCache, alertMuteCache, alertRuleCache, notifyConfigCache, taskTplCache, dsCache, ctx, promClients, userCache, userGroupCache, notifyRuleCache, notifyChannelCache, messageTemplateCache, configCvalCache)
+	}
 
 	writers := writer.NewWriters(config.Pushgw)
 
@@ -215,7 +222,17 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 	// categrafMeta 反查「机器指标写进了哪个数据源」要读 writer 地址；单独赋值而非
 	// 加进 New 的参数表，避免动到嵌入方（企业版）调用的函数签名。
 	centerRouter.Pushgw = config.Pushgw
+	if config.Center.RemoteDiagnostics.KeyFile != "" {
+		keys, e := remoteaccess.LoadKeyring(config.Center.RemoteDiagnostics.KeyFile)
+		if e != nil {
+			return nil, e
+		}
+		centerRouter.RemoteAccess = &remoteaccess.Store{DB: db, Keys: keys}
+		centerRouter.RemoteDiagnostics = remotediag.NewWithStore(config.Center.RemoteDiagnostics, centerRouter.RemoteAccess)
+	}
 	centerRouter.CMDB = &cmdb.API{Store: cmdbStore}
+	centerRouter.InitOps()
+	centerRouter.InitLibrary()
 	pushgwRouter := pushgwrt.New(config.HTTP, config.Pushgw, config.Alert, targetCache, busiGroupCache, idents, metas, writers, ctx)
 	collectionCancel := func() {}
 	collectionWait := func() {}
@@ -224,7 +241,7 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 		if keyErr != nil {
 			return nil, keyErr
 		}
-		collectionStore := &collection.Store{DB: db, Keys: keys, Writers: map[string]bool{}, MaxDevices: config.Center.Collection.MaxDevices, MaxBytes: config.Center.Collection.MaxConfigBytes, FutureSeconds: config.Center.Collection.FutureSeconds}
+		collectionStore := &collection.Store{DB: db, Keys: keys, RemoteAccess: centerRouter.RemoteAccess, Writers: map[string]bool{}, MaxDevices: config.Center.Collection.MaxDevices, MaxBytes: config.Center.Collection.MaxConfigBytes, FutureSeconds: config.Center.Collection.FutureSeconds}
 		for username := range config.HTTP.APIForAgent.BasicAuth {
 			if _, sharedServiceIdentity := config.HTTP.APIForService.BasicAuth[username]; !sharedServiceIdentity {
 				collectionStore.Writers[username] = true
@@ -236,8 +253,10 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 		if err = collectionStore.EnsureBuiltinCatalog(); err != nil {
 			return nil, fmt.Errorf("initialize bundled collection templates: %w", err)
 		}
-		if err = collectionStore.SyncReachability(); err != nil {
-			return nil, fmt.Errorf("initialize default ICMP collection: %w", err)
+		if !config.Center.Collection.BackgroundDisabled {
+			if err = collectionStore.SyncReachability(); err != nil {
+				return nil, fmt.Errorf("initialize default ICMP collection: %w", err)
+			}
 		}
 		centerRouter.Collection = collectionStore
 		centerRouter.CollectionStatus = &collection.StatusService{Store: collectionStore, StaleSeconds: config.Center.Collection.StaleSeconds, FutureSeconds: config.Center.Collection.FutureSeconds,
@@ -251,11 +270,13 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 			},
 		}
 		pushgwRouter.Collection = collectionStore
-		workerContext, cancel := context.WithCancel(context.Background())
-		collectionCancel = cancel
-		waitProbes := collectionStore.Run(workerContext)
-		waitArming := centerRouter.CollectionStatus.Run(workerContext)
-		collectionWait = func() { waitProbes(); waitArming() }
+		if !config.Center.Collection.BackgroundDisabled {
+			workerContext, cancel := context.WithCancel(context.Background())
+			collectionCancel = cancel
+			waitProbes := collectionStore.Run(workerContext)
+			waitArming := centerRouter.CollectionStatus.Run(workerContext)
+			collectionWait = func() { waitProbes(); waitArming() }
+		}
 	}
 
 	r := httpx.GinEngine(config.Global.RunMode, config.HTTP, configCvalCache.PrintBodyPaths, configCvalCache.PrintAccessLog)
@@ -275,6 +296,10 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 
 	externalPushClean := externalpush.StartWithKeys(ctx.Ctx, db, externalpush.NewFileKeys(config.Center.ExternalPushKeyFiles))
 	httpClean := httpx.Init(config.HTTP, r)
+	opsContext, opsCancel := context.WithCancel(ctx.Ctx)
+	opsWait := centerRouter.Ops.Start(opsContext)
+	libraryWait := centerRouter.Library.Start(opsContext)
+	environmentWait := (&environment.Store{DB: db}).Start(opsContext)
 
 	fmt.Printf("please view n9e at  http://%v:%v\n", config.Alert.Heartbeat.IP, config.HTTP.Port)
 	if isRootInit {
@@ -282,6 +307,10 @@ func Initialize(configDir string, cryptoKey string) (func(), error) {
 	}
 
 	return func() {
+		opsCancel()
+		opsWait()
+		libraryWait()
+		environmentWait()
 		// httpClean 优雅关闭：等在途请求处理完才返回，之后不再有 remote write
 		// 请求进到本地 tsdb，Close 不会与写入竞态
 		httpClean()

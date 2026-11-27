@@ -21,10 +21,27 @@ import { acquire, api, downloadBlob, downloadDocuments, errorText, exportDocumen
 import { openPrintWindow, printPdf } from './print';
 import MetadataForm, { categoryFields, getFieldLabel } from './MetadataForm';
 import HistoryPanel from './HistoryPanel';
+import { LibraryStatus, libraryAPI, LibraryDocument } from '../opsKnowledge/LibraryDocuments';
 export default function Detail() {
   const { id } = useParams<{ id: string }>();
   const history = useHistory();
   const [a, setA] = useState<Archive>();
+  const [knowledgeStatus, setKnowledgeStatus] = useState<LibraryDocument[]>([]);
+  useEffect(() => {
+    let active = true;
+    const load = () =>
+      libraryAPI<LibraryDocument[]>()
+        .then((rows) => {
+          if (active) setKnowledgeStatus(rows);
+        })
+        .catch(() => {});
+    load();
+    const timer = setInterval(load, 10000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [id]);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<Archive>();
   const [busy, setBusy] = useState(false);
@@ -304,7 +321,7 @@ export default function Detail() {
                     <>
                       {materialRequirement}
                       <br />
-                      支持 DOCX、PDF、PNG、JPG/JPEG；单份不超过 50 MB。
+                      支持 XLSX、DOCX、PDF、PNG、JPG/JPEG；单份不超过 50 MB。旧 XLS 请另存为 XLSX；Excel 只读，自动整理为知识。
                     </>
                   }
                 >
@@ -323,7 +340,7 @@ export default function Detail() {
               <Space className='archive-upload-actions' size={8}>
                 <Select value={purpose} onChange={setPurpose} options={purposes[a.category]} style={{ width: 128 }} />
                 <Upload
-                  accept='.docx,.pdf,.png,.jpg,.jpeg'
+                  accept='.xlsx,.docx,.pdf,.png,.jpg,.jpeg'
                   multiple
                   showUploadList={false}
                   beforeUpload={(file) => {
@@ -370,7 +387,7 @@ export default function Detail() {
                     key: 'edit',
                     text: d.kind === 'docx' ? '转在线编辑' : d.kind === 'pdf' ? '批注' : d.kind === 'image' ? '查看' : '编辑',
                     icon: d.kind === 'image' ? 'open' : 'edit',
-                    visible: !a.deleted,
+                    visible: !a.deleted && d.kind !== 'xlsx',
                     onClick: () => openDoc(d, true),
                   },
                 ],
@@ -380,7 +397,7 @@ export default function Detail() {
                     visible: !a.deleted && d.kind !== 'online',
                     node: (
                       <Upload
-                        accept='.docx,.pdf,.png,.jpg,.jpeg'
+                        accept='.xlsx,.docx,.pdf,.png,.jpg,.jpeg'
                         showUploadList={false}
                         beforeUpload={(f) => {
                           perform(() => replaceFile(d, f), '已替换并保留原版本');
@@ -411,6 +428,11 @@ export default function Detail() {
                   ),
                 },
                 { title: '用途', dataIndex: 'purpose', width: 124, render: (v) => purposes[a.category].find((p) => p.value === v)?.label || v },
+                {
+                  title: '知识整理',
+                  width: 210,
+                  render: (_, d) => <LibraryStatus item={knowledgeStatus.find((k) => k.document_id === d.id && k.source_version_id === d.version?.id)} />,
+                },
                 { title: '格式', dataIndex: 'kind', width: 96, render: (v) => <Tag>{v === 'online' ? '在线文档' : v === 'image' ? '图片' : v.toUpperCase()}</Tag> },
                 {
                   title: '主文档',
@@ -488,7 +510,7 @@ export default function Detail() {
                             { value: 'original', label: 'PDF 原件' },
                             { value: 'annotated_pdf', label: 'PDF（含批注）' },
                           ]
-                        : [{ value: 'original', label: d.kind === 'docx' ? 'Word 原件' : '图片原件' }]
+                        : [{ value: 'original', label: d.kind === 'docx' ? 'Word 原件' : d.kind === 'xlsx' ? 'Excel 原件' : '图片原件' }]
                     }
                   />
                 ),

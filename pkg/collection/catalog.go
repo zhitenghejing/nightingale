@@ -38,15 +38,16 @@ type DeviceField struct {
 	When     []FieldCondition `json:"when,omitempty"`
 }
 type CatalogDefinition struct {
-	Reachability  string              `json:"reachability"`
-	Adapter       string              `json:"adapter"`
-	Config        string              `json:"config"`
-	Fields        []DeviceField       `json:"fields"`
-	Notification  string              `json:"notification"`
-	Compatibility string              `json:"compatibility,omitempty"`
-	Execution     string              `json:"execution,omitempty"`
-	Pack          *ProfileDefinition  `json:"pack,omitempty"`
-	Notify        *NotificationPreset `json:"notify,omitempty"`
+	Reachability    string              `json:"reachability"`
+	Adapter         string              `json:"adapter"`
+	Config          string              `json:"config"`
+	Fields          []DeviceField       `json:"fields"`
+	Notification    string              `json:"notification"`
+	Compatibility   string              `json:"compatibility,omitempty"`
+	Execution       string              `json:"execution,omitempty"`
+	ConsoleProtocol string              `json:"console_protocol,omitempty"`
+	Pack            *ProfileDefinition  `json:"pack,omitempty"`
+	Notify          *NotificationPreset `json:"notify,omitempty"`
 }
 type CatalogRelease struct {
 	Version      int               `json:"version"`

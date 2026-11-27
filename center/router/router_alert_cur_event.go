@@ -9,8 +9,8 @@ import (
 
 	"github.com/ccfos/nightingale/v6/models"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
-	"github.com/ccfos/nightingale/v6/pkg/strx"
 	"github.com/ccfos/nightingale/v6/pkg/ginx"
+	"github.com/ccfos/nightingale/v6/pkg/strx"
 
 	"github.com/gin-gonic/gin"
 	"github.com/toolkits/pkg/logger"
@@ -253,7 +253,9 @@ func (rt *Router) alertCurEventGet(c *gin.Context) {
 	if !hasPermission {
 		rt.auth()(c)
 		rt.user()(c)
-		rt.bgroCheck(c, event.GroupId)
+		if event != nil {
+			rt.bgroCheckAllowMissing(c, event.GroupId)
+		}
 	}
 
 	ginx.NewRender(c).Data(event, err)

@@ -150,15 +150,48 @@ func TestDeviceRulesUseExplicitBindingsAndAuthorizedCurrentEvents(t *testing.T) 
 
 type detailProm struct {
 	prompkg.API
-	queries []string
+	queries   []string
+	noFailure bool
 }
 
 func (p *detailProm) QueryRange(_ context.Context, query string, span prompkg.Range) (model.Value, prompkg.Warnings, error) {
 	p.queries = append(p.queries, query)
-	if len(p.queries) == 1 {
+	if !p.noFailure && len(p.queries) == 1 {
 		return nil, nil, errors.New("query failed")
 	}
 	return model.Matrix{&model.SampleStream{Metric: model.Metric{"ident": "native-agent"}, Values: []model.SamplePair{{Timestamp: model.TimeFromUnixNano(span.End.UnixNano()), Value: 12.5}}}}, nil, nil
+}
+
+func TestNativeDeviceMetricsSkipDisabledSources(t *testing.T) {
+	r, rt, _ := detailFixture(t)
+	active, disabled := &detailProm{noFailure: true}, &detailProm{}
+	rt.PromClients = &prom.PromClientMap{ReaderClients: map[int64]prompkg.API{1: active, 2: disabled}}
+	rt.DatasourceCache = &memsto.DatasourceCacheType{}
+	rt.DatasourceCache.Set(map[int64]*models.Datasource{
+		1: {Id: 1, PluginType: "prometheus", Status: "enabled"},
+		2: {Id: 2, PluginType: "prometheus", Status: "disabled"},
+	}, 2, time.Now().Unix())
+	w := collectionCall(r, "GET", "/api/n9e/targets/device-metrics?ident=native-agent", nil, "collection-reader")
+	require.Equal(t, 200, w.Code, w.Body.String())
+	require.Len(t, active.queries, 5)
+	require.Empty(t, disabled.queries, "disabled datasource must not be queried")
+	var response struct {
+		Dat struct {
+			MetricErrors map[string]bool         `json:"metric_errors"`
+			Metrics      map[string]model.Matrix `json:"metrics"`
+		}
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &response))
+	require.Empty(t, response.Dat.MetricErrors)
+	require.Len(t, response.Dat.Metrics, 5)
+	for _, series := range response.Dat.Metrics {
+		require.Len(t, series, 1)
+		require.Equal(t, model.LabelValue("1"), series[0].Metric["datasource_id"])
+	}
+	rt.DatasourceCache.Set(map[int64]*models.Datasource{2: {Id: 2, PluginType: "prometheus", Status: "disabled"}}, 1, time.Now().Unix())
+	w = collectionCall(r, "GET", "/api/n9e/targets/device-metrics?ident=native-agent", nil, "collection-reader")
+	require.Equal(t, 503, w.Code, "no enabled datasource must remain unavailable, not a healthy empty result")
+	require.Empty(t, disabled.queries)
 }
 
 func TestNativeDeviceMetricsUseExactIdentAuthorizedSourcesAndRealSamples(t *testing.T) {

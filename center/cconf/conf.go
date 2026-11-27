@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ccfos/nightingale/v6/pkg/httpx"
+	remotediag "github.com/ccfos/nightingale/v6/pkg/remotediag/config"
 	"github.com/ccfos/nightingale/v6/pkg/sandbox"
 )
 
@@ -35,12 +36,23 @@ type Center struct {
 	AIAgent               AIAgent
 	Archives              ArchiveConfig
 	Collection            CollectionConfig
+	Ops                   OpsConfig
+	RemoteDiagnostics     remotediag.Config
 
 	// Sandbox isolates execution of user-uploaded Skill Python/Bash scripts
 	// (pkg/sandbox). Fail-open: non-Linux / insufficient kernel capabilities
 	// degrade to the unsafe-exec floor so scripts still run; set
 	// Sandbox.RequireIsolation=true to refuse execution without real isolation.
 	Sandbox sandbox.Config
+}
+
+// OpsConfig keeps production execution and model egress opt-in.
+type OpsConfig struct {
+	DataDir        string
+	ModelEnable    bool
+	AllowExecution bool
+	DemoEnable     bool
+	DemoURL        string
 }
 
 type AIAgent struct {
@@ -134,11 +146,13 @@ type ArchiveConfig struct {
 
 // CollectionConfig gates center-owned SNMP management and its dedicated provider route.
 type CollectionConfig struct {
-	Enable         bool
-	ProviderEnable bool
-	KeyFile        string
-	MaxDevices     int
-	MaxConfigBytes int
-	StaleSeconds   int
-	FutureSeconds  int
+	// BackgroundDisabled serves APIs on a secondary Center without duplicate collection workers.
+	BackgroundDisabled bool
+	Enable             bool
+	ProviderEnable     bool
+	KeyFile            string
+	MaxDevices         int
+	MaxConfigBytes     int
+	StaleSeconds       int
+	FutureSeconds      int
 }

@@ -14,9 +14,12 @@
  * limitations under the License.
  *
  */
-import React, { useContext, useState } from 'react';
+import React, { Suspense, useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SettingOutlined } from '@ant-design/icons';
+import { Spin } from 'antd';
+import { useLocation } from 'react-router-dom';
+import { prototypeHost } from '@/components/PrototypeSwitcher';
 import PageLayout from '@/components/pageLayout';
 import BusinessGroupSideBarWithAll, { getDefaultGids } from '@/components/BusinessGroup/BusinessGroupSideBarWithAll';
 import BlankBusinessPlaceholder from '@/components/BlankBusinessPlaceholder';
@@ -32,9 +35,13 @@ import './style.less';
 
 export { Add, Edit };
 
+const AlertOperationsPrototype = React.lazy(() => import('./prototype'));
+
 const N9E_GIDS_LOCALKEY = 'N9E_ALERT_NODE_ID';
 
 export default function index() {
+  const location = useLocation();
+  const showPrototype = prototypeHost() && new URLSearchParams(location.search).get('prototype') === 'operations';
   const { businessGroup } = useContext(CommonStateContext);
   const { t } = useTranslation('alertRules');
   const [gids, setGids] = useState<string | undefined>(getDefaultGids(N9E_GIDS_LOCALKEY, businessGroup));
@@ -54,7 +61,15 @@ export default function index() {
     >
       <div className='alert-rules-container'>
         <BusinessGroupSideBarWithAll gids={gids} setGids={handleSelectGids} localeKey={N9E_GIDS_LOCALKEY} />
-        {businessGroup.ids ? <List gids={gids} groupSwitchCount={groupSwitchCount} /> : <BlankBusinessPlaceholder text={t('title')} />}
+        {showPrototype ? (
+          <Suspense fallback={<Spin style={{ margin: 40 }} />}>
+            <AlertOperationsPrototype gids={gids} />
+          </Suspense>
+        ) : businessGroup.ids ? (
+          <List gids={gids} groupSwitchCount={groupSwitchCount} />
+        ) : (
+          <BlankBusinessPlaceholder text={t('title')} />
+        )}
       </div>
     </PageLayout>
   );

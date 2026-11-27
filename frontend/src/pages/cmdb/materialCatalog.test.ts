@@ -29,6 +29,14 @@ it('distinguishes the exact H3C switch from PoE, SI and later revisions', () => 
   for (const model of ['S5130S-28S-PWR-EI', 'S5130S-28S-SI', 'S5130S-28S-EI-R']) expect(matchMaterial({ ...device, model }).status).toBe('unmatched');
 });
 
+it('keeps imported U positions when inferred product artwork has a different height', () => {
+  const device = { ...base, model: 'R650' };
+  const options = { allowInferredHeightMismatch: true };
+  expect(attachMaterial(device, options)).toEqual(device);
+  expect(attachMaterial(base, options).assetMaterialId).toBe('dell-r750');
+  expect(() => attachMaterial({ ...device, assetMaterialId: 'dell-r650' }, options)).toThrow('1U');
+});
+
 it('finds a model by brand and short generation aliases in selectors', () => {
   const result = materials.filter((m) => searchMaterials('惠普 DL380 G10', m));
   expect(result.map((m) => m.id)).toEqual(['hpe-dl380-gen10']);

@@ -496,3 +496,26 @@ func TestLocalOnlyEndpointsNeverForwarded(t *testing.T) {
 		}
 	}
 }
+
+func TestProxyOverwritesUntrustedForwardedProtocol(t *testing.T) {
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(r.Header.Get("X-Forwarded-Proto"))) }))
+	defer backend.Close()
+	var ready atomic.Bool
+	ready.Store(true)
+	h := handler(manifest{}, backend.URL, &ready)
+	for _, tc := range []struct{ peer, forwarded, want string }{
+		{"192.0.2.10:1234", "https", "http"},
+		{"192.0.2.10:1234", "", "http"},
+		{"127.0.0.1:1234", "https", "https"},
+		{"127.0.0.1:1234", "http", "http"},
+	} {
+		req := httptest.NewRequest("GET", "/api/n9e/remote-access/features", nil)
+		req.RemoteAddr = tc.peer
+		req.Header.Set("X-Forwarded-Proto", tc.forwarded)
+		out := httptest.NewRecorder()
+		h.ServeHTTP(out, req)
+		if out.Code != 200 || out.Body.String() != tc.want {
+			t.Fatalf("peer %s forwarded %q: %d %q", tc.peer, tc.forwarded, out.Code, out.Body.String())
+		}
+	}
+}

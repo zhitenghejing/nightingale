@@ -1,4 +1,17 @@
 const en_US = {
+  terminal: {
+    console: 'Console',
+    configure: 'Configure device console',
+    connecting: 'Connecting to SSH…',
+    connected: 'Connected',
+    disconnected: 'Disconnected',
+    connection_required: 'Save and enable the console connection in the device form first.',
+    failed: 'Unable to open the SSH terminal',
+    input_limit: 'This paste was too large to send to the device.',
+    reconnect: 'Reconnect',
+    close: 'Close terminal',
+    account: 'Commands run as the device’s saved SSH account.',
+  },
   inventory: {
     owner: 'Owner',
     model: 'Device model',

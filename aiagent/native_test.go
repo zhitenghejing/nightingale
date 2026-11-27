@@ -506,3 +506,32 @@ func TestRunNativeLoop_InterruptAfterExecutedWrite(t *testing.T) {
 		t.Fatalf("tool turn = %+v, want paired result for the executed call", toolTurn)
 	}
 }
+
+func TestNativeReadonlyBudgetFinalizesWithoutExecutingPendingCalls(t *testing.T) {
+	fake := &scriptedNativeLLM{rounds: [][]llm.StreamChunk{
+		{{ToolCalls: []llm.ToolCall{{ID: "first", Name: "noop_lookup", Arguments: `{}`}, {ID: "pending", Name: "noop_lookup", Arguments: `{}`}}}},
+		{{Content: "已取得资料，实时状态仍未知。"}},
+	}}
+	a := &Agent{cfg: &AgentConfig{}, llmClient: fake}
+	stream := make(chan *StreamChunk, 30)
+	resp := a.runNativeLoop(context.Background(), &AgentRequest{}, nil, nil, &ToolLoopConfig{MaxIterations: 3, MaxToolCalls: 1, FinishOnToolBudget: true, EmitTranscript: true, StreamChan: stream})
+	close(stream)
+	if !resp.Success || len(resp.Steps) != 1 || !strings.Contains(resp.Content, "上限") {
+		t.Fatalf("budget response=%+v", resp)
+	}
+	pairs := 0
+	for c := range stream {
+		if c.Type == StreamTypeTranscript {
+			if len(c.Transcript) != 3 {
+				t.Fatalf("unpaired transcript: %+v", c.Transcript)
+			}
+			pairs++
+			if !strings.Contains(c.Transcript[2].Content, "未执行") {
+				t.Fatal("pending call was not marked unexecuted")
+			}
+		}
+	}
+	if pairs != 1 {
+		t.Fatalf("transcript count %d", pairs)
+	}
+}

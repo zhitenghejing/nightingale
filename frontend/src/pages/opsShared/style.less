@@ -1,0 +1,114 @@
+.ops-page {
+  padding: 16px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+  .ops-item code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .ops-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .ops-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+  .ops-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+  .ops-item {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--fc-border-color);
+  }
+  .ops-item:last-child {
+    border-bottom: 0;
+  }
+  .ops-meta {
+    color: var(--fc-text-3);
+    font-size: 12px;
+    margin: 6px 0;
+  }
+  .ops-text {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .ops-code {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 10px;
+    background: var(--fc-fill-2);
+  }
+  .ant-card {
+    min-width: 0;
+  }
+  .ant-descriptions-item-content {
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 600px) {
+    padding: 8px;
+    .ops-toolbar > * {
+      max-width: 100%;
+    }
+    .ops-toolbar .ant-select {
+      min-width: 0 !important;
+      max-width: 100%;
+    }
+    .ant-card-body {
+      padding: 12px;
+    }
+    .ant-card-head {
+      padding: 0 12px;
+    }
+    .ant-card-head-wrapper {
+      flex-wrap: wrap;
+    }
+    .ant-card-head-title {
+      white-space: normal;
+    }
+    .ant-card-extra {
+      max-width: 100%;
+      margin-left: 0;
+      padding-top: 0;
+    }
+    .ant-space {
+      flex-wrap: wrap;
+    }
+    .ant-tabs-nav-wrap {
+      max-width: 100%;
+    }
+    .ant-table {
+      min-width: 580px;
+    }
+  }
+  @media (max-width: 1000px) {
+    .ops-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+.ops-editor {
+  .ant-space {
+    flex-wrap: wrap;
+    max-width: 100%;
+  }
+  .ops-field-block {
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid var(--fc-border-color);
+    border-radius: 4px;
+  }
+}

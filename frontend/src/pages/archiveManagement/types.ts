@@ -1,5 +1,5 @@
 export type Category = 'training' | 'inspection' | 'incident' | 'other';
-export type DocKind = 'online' | 'docx' | 'pdf' | 'image';
+export type DocKind = 'online' | 'docx' | 'pdf' | 'image' | 'xlsx';
 export type DownloadFormat = 'pdf' | 'docx' | 'pdf_and_docx' | 'original' | 'annotated_pdf';
 export interface DocumentDownload {
   document_id: number;

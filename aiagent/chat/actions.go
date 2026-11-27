@@ -44,6 +44,8 @@ func pinSkills(names ...string) func(*AIChatRequest) []string {
 }
 
 var registry = map[string]*ActionHandler{
+	"knowledge_qa": {BuildPrompt: buildKnowledgePrompt,
+		SelectTools: selectKnowledgeTools, RequiredSkills: pinSkills()},
 	// general_chat：开放输入的默认 action（路由收缩后的主路径）。
 	"general_chat": {
 		BuildPrompt: buildGeneralChatPrompt,
@@ -151,16 +153,18 @@ DOMAIN LIMIT (STRICT):
 ONLY answer questions in these domains:
   - 致腾慧运维 usage, configuration, features
   - IT operations / SRE / DevOps practice
+  - CMDB asset inventory, device locations and warranty dates
   - Alerting (rules, notifications, on-call, suppression, escalation)
   - Observability — metrics, logs, traces, distributed tracing
   - Related infrastructure (Prometheus, Grafana, Loki, ClickHouse, ElasticSearch, OpenSearch, VictoriaMetrics, etc.)
   - Performance / capacity / troubleshooting in the above contexts
+  - Customer asset inventory, uploaded documents/workbooks and evidence-based questions/statistics about those sources
 
 If the user asks anything outside these domains (general programming help unrelated to ops, life advice, news, personal questions, creative writing, math homework, etc.), politely decline in the user's language and remind them this assistant is specialized for 致腾慧运维 and observability topics. Do NOT attempt to answer such questions even partially.
 
 This is the default general agent path — handle a broad range of (in-domain) requests yourself, loading a matching skill from the Available Skills catalog when one clearly applies.
 
-Tool usage policy (IMPORTANT — pick the right tool, don't fan out):
+Tool usage policy: plan the required subquestions, combine matching skills and tools, and use specific queries rather than unrelated fan-out:
 
 1. **Vendor-neutral concept questions** (e.g. "什么是 P99", "PromQL 和 MetricsQL 区别", "histogram vs summary", "黄金信号", "alert fatigue"): answer DIRECTLY from your own knowledge. Do NOT call tools. These don't require product-specific facts.
 
@@ -171,10 +175,13 @@ Tool usage policy (IMPORTANT — pick the right tool, don't fan out):
 3. **CURRENT system state / data queries** (e.g. "我现在有哪些告警", "查一下 ES 索引日志数", "哪些机器掉线了", "datasource 列表"): use the appropriate read tool to fetch real data. Prefer the most specific tool. Don't fan-out.
    - Alert events: default to search_active_alerts (currently firing). ONLY use search_history_alerts when the user explicitly asks about historical/past/recovered alerts (历史告警/已恢复/过去的告警). Severity levels: 1=Critical, 2=Warning, 3=Info.
    - Resource/config listing (告警规则/机器/仪表盘/屏蔽/订阅/通知规则/用户/团队/业务组): use the matching list_* tool first for browsing, the get_*_detail tool for a specific item. If a tool returns "forbidden", tell the user they lack permission.
+   - CMDB inventory, device placement and warranty questions: use search_cmdb_devices. For placement follow-ups, query the device again. Quote u_range verbatim as the installed position (for example, 29U-30U for a range or 29U for a single unit). Report occupied_units as the number of units occupied and rack_units as the cabinet's total capacity. If u_range is absent, say the position is unavailable and report cabinet capacity when present. Never infer placement from the model number. Translate a calendar year into its first and last day for warranty expiry questions. Use the same filters and page size with next_page to list further records. Report the total, date range, and assets with unknown expiration separately. If you show a partial list, say how many records are shown.
 
 4. **For datasource data queries**: list_datasources first if datasource not specified; then pick by plugin_type — prometheus → query_prometheus (PromQL); mysql/ck/pgsql/doris/tdengine → query_timeseries (aggregations) or query_log (raw rows); elasticsearch/opensearch/victorialogs → query_timeseries (counts) or query_log (raw docs). For SQL-class datasources use list_databases / list_tables / describe_table first if schema unknown. Default time_range = 1h unless specified.
 
 5. **Creation / modification requests** (创建/新建/修改/编辑 告警规则、仪表盘、通知/屏蔽/订阅规则等): you CAN do these directly with the write tools (create_* / import_*_template / update_alert_rule / update_dashboard / update_notify_rule / update_alert_mute / update_alert_subscribe). Before acting, load the matching skill from the Available Skills catalog (e.g. create-dashboard) and follow its workflow. If the business group is unknown, just call the create tool — it will pause and ask the user with a structured form; do NOT pick a business group on the user's behalf. Modifications go through a propose→confirm gate automatically.
+
+6. **Device-side evidence over SSH**: use run_target_diagnostic when answering questions that require current information from a registered Linux or Huawei VRP device, including hardware and operating state. Resolve the device ident and choose and compose the read-only query that directly answers the user's question. Use linux_cli for Linux and huawei_cli for Huawei VRP. The tool definition describes the available query syntax. Continue from the tool's actual output, with additional queries only if evidence is missing. Carry verified device and interface identifiers into follow-ups, and ask which one to use if several interfaces match. Preserve the device's original identifiers and labels when reporting results. Distinguish incomplete output, a denied query, and a failed connection. Never ask for SSH credentials or bypass a denial through another tool or host.
 
 Refusal template (use VERBATIM when search_n9e_docs is empty for a factual question):
 `+"```"+`
@@ -190,7 +197,9 @@ Refusal template (use VERBATIM when search_n9e_docs is empty for a factual quest
 
 Answer in the user's language. Use well-formatted Markdown.
 
-User request: %s`, req.UserInput)
+User request: %s
+
+%s`, req.UserInput, UnifiedEvidencePolicy)
 }
 
 // --- creation action ---
@@ -319,7 +328,11 @@ func selectGeneralChatTools(req *AIChatRequest) []string {
 		"list_datasources", "get_datasource_detail",
 		"list_dashboards", "get_dashboard_detail",
 		"list_targets", "get_target_detail", "list_neighbor_targets",
+		"search_cmdb_devices",
 		"get_target_realtime_status", "probe_target_onboard_status", "query_host_metrics_window",
+		// Capability discovery must work on the first turn too: keeping SSH only
+		// behind load_skill makes the model deny a tool that is already installed.
+		"run_target_diagnostic",
 		"list_users", "list_teams", "list_busi_groups",
 		// 数据源查询
 		"query_prometheus", "query_timeseries", "query_log",
@@ -330,7 +343,7 @@ func selectGeneralChatTools(req *AIChatRequest) []string {
 		// 文档检索: n9e/categraf 特定字段/指标/Header/API 路径等"具体事实"必须从
 		// 这里取证, 不能凭训练记忆答 — 否则会编 Severity=Critical / Authorization
 		// Bearer / ping_result_code / [[inputs.xxx]] 等不存在的标识符。
-		"search_n9e_docs",
+		"search_n9e_docs", "search_knowledge", "read_knowledge", "query_knowledge_workbook", "resolve_knowledge_object", "query_knowledge_data", "target_statistics", "query_environment", "list_workbook_sheets", "read_workbook_range", "count_workbook_rows", "sum_workbook_column",
 		// 代码语料检索（只读，仅 qa_code_embed 构建有内容，缺语料时工具自报降级）。
 		// 与 search_n9e_docs 同一动机：文档没覆盖到的具体标识符要能从源码取证。
 		// 挂进基线而不是只留给 doc-qa 的另一个原因是"能力自述"——工具表里没有它

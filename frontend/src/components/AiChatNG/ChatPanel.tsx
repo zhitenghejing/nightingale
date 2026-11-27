@@ -104,7 +104,7 @@ export default function ChatPanel(props: IAiChatProps) {
     onBusyChange?.(submitting);
     if (!submitting) setDraftHint(false);
   }, [submitting, onBusyChange]);
-  const [isComposing, setIsComposing] = useState(false);
+  const composingRef = useRef(false);
   const [streamingLocator, setStreamingLocator] = useState<IAiChatMessageLocator>();
   const chatBodyRef = useRef<HTMLDivElement>(null);
   const chatContentRef = useRef<HTMLDivElement>(null);
@@ -114,6 +114,7 @@ export default function ChatPanel(props: IAiChatProps) {
   const streamBufferRef = useRef<{ locator?: IAiChatMessageLocator; segments: IAiChatStreamSegment[] }>({ locator: undefined, segments: [] });
   const activeChatRef = useRef<IAiChatHistoryItem>();
   const visibleChatIdRef = useRef<string | undefined>(chatId);
+  const previousChatIdRef = useRef(chatId);
   const messageLoadRequestRef = useRef(0);
   const [pageActionOutcomes, setPageActionOutcomes] = useState<AiChatPageActionOutcomes>({});
   // Turns this panel sent in this session. Only these may run a page action:
@@ -422,15 +423,17 @@ export default function ChatPanel(props: IAiChatProps) {
   }, [cleanupPolling, stopStream]);
 
   useEffect(() => {
+    const chatChanged = previousChatIdRef.current !== chatId;
+    previousChatIdRef.current = chatId;
     if (chatId && chatId === ownChatIdRef.current && activeChatRef.current?.chat_id === chatId) {
       return;
     }
     // First send creates the chat locally before the parent lifts `chatId`.
-    // loadMessages (and friends) changing identity must not tear that down or
-    // the turn is cancelled with "已停止，尚未修改" and the send looks dead.
-    if (!chatId && (ownChatIdRef.current || pendingTurnRef.current)) {
+    // Keep that turn on re-render, and reset when the parent clears an ID.
+    if (!chatId && !chatChanged && (ownChatIdRef.current || pendingTurnRef.current)) {
       return;
     }
+    ownChatIdRef.current = undefined;
     turnGenerationRef.current += 1;
     pendingTurnRef.current?.scope?.cancel();
     pendingTurnRef.current = undefined;
@@ -446,6 +449,13 @@ export default function ChatPanel(props: IAiChatProps) {
       locator: undefined,
       segments: [],
     };
+    if (chatChanged) {
+      setInputValue('');
+      setMessages([]);
+      setPageActionOutcomes({});
+      executedCallsRef.current.clear();
+      composingRef.current = false;
+    }
 
     if (!chatId) {
       messageLoadRequestRef.current += 1;
@@ -472,6 +482,7 @@ export default function ChatPanel(props: IAiChatProps) {
 
   useEffect(() => {
     return () => {
+      messageLoadRequestRef.current += 1;
       turnGenerationRef.current += 1;
       const pending = pendingTurnRef.current;
       pending?.scope?.cancel();
@@ -547,6 +558,7 @@ export default function ChatPanel(props: IAiChatProps) {
           initialSkill && messagesRef.current.length === 0 && !acceptedChatIdsRef.current.has(chat.chat_id)
             ? [{ id: initialSkill, name: initialSkill, type: 'skill' as const, skill: { name: initialSkill } }]
             : undefined;
+        const pageActions = uiActionRuntime.manifest();
         const query = {
           content: references ? `<@${references[0].id}> ${content}` : content,
           references,
@@ -557,7 +569,6 @@ export default function ChatPanel(props: IAiChatProps) {
         // What the page can do right now. Read at send time: registrations
         // come and go with the page, and this is also what closes a confirm
         // scope of 'turn' in the runtime.
-        const pageActions = uiActionRuntime.manifest();
         const result = await sendMessage({
           chat_id: chat.chat_id,
           query,
@@ -861,10 +872,17 @@ export default function ChatPanel(props: IAiChatProps) {
                 setInputValue(event.target.value);
                 setDraftHint(false);
               }}
-              onCompositionStart={() => setIsComposing(true)}
-              onCompositionEnd={() => setIsComposing(false)}
+              onCompositionStart={() => {
+                composingRef.current = true;
+              }}
+              onCompositionEnd={() => {
+                composingRef.current = false;
+              }}
               onKeyDown={(event) => {
-                if (isComposing) return;
+                // IME confirmation may emit compositionend before keydown.
+                // Native flags/code 229 still identify that Enter as IME input.
+                // Leave it (and candidate navigation keys) to the input method.
+                if (composingRef.current || event.nativeEvent.isComposing || event.keyCode === 229) return;
                 if (suggestionsOpen && highlighted) {
                   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                     event.preventDefault();
@@ -925,8 +943,7 @@ export default function ChatPanel(props: IAiChatProps) {
                 {inputSuffix}
               </>
             ) : (
-              <div className='mt-3 flex items-center justify-between gap-2 px-2 pb-2'>
-                <div />
+              <div className='mt-3 flex items-center justify-end gap-2 px-2 pb-2'>
                 <div className='flex items-center gap-2'>{sendButton}</div>
               </div>
             )}

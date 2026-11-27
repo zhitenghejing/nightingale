@@ -26,8 +26,8 @@ import { CommonStateContext } from '@/App';
 import EnhancedTable from '@/components/EnhancedTable';
 import { parseRange } from '@/components/TimeRangePicker';
 import { getEvents } from './services';
-import { deleteAlertEventsModal } from './index';
-import { SeverityColor } from './index';
+import { deleteAlertEventsModal } from './shared';
+import { SeverityColor } from './shared';
 
 // @ts-ignore
 import AckBtn from 'plus:/parcels/Event/Acknowledge/AckBtn';

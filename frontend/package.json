@@ -64,6 +64,8 @@
     "@turf/boolean-point-in-polygon": "6.5.0",
     "@uiw/react-codemirror": "4.6.0",
     "@uiw/react-md-editor": "4.0.4",
+    "@xterm/addon-fit": "0.11.0",
+    "@xterm/xterm": "6.0.0",
     "ace-builds": "1.34.1",
     "ag-grid-community": "34.1.2",
     "ag-grid-react": "34.1.2",

@@ -94,6 +94,34 @@ export default function CMDB() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  const uploadInventory = async (file: File, placementsOnly: boolean) => {
+    if (file.size > 5 * 1024 * 1024) {
+      message.error('导入文件不能超过 5 MB');
+      return false;
+    }
+    try {
+      const incoming = importCsv(await file.text(), placementsOnly ? [] : devices);
+      const saved = await api<Device[]>(
+        placementsOnly ? 'import?mode=placement' : 'import',
+        'POST',
+        placementsOnly
+          ? incoming
+          : incoming.map((device, index) => {
+              try {
+                return attachMaterial(device, { allowInferredHeightMismatch: true });
+              } catch (e) {
+                throw new Error(`第 ${index + 2} 行：${e instanceof Error ? e.message : '素材匹配失败'}`);
+              }
+            }),
+      );
+      await reload();
+      message.success(placementsOnly ? `已为 ${saved.length} 台设备补充机柜位置` : `已导入 ${saved.length} 台设备`);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '导入失败');
+    }
+    return false;
+  };
+
   return (
     <PageLayout title='CMDB' icon={<DatabaseOutlined />}>
       <div className='cmdb-page p-4'>
@@ -139,37 +167,14 @@ export default function CMDB() {
               <Button icon={<DownloadOutlined />} onClick={() => download(true)}>
                 模板下载
               </Button>
-              <Upload
-                accept='.csv,text/csv'
-                showUploadList={false}
-                beforeUpload={async (file) => {
-                  if (file.size > 5 * 1024 * 1024) {
-                    message.error('导入文件不能超过 5 MB');
-                    return false;
-                  }
-                  try {
-                    const incoming = importCsv(await file.text(), devices);
-                    await api(
-                      'import',
-                      'POST',
-                      incoming.map((device, index) => {
-                        try {
-                          return attachMaterial(device);
-                        } catch (e) {
-                          throw new Error(`第 ${index + 2} 行：${e instanceof Error ? e.message : '素材匹配失败'}`);
-                        }
-                      }),
-                    );
-                    await reload();
-                    message.success(`已导入 ${incoming.length} 台设备`);
-                  } catch (error) {
-                    message.error(error instanceof Error ? error.message : '导入失败');
-                  }
-                  return false;
-                }}
-              >
+              <Upload accept='.csv,text/csv' showUploadList={false} beforeUpload={(file) => uploadInventory(file, false)}>
                 <Button disabled={!access?.permissions.import} icon={<UploadOutlined />}>
                   数据导入
+                </Button>
+              </Upload>
+              <Upload accept='.csv,text/csv' showUploadList={false} beforeUpload={(file) => uploadInventory(file, true)}>
+                <Button disabled={!access?.permissions.import || !access?.permissions.edit} icon={<UploadOutlined />}>
+                  补充机柜位置
                 </Button>
               </Upload>
               <Button icon={<DownloadOutlined />} disabled={!access?.permissions.export} onClick={() => download(false)}>

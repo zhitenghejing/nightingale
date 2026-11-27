@@ -1,6 +1,6 @@
 {
   "inputs": {
-    "pnpm-lock.yaml": "95480436c17b6890c217a1677c8106eb3599d364957afabed038db7ebdf773ba",
+    "pnpm-lock.yaml": "62c23241e7308ce44884fa9dafc9f03ff48201c93fd6c6afd1cb95730d9e9b1b",
     "scripts/build-archive-worker.mjs": "36fa346d6060e75685b53604b6e150316ee0beceadeac64033d5ef069bb11a60",
     "src/pages/archiveManagement/exportWorker.ts": "869f1babbe211fbb505ecad8a1506466cb7b240a6066637fa890d083fa1e340e",
     "public/archive-fonts/manifest.json": "f04d4353afa87ede25d0f7347295f793f7f8423f37d208dfe336bb5a0ae70c76",

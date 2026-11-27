@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Alert, Button, Empty, Form, Input, InputNumber, Modal, Radio, Select, Space, Tag, Tooltip, message } from 'antd';
+import React, { useMemo, useState } from 'react';
+import { Alert, Button, Checkbox, Empty, Form, Input, InputNumber, Modal, Radio, Select, Space, Switch, Tag, Tooltip, message } from 'antd';
 import { CloseOutlined, DatabaseOutlined, DeleteOutlined, EditOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import PageLayout from '@/components/pageLayout';
 import RackViewport from '@/pages/rackViews/RackViewport';
@@ -7,10 +7,11 @@ import AssetPanel from './AssetPanel';
 import MaterialLibrary from './MaterialLibrary';
 import { PanelSide } from './materialCatalog';
 import '../rackViews/index.less';
-import { api, Rack, Room, saveAsset } from './api';
+import { api, Rack, RackAlert, Room, saveAsset } from './api';
 import { Device, blankDevice } from './model';
 import useInventory from './useInventory';
 import DeviceEditor, { Editor } from './DeviceEditor';
+import RackDeviceAlerts, { rackAlertLevels } from './RackDeviceAlerts';
 import './index.less';
 
 export function placement(d: Device, rack: Rack, start: number, devices: Device[]): string | undefined {
@@ -20,7 +21,7 @@ export function placement(d: Device, rack: Rack, start: number, devices: Device[
   if (devices.some((x) => x.id !== d.id && x.rackId === rack.id && x.uStart != null && x.uEnd != null && start <= x.uEnd && end >= x.uStart)) return '目标 U 位已被占用';
 }
 export default function Racks() {
-  const { devices, catalog, access, error, loading, reload } = useInventory();
+  const { devices, catalog, access, error, loading, reload, rackAlerts, rackAlertsFailed } = useInventory(true);
   const [side, setSide] = useState<PanelSide>('front');
   const [selected, setSelected] = useState<string>();
   const [compare, setCompare] = useState<string[]>([]);
@@ -37,6 +38,8 @@ export default function Racks() {
   const [deleteError, setDeleteError] = useState('');
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [search, setSearch] = useState('');
+  const [showAlertLights, setShowAlertLights] = useState(true);
+  const [onlyAlertRacks, setOnlyAlertRacks] = useState(false);
   const canEdit = !!access?.permissions.edit;
   const confirmDelete = (type: 'room' | 'rack', item: Room | Rack) => {
     setDeleteError('');
@@ -109,9 +112,23 @@ export default function Racks() {
       setSaving(false);
     }
   };
-  const rack = catalog.racks.find((r) => r.id === selected) || catalog.racks[0];
+  const alertRacks = useMemo(() => {
+    const result = new Map<string, { severity: RackAlert['severity']; devices: number }>();
+    for (const device of devices) {
+      const severity = rackAlerts[device.id]?.[0]?.severity;
+      if (!severity || !device.rackId || !device.uStart || !device.uEnd) continue;
+      const current = result.get(device.rackId);
+      if (current) {
+        current.devices++;
+        if (severity < current.severity) current.severity = severity;
+      } else result.set(device.rackId, { severity, devices: 1 });
+    }
+    return result;
+  }, [devices, rackAlerts]);
+  const availableRacks = onlyAlertRacks ? catalog.racks.filter((r) => alertRacks.has(r.id)) : catalog.racks;
+  const rack = availableRacks.find((r) => r.id === selected) || availableRacks[0];
   const comparisons = compare
-    .map((id) => catalog.racks.find((r) => r.id === id && r.id !== rack?.id))
+    .map((id) => availableRacks.find((r) => r.id === id && r.id !== rack?.id))
     .filter((r): r is Rack => !!r)
     .slice(0, 3);
   const shown = rack ? [rack, ...comparisons] : [];
@@ -119,9 +136,10 @@ export default function Racks() {
   const rooms = catalog.rooms
     .map((room) => ({
       ...room,
-      racks: catalog.racks.filter((r) => r.roomId === room.id && `${room.name} ${r.name}`.toLowerCase().includes(query)),
+      racks: availableRacks.filter((r) => r.roomId === room.id && `${room.name} ${r.name}`.toLowerCase().includes(query)),
     }))
-    .filter((room) => !query || room.name.toLowerCase().includes(query) || room.racks.length > 0);
+    .filter((room) => (onlyAlertRacks ? room.racks.length > 0 : !query || room.name.toLowerCase().includes(query) || room.racks.length > 0));
+  const rackEmpty = rackAlertsFailed && onlyAlertRacks ? '当前告警暂不可用' : onlyAlertRacks ? '暂无告警机柜' : '暂无机柜';
   const unplaced = devices.filter((d) => !d.uStart || !d.uEnd);
   const renderRack = (r: Rack) => {
     const placed = devices.filter((d) => d.rackId === r.id && d.uStart && d.uEnd);
@@ -243,35 +261,42 @@ export default function Racks() {
                   </React.Fragment>
                 );
               })}
-              {placed.map((d) => (
-                <button
-                  key={d.id}
-                  draggable={canEdit && !saving}
-                  className='rack-device rack-device-with-faceplate rack-device-photo'
-                  style={{ gridRow: `${r.units - (d.uEnd || 1) + 1} / span ${(d.uEnd || 1) - (d.uStart || 1) + 1}`, cursor: canEdit ? 'grab' : 'pointer' }}
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('text/plain', d.id);
-                    e.dataTransfer.effectAllowed = 'move';
-                    setDrag({ ...d });
-                  }}
-                  onDragEnd={() => {
-                    setDrag(undefined);
-                    setHover(undefined);
-                  }}
-                  onClick={() => {
-                    if (!drag) setEditor({ mode: 'view', device: d });
-                  }}
-                  title={`${d.hostname || d.serial} · ${d.vendor} ${d.model} · ${d.uStart}–${d.uEnd}U · 未关联监控`}
-                >
-                  <AssetPanel device={d} side={side} />
-                  <span className='rack-device-nameplate'>
-                    <strong>{d.hostname || d.serial}</strong>
-                    <span>
-                      {d.model} · {d.uStart}–{d.uEnd}U
+              {placed.map((d) => {
+                const alerts = rackAlerts[d.id];
+                const severity = alerts?.[0]?.severity;
+                const label = severity ? ` · ${rackAlertLevels[severity].label} · ${alerts.length} 条当前告警` : '';
+                return (
+                  <button
+                    key={d.id}
+                    draggable={canEdit && !saving}
+                    className='rack-device rack-device-with-faceplate rack-device-photo'
+                    data-rack-alert-level={showAlertLights ? severity : undefined}
+                    style={{ gridRow: `${r.units - (d.uEnd || 1) + 1} / span ${(d.uEnd || 1) - (d.uStart || 1) + 1}`, cursor: canEdit ? 'grab' : 'pointer' }}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/plain', d.id);
+                      e.dataTransfer.effectAllowed = 'move';
+                      setDrag({ ...d });
+                    }}
+                    onDragEnd={() => {
+                      setDrag(undefined);
+                      setHover(undefined);
+                    }}
+                    onClick={() => {
+                      if (!drag) setEditor({ mode: 'view', device: d });
+                    }}
+                    title={`${d.hostname || d.serial} · ${d.vendor} ${d.model} · ${d.uStart}–${d.uEnd}U${label}`}
+                  >
+                    <AssetPanel device={d} side={side} />
+                    {showAlertLights && severity && <span className='rack-device-alert-light' aria-hidden='true' />}
+                    <span className='rack-device-nameplate'>
+                      <strong>{d.hostname || d.serial}</strong>
+                      <span>
+                        {d.model} · {d.uStart}–{d.uEnd}U
+                      </span>
                     </span>
-                  </span>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
             <div className='rack-cabinet-footer'>
               <span />
@@ -286,6 +311,7 @@ export default function Racks() {
     <PageLayout title='机柜图' icon={<DatabaseOutlined />}>
       <div className='rack-views'>
         {error && <Alert type='error' showIcon message={error} />}
+        {rackAlertsFailed && <Alert type='warning' showIcon message='机柜告警加载失败，刷新后重试' />}
         <div className='rack-toolbar'>
           <Space size={8} wrap>
             <Radio.Group
@@ -315,7 +341,7 @@ export default function Racks() {
             value={comparisons.map((r) => r.id)}
             placeholder='添加并排机柜（最多4个）'
             onChange={(ids) => setCompare(ids.slice(0, 3))}
-            options={catalog.racks
+            options={availableRacks
               .filter((r) => r.id !== rack?.id)
               .map((r) => ({
                 value: r.id,
@@ -323,6 +349,13 @@ export default function Racks() {
                 disabled: comparisons.length >= 3 && !comparisons.some((x) => x.id === r.id),
               }))}
           />
+          <Space size={8} wrap>
+            <Checkbox checked={onlyAlertRacks} onChange={(e) => setOnlyAlertRacks(e.target.checked)}>
+              仅告警机柜
+            </Checkbox>
+            <Switch size='small' aria-label='告警亮灯' checked={showAlertLights} onChange={setShowAlertLights} />
+            <span>告警亮灯</span>
+          </Space>
           <Space size={8} wrap className='rack-management'>
             <MaterialLibrary />
             <Button size='small' disabled={!access?.permissions.edit} onClick={() => open('room')}>
@@ -341,7 +374,7 @@ export default function Racks() {
                 <div className='rack-help-content'>
                   <p>点击设备查看或编辑；拖动时以指针所在 U 位作为起始位置，保留设备高度并自动保存。</p>
                   <p>最多四个机柜并排，向右滚动查看并跨柜拖动。默认适应窗口；滚轮以鼠标位置为中心缩放，也可使用缩放按钮和滚动条查看局部。</p>
-                  <p>正背视图共用 CMDB 数据；已匹配型号显示对应面板。当前未关联实时监控。</p>
+                  <p>当前告警按设备 IP 关联。一级红灯、二级橙灯、三级黄灯。点击设备可查看对应告警事件。</p>
                 </div>
               }
             >
@@ -352,7 +385,7 @@ export default function Racks() {
         <div className='rack-workspace'>
           <aside className='rack-list'>
             {rooms.map((room) => (
-              <details key={room.id} className='rack-room' open={query ? true : undefined}>
+              <details key={room.id} className='rack-room' open={query || onlyAlertRacks ? true : undefined}>
                 <summary>
                   <span className='rack-room-name' title={room.name}>
                     {room.name}
@@ -396,7 +429,15 @@ export default function Racks() {
                       }}
                     >
                       <strong>{r.name}</strong>
-                      <span>{r.units}U</span>
+                      <span className='rack-list-meta'>
+                        {r.units}U
+                        {alertRacks.has(r.id) && (
+                          <span className='rack-list-alert-count' title={`${alertRacks.get(r.id)!.devices} 台设备有当前告警`}>
+                            {showAlertLights && <i data-rack-alert-level={alertRacks.get(r.id)!.severity} aria-hidden='true' />}
+                            {alertRacks.get(r.id)!.devices}
+                          </span>
+                        )}
+                      </span>
                     </button>
                     <Space size={0} className='rack-list-actions'>
                       <Button
@@ -424,11 +465,11 @@ export default function Racks() {
                 {!room.racks.length && <div className='rack-room-empty'>暂无机柜</div>}
               </details>
             ))}
-            {!rooms.length && <Empty description={query ? '未找到机房或机柜' : '请先创建机房和机柜'} />}
+            {!rooms.length && <Empty description={query ? '未找到机房或机柜' : onlyAlertRacks ? rackEmpty : '请先创建机房和机柜'} />}
           </aside>
           <main className='rack-detail'>
             <div className={`rack-panels${shown.length > 1 ? ' rack-panels-multiple' : ''}`} aria-label='并排机柜区域'>
-              {shown.length ? shown.map(renderRack) : <Empty description='暂无机柜' />}
+              {shown.length ? shown.map(renderRack) : <Empty description={rackEmpty} />}
             </div>
             {unplaced.length > 0 && (
               <details className='rack-unplaced'>
@@ -469,6 +510,7 @@ export default function Racks() {
           onSaved={reload}
           canEdit={canEdit}
           canDelete={!!access?.permissions.delete}
+          viewContent={editor?.device && <RackDeviceAlerts alerts={rackAlerts[editor.device.id] || []} failed={rackAlertsFailed} />}
         />
         <Modal
           title={dialog === 'room' ? (editingRoom ? '编辑机房' : '新增机房') : editingRack ? '编辑机柜' : '新增机柜'}

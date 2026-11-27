@@ -15,15 +15,14 @@
  *
  */
 import React, { useContext, useState } from 'react';
-import { Button, Input, message, Modal, Select, Space, Row, Col, Dropdown, Menu } from 'antd';
-import { AlertOutlined, ExclamationCircleOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { Button, Input, Select, Space, Row, Col, Dropdown, Menu } from 'antd';
+import { AlertOutlined, SearchOutlined, AppstoreOutlined, UnorderedListOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { getAlertSeverityName } from '@/utils/alertSeverity';
 import _ from 'lodash';
 import queryString from 'query-string';
 import { useLocation, useHistory } from 'react-router-dom';
 import PageLayout from '@/components/pageLayout';
-import { deleteAlertEvents } from '@/services/warning';
 import { AutoRefresh } from '@/components/TimeRangePicker';
 import { CommonStateContext } from '@/App';
 import { getProdOptions } from '@/pages/alertRules/Form/components/ProdSelect';
@@ -31,6 +30,7 @@ import DatasourceSelect from '@/components/DatasourceSelect/DatasourceSelect';
 import TimeRangePicker, { getDefaultValue } from '@/components/TimeRangePicker';
 import { IS_ENT } from '@/utils/constant';
 import { BusinessGroupSelectWithAll } from '@/components/BusinessGroup';
+import { deleteAlertEventsModal } from './shared';
 import Card from './card';
 import Table from './Table';
 import './locale';
@@ -52,25 +52,7 @@ const getFilter = (query) => {
   };
 };
 
-const { confirm } = Modal;
-export const SeverityColor = ['red', 'orange', 'yellow', 'green'];
-export function deleteAlertEventsModal(ids: number[], onSuccess = () => {}, t) {
-  confirm({
-    title: t('delete_confirm.title'),
-    icon: <ExclamationCircleOutlined />,
-    content: t('delete_confirm.content'),
-    maskClosable: true,
-    okButtonProps: { danger: true },
-    zIndex: 1001,
-    onOk() {
-      return deleteAlertEvents(ids).then((res) => {
-        message.success(t('common:success.delete'));
-        onSuccess();
-      });
-    },
-    onCancel() {},
-  });
-}
+export { SeverityColor, deleteAlertEventsModal } from './shared';
 
 const Event: React.FC = () => {
   const { t } = useTranslation('AlertCurEvents');

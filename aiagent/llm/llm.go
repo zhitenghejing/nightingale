@@ -87,12 +87,15 @@ type ToolDefinition struct {
 
 // GenerateRequest is the unified request for LLM generation
 type GenerateRequest struct {
-	Messages    []Message        `json:"messages"`
-	Tools       []ToolDefinition `json:"tools,omitempty"`
-	MaxTokens   *int             `json:"max_tokens,omitempty"`
-	Temperature *float64         `json:"temperature,omitempty"`
-	TopP        float64          `json:"top_p,omitempty"`
-	Stream      bool             `json:"stream,omitempty"`
+	// Optional request-local reasoning budget. Only adapters with verified
+	// native support send it; zero/unset preserves the configured behavior.
+	ThinkingBudget *int             `json:"thinking_budget,omitempty"`
+	Messages       []Message        `json:"messages"`
+	Tools          []ToolDefinition `json:"tools,omitempty"`
+	MaxTokens      *int             `json:"max_tokens,omitempty"`
+	Temperature    *float64         `json:"temperature,omitempty"`
+	TopP           float64          `json:"top_p,omitempty"`
+	Stream         bool             `json:"stream,omitempty"`
 }
 
 // GenerateResponse is the unified response from LLM generation

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ccfos/nightingale/v6/aiagent/llm"
+	"github.com/ccfos/nightingale/v6/pkg/modeloutput"
 )
 
 // buildLLMRequest 将 Agent 内部的 ChatMessage 转成 llm.GenerateRequest
@@ -11,9 +12,13 @@ import (
 func buildLLMRequest(messages []ChatMessage) *llm.GenerateRequest {
 	llmMessages := make([]llm.Message, len(messages))
 	for i, msg := range messages {
+		content := msg.Content
+		if msg.Role == llm.RoleAssistant && len(msg.ToolCalls) > 0 {
+			content = modeloutput.ToolCommentary(content)
+		}
 		llmMessages[i] = llm.Message{
 			Role:           msg.Role,
-			Content:        msg.Content,
+			Content:        content,
 			ToolCalls:      msg.ToolCalls,
 			ToolCallID:     msg.ToolCallID,
 			ToolName:       msg.ToolName,

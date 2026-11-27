@@ -168,9 +168,30 @@ I18NHeaderKey = "X-Language"
 # <= 0 means keep forever (default)
 # CleanAlertHisEventDay = 365
 
+# Evidence-based operations handling. Model access and production execution are opt-in.
+[Center.Ops]
+DataDir = "data/ops"
+ModelEnable = false
+AllowExecution = false
+DemoEnable = false
+DemoURL = ""
+
 [Center.AnonymousAccess]
 PromQuerier = true
 AlertDetail = true
+
+# Read-only Linux SSH diagnostics for the built-in AI agent. Passwords and
+# pinned host fingerprints belong in the private (0600) connection file only.
+# See doc/api/remote-diagnostics.md for direct and one-hop SSH examples.
+[Center.RemoteDiagnostics]
+Enable = false
+# Interactive SSH for authorized operators.
+EnableTerminal = false
+RDPGatewayAddress = ""
+# KeyFile = "/etc/n9e/private/ops-ssh-keys.json" # persistent private AES-256 keyring
+TimeoutSeconds = 30
+MaxOutputBytes = 32768
+MaxConcurrent = 4
 
 [EmbeddedTSDB]
 # built-in time series database. When enabled, metrics pushed by categraf are

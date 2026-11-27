@@ -59,8 +59,9 @@ export function matchMaterial(device: Device): MaterialMatch {
     return { status: 'height-mismatch', material, message: `${material.model} 标准高度为 ${material.units}U，当前起止 U 位不符，请核实位置` };
   return { status: 'matched', material, message: `已匹配 ${material.brand} ${material.model} · ${material.units}U · 正背面产品素材` };
 }
-export function attachMaterial(device: Device): Device {
+export function attachMaterial(device: Device, { allowInferredHeightMismatch = false } = {}): Device {
   const matched = matchMaterial(device);
+  if (matched.status === 'height-mismatch' && allowInferredHeightMismatch && !device.assetMaterialId) return device;
   if (matched.status === 'conflict' || matched.status === 'height-mismatch') throw new Error(matched.message);
   return { ...device, assetMaterialId: matched.material?.id };
 }

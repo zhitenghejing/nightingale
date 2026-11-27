@@ -328,6 +328,15 @@ func (rt *Router) targetDeviceMetrics(c *gin.Context) {
 	if rt.DatasourceCache.DatasourceFilter != nil {
 		sources = rt.DatasourceCache.DatasourceFilter(sources, c.MustGet("user").(*models.User))
 	}
+	// The cache retains disabled sources for configuration and historical reads.
+	// Live charts must not query them or mark healthy active-source data as partial.
+	activeSources := make([]*models.Datasource, 0, len(sources))
+	for _, source := range sources {
+		if source.Status != "disabled" {
+			activeSources = append(activeSources, source)
+		}
+	}
+	sources = activeSources
 	if len(sources) == 0 {
 		collectionReply(c, nil, &collection.Error{Code: 503, Message: "datasource unavailable"})
 		return

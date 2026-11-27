@@ -6,8 +6,12 @@ import (
 	"github.com/ccfos/nightingale/v6/aiagent/llm"
 	"github.com/ccfos/nightingale/v6/datasource"
 	"github.com/ccfos/nightingale/v6/models"
+	"github.com/ccfos/nightingale/v6/pkg/cmdb"
 	"github.com/ccfos/nightingale/v6/pkg/ctx"
+	"github.com/ccfos/nightingale/v6/pkg/knowledgebase"
+	"github.com/ccfos/nightingale/v6/pkg/ops"
 	"github.com/ccfos/nightingale/v6/pkg/prom"
+	"github.com/ccfos/nightingale/v6/pkg/remotediag"
 	"github.com/ccfos/nightingale/v6/pkg/sandbox"
 	"github.com/ccfos/nightingale/v6/storage"
 )
@@ -62,6 +66,13 @@ type Agent struct {
 
 // AgentConfig Agent 配置（仅包含 Agent 行为相关字段，LLM 配置通过 WithLLMClient 注入）
 type AgentConfig struct {
+	// Restricted workflows enforce the visible tool set before builtin dispatch.
+	RestrictTools bool `json:"restrict_tools,omitempty"`
+	MaxToolCalls  int  `json:"max_tool_calls,omitempty"`
+	// Bound source-only loops without restricting the available skills/tools.
+	GuardEvidenceProgress bool `json:"guard_evidence_progress,omitempty"`
+	// Read-only Q&A may finalize with collected evidence when its query budget is used.
+	FinishOnToolBudget bool `json:"finish_on_tool_budget,omitempty"`
 	// Agent 行为
 	MaxIterations int    `json:"max_iterations"`
 	Timeout       int    `json:"timeout"`
@@ -130,11 +141,12 @@ type AgentRequest struct {
 
 // AgentResponse Agent 执行结果
 type AgentResponse struct {
-	Content    string     `json:"content"`         // 最终结果文本
-	Steps      []ToolStep `json:"steps"`           // 执行轨迹
-	Iterations int        `json:"iterations"`      // 迭代次数
-	Success    bool       `json:"success"`         // 是否成功
-	Error      string     `json:"error,omitempty"` // 错误信息
+	ProtocolRecoveries int        `json:"protocol_recoveries,omitempty"`
+	Content            string     `json:"content"`         // 最终结果文本
+	Steps              []ToolStep `json:"steps"`           // 执行轨迹
+	Iterations         int        `json:"iterations"`      // 迭代次数
+	Success            bool       `json:"success"`         // 是否成功
+	Error              string     `json:"error,omitempty"` // 错误信息
 
 	// contentStreamed（仅包内）：流式模式下正文已逐 token 经 StreamTypeContent
 	// 下发。executeNativeWithDone 据此给 Done chunk 打标，路由层只把 Done.Content
@@ -191,16 +203,22 @@ type AgentTool struct {
 
 // ToolParameter 工具参数定义
 type ToolParameter struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Description string `json:"description"`
-	Required    bool   `json:"required"`
+	Enum        []string `json:"enum,omitempty"`
+	ItemType    string   `json:"item_type,omitempty"`
+	Name        string   `json:"name"`
+	Type        string   `json:"type"`
+	Description string   `json:"description"`
+	Required    bool     `json:"required"`
 }
 
 // ToolDeps 内置工具的依赖集合
 // 由宿主一次性构造并通过 WithToolDeps 注入 Agent，取代原先 builtin_tools.go 里一组包级可变变量。
 // 所有 BuiltinToolFunc 都以第一等公民方式从形参拿依赖，不再读 package global。
 type ToolDeps struct {
+	Library *knowledgebase.Store
+	// Ops is a run-scoped operations interface; it never grants human approval.
+	Ops               *ops.Service
+	OpsScope          *ops.Scope
 	DBCtx             *ctx.Context
 	SkillsPath        string
 	GetPromClient     func(dsId int64) prom.API
@@ -228,6 +246,12 @@ type ToolDeps struct {
 	// Sandbox 是 Skill Python/Bash 脚本执行的隔离控制器（pkg/sandbox）。run_skill_script
 	// 工具据此执行某 skill 的入口脚本。nil 或未启用时，工具回报「执行未开启」而非报错。
 	Sandbox *sandbox.Sandbox
+
+	// RemoteDiagnostics runs predefined SSH checks under the initiating user's
+	// target and business-group execution permissions. Credentials stay server-side.
+	RemoteDiagnostics *remotediag.Runner
+	// CMDB provides inventory reads with the same ACL as the inventory page.
+	CMDB *cmdb.Store
 
 	// N9eAPIBaseURL 是 Skill Gateway 回环自调 n9e 自身 API 的基址（如
 	// "http://127.0.0.1:17000"）。空则 Gateway 不启用。
@@ -296,9 +320,12 @@ type ToolStep struct {
 
 // ToolLoopConfig 工具循环配置
 type ToolLoopConfig struct {
-	MaxIterations  int
-	TimeoutMessage string
-	LogPrefix      string
+	GuardEvidenceProgress bool
+	FinishOnToolBudget    bool
+	MaxToolCalls          int
+	MaxIterations         int
+	TimeoutMessage        string
+	LogPrefix             string
 
 	// 本次循环可见的工具集（runCtx.tools 快照）
 	Tools []AgentTool
@@ -343,4 +370,6 @@ type ChatMessage struct {
 	// transcript 持久化，回放时由 provider 适配层回填——开启 thinking 后工具
 	// 续轮的协议硬性要求（语义见 llm.ThinkingBlock）。
 	ThinkingBlocks []llm.ThinkingBlock `json:"thinking_blocks,omitempty"`
+	DurationMS     int64               `json:"duration_ms,omitempty"`
+	FailureClass   string              `json:"failure_class,omitempty"`
 }

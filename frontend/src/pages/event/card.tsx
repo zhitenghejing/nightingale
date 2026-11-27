@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { getAlertCards, getCardDetail } from '@/services/warning';
 import { CommonStateContext } from '@/App';
 import { parseRange } from '@/components/TimeRangePicker';
-import { SeverityColor, deleteAlertEventsModal } from './index';
+import { SeverityColor, deleteAlertEventsModal } from './shared';
 import CardLeft from './cardLeft';
 import './index.less';
 
